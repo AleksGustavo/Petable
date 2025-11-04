@@ -33,3 +33,8 @@ quanto o de atributos das tabelas.
     - Conceitual, com arquivo e imagem.
     - Lógico, com arquivo e imagem.
     - Físico
+
+04-11-25:
+    Hoje, dei continuidade a documentação do projeto, pois, também
+    está sendo uma das minhas responsabilidades. Estou quase finalizando
+    e me sinto muito satisfeito com o rumo que o projeto está tomando.
