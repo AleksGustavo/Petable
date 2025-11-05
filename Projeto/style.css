@@ -1,0 +1,52 @@
+/* Arquivo: style.css */
+
+/* --- Configurações Gerais do Body (Fundo Gradiente Marrom MUITO Escuro e Forte) --- */
+body {
+    /* Degradê de marrom profundo (#3E2723 - Brown Escuro) para marrom rico (#5D4037 - Brown Médio) */
+    background: linear-gradient(to bottom right, #3E2723, #5D4037); 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0; 
+}
+
+/* --- Estilo do Card de Login (Bootstrap) --- */
+.login-card {
+    max-width: 500px; 
+    width: 90%; 
+    padding: 2rem;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.6); /* Sombra ainda mais forte */
+    border-radius: 10px; 
+    background-color: #ffffff; 
+}
+
+/* --- Estilo da Logo/Imagem (Alteração: Borda do Logo para combinar) --- */
+.login-card img {
+    max-width: 120px;
+    border: 3px solid #795548; /* Borda agora em Marrom Médio */
+    box-shadow: 0 0 10px rgba(121, 85, 72, 0.7); /* Sombra marrom para harmonizar */
+}
+
+/* --- Estilo do Botão Principal (Alteração: Botão para Marrom Escuro) --- */
+.login-btn {
+    background-color: #5D4037; /* Marrom do degradê */
+    border-color: #5D4037;
+    font-weight: bold;
+    transition: background-color 0.3s, transform 0.1s;
+}
+
+.login-btn:hover {
+    background-color: #3E2723; /* Marrom mais escuro no hover */
+    border-color: #3E2723;
+    transform: translateY(-1px); 
+}
+
+/* --- Estilo das Mensagen de Status --- */
+.text-success {
+    color: #198754 !important;
+}
+
+.fa-spin {
+    color: #198754;
+}
