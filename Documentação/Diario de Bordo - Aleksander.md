@@ -1,47 +1,97 @@
-Diário de Bordo
+# 📔 Diário de Bordo do Projeto Integrador
 
-09-09-25
-Aleksander:
-    Hoje dei início à documentação do nosso projeto integrador, apresentando a empresa, visão, missão e os nossos valores
-que serão implementados de acordo com o projeto.
+O Diário de Bordo registra as atividades e o progresso do desenvolvimento do projeto, detalhando as responsabilidades e entregas realizadas.
 
-10-09-25
-Aleksander:
-    Hoje, no meu horário de almoço, dei continuidade à documentação do projeto e início à criação do banco de dados.
-    Também ficarei responsável pelos diagramas de caso de uso e de sequência.
+---
 
+### 📅 09/09/2025
 
-13-10-25
-Aleksander:
-    Pode parecer que estamos sumidos, mas fizemos muito progresso.
-    Criamos durante esses dias, nossos diagramas de sequência, o banco de dados lógico e o dicionário de dados, tanto para de tabelas,
-quanto o de atributos das tabelas.
-    Criamos também algumas telas, o logotipo e a melhor das coisas: estamos administrando nosso projeto no Jira. Abaixo estará o link:
-    https://petepet.atlassian.net/jira/software/projects/KAN/boards/1?atlOrigin=eyJpIjoiYmRkMTkwMGIxYzZhNDA2NGE5Y2IwMGU0NGJhOGRiNjIiLCJwIjoiaiJ9
+**Responsável:** Aleksander
 
-20-10-25:
-    Hoje, criei alguns diagramas de sequência para complementar o PI.
-    - Agendamento de Serviço de Banho e Tosa
-    - Cadastro de Cliente e Pet
-    - Compra e Entrada de Estoque
-    - Realização de venda (Checkout)
-    - Registro de Histórico Veterinário e Vacinas
+**Atividade Principal:** Início da Documentação
 
-25-10-25:
-    Hoje eu estou finalizando toda a situação do banco de dados.
-    Realizei alterações e finalizei os seguintes modelos:
-    - Conceitual, com arquivo e imagem.
-    - Lógico, com arquivo e imagem.
-    - Físico
+* Início oficial da documentação do Projeto Integrador.
+* Elaboração da seção inicial, incluindo a **apresentação da empresa**, **visão**, **missão** e **valores** que guiarão o projeto.
 
-04-11-25:
-    Hoje, dei continuidade a documentação do projeto, pois, também
-    está sendo uma das minhas responsabilidades. Estou quase finalizando
-    e me sinto muito satisfeito com o rumo que o projeto está tomando.
-    Dando continuidade á documentação, hoje no período da noite realizei
-    alguns ajustes na documentação.
+---
 
-05-11-25:
-    Hoje, estou realizando o merge do meu projeto com o main no GitHub
-    para centralizar todas as informações em uma ramificação só, que é
-    a principal. Vamos fazer dar certo.
+### 📅 10/09/2025
+
+**Responsável:** Aleksander
+
+**Atividades Principais:** Documentação e Banco de Dados
+
+* Continuidade na elaboração da documentação inicial do projeto.
+* Início da **criação e modelagem** do banco de dados.
+* Definição de responsabilidade: Ficarei responsável pela criação dos **diagramas de Caso de Uso** e de **Sequência**.
+
+---
+
+### 📅 13/10/2025
+
+**Responsável:** Aleksander
+
+**Progresso Chave (Entrega Parcial):**
+
+Grandes avanços no projeto neste período:
+
+* Criação dos **Diagramas de Sequência** iniciais.
+* Finalização do **Banco de Dados Lógico**.
+* Elaboração completa do **Dicionário de Dados** (tabelas e atributos).
+* Criação das primeiras telas e do **Logotipo** oficial do projeto.
+* **Gestão Ágil:** Iniciamos a administração do projeto utilizando o **Jira** com a metodologia Kanban.
+
+**Link do Jira:**
+[Acessar Board Kanban no Jira](https://petepet.atlassian.net/jira/software/projects/KAN/boards/1?atlOrigin=eyJpIjoiYmRkMTkwMGIxYzZhNDA2NGE5Y2IwMGU0NGJhOGRiNjIiLCJwIjoiaiJ9)
+
+---
+
+### 📅 20/10/2025
+
+**Responsável:** Aleksander
+
+**Atividades Principais:** Modelagem e Diagramas de Sequência
+
+Criação e complementação dos seguintes Diagramas de Sequência:
+
+* Agendamento de Serviço de Banho e Tosa
+* Cadastro de Cliente e Pet
+* Compra e Entrada de Estoque
+* Realização de Venda (Checkout)
+* Registro de Histórico Veterinário e Vacinas
+
+---
+
+### 📅 25/10/2025
+
+**Responsável:** Aleksander
+
+**Atividades Principais:** Finalização da Modelagem de Dados
+
+* Finalização e revisão completa da modelagem do banco de dados.
+* **Modelos Concluídos:**
+    * **Modelo Conceitual** (com arquivo `.brM` e imagem `PNG/JPG`).
+    * **Modelo Lógico** (com arquivo `.brM` e imagem `PNG/JPG`).
+    * **Modelo Físico** (script SQL de criação de tabelas).
+
+---
+
+### 📅 04/11/2025
+
+**Responsável:** Aleksander
+
+**Atividades Principais:** Continuidade da Documentação
+
+* Dedicado à continuidade e **revisão da documentação** do projeto, cumprindo as responsabilidades atribuídas.
+* Realização de **ajustes finos** e complementos nas seções documentais durante o período da noite.
+
+---
+
+### 📅 05/11/2025
+
+**Responsável:** Aleksander
+
+**Atividade Principal:** *Merge* (Integração de Código)
+
+* Realização do **Merge** da *branch* de desenvolvimento (`feature/nome-da-branch` ou similar) com a ramificação **main** no GitHub.
+* Objetivo: Centralizar todas as informações e códigos mais recentes na ramificação principal do projeto.
