@@ -40,3 +40,8 @@ quanto o de atributos das tabelas.
     e me sinto muito satisfeito com o rumo que o projeto está tomando.
     Dando continuidade á documentação, hoje no período da noite realizei
     alguns ajustes na documentação.
+
+05-11-25:
+    Hoje, estou realizando o merge do meu projeto com o main no GitHub
+    para centralizar todas as informações em uma ramificação só, que é
+    a principal. Vamos fazer dar certo.
