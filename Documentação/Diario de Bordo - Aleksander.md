@@ -38,3 +38,5 @@ quanto o de atributos das tabelas.
     Hoje, dei continuidade a documentação do projeto, pois, também
     está sendo uma das minhas responsabilidades. Estou quase finalizando
     e me sinto muito satisfeito com o rumo que o projeto está tomando.
+    Dando continuidade á documentação, hoje no período da noite realizei
+    alguns ajustes na documentação.
