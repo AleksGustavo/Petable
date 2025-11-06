@@ -1,146 +1,235 @@
 <?php
-// ... (seu bloco PHP inicial vazio)
+// Arquivo: vendas_pdv.php
+// ------------------------------------------------------------
+// 1. INCLUSÃO DA CONEXÃO E BUSCA DE DADOS
+// ------------------------------------------------------------
+// Você DEVE garantir que 'conexao.php' inicializa a variável $pdo (PDO)
+require_once 'conexao.php'; 
+
+$clientes = [];
+try {
+    // Busca todos os clientes ativos
+    $sql_clientes = "SELECT id, nome FROM cliente WHERE ativo = 1 ORDER BY nome ASC";
+    $stmt_clientes = $pdo->query($sql_clientes);
+    $clientes = $stmt_clientes->fetchAll(PDO::FETCH_ASSOC);
+} catch (\PDOException $e) {
+    error_log("Erro ao carregar clientes: " . $e->getMessage());
+}
 ?>
 
 <style>
-    /* ... (seus estilos existentes) ... */
-    
-    /* Estilo para garantir que a lista do Autocomplete fique acima de outros elementos */
+    /* Estilos para o Autocomplete */
     .ui-autocomplete {
-        z-index: 1050; /* Z-index maior que modais, se necessário */
+        z-index: 1050; 
         max-height: 200px;
         overflow-y: auto;
         overflow-x: hidden;
     }
+
+    /* ------------------------------------------- */
+    /* Estilos para o Card de Sucesso e Efeito Blur */
+    /* ------------------------------------------- */
+
+    /* Overlay (fundo escuro transparente) */
+    #modal-overlay {
+        display: none; /* Começa escondido */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6); /* Fundo escuro */
+        z-index: 1059; /* Abaixo do card de sucesso (1060) */
+    }
+    
+    /* Classe para aplicar o efeito blur ao conteúdo principal */
+    .blur-effect {
+        /* Aplica o desfoque ao fundo */
+        filter: blur(4px); 
+        /* Transição suave para um visual mais profissional */
+        transition: filter 0.3s ease-out; 
+    }
+
+    /* Card de Sucesso - Posição e Animação */
+    #sucesso-venda-card {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 1060;
+        width: 300px;
+        border-radius: 15px;
+        /* Adiciona uma animação suave de brilho (pulse-shadow) */
+        animation: pulse-shadow 1.5s infinite; 
+    }
+
+    /* Animação de Brilho */
+    @keyframes pulse-shadow {
+        0% { box-shadow: 0 0 5px rgba(0, 128, 0, 0.4); }
+        50% { box-shadow: 0 0 15px rgba(0, 128, 0, 0.8); }
+        100% { box-shadow: 0 0 5px rgba(0, 128, 0, 0.4); }
+    }
+    
+    /* Animação de Bounce para o Ícone */
+    @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+    
 </style>
 
-<div class="d-flex justify-content-between align-items-center mb-2">
-    <h2><i class="fas fa-cash-register me-2"></i> Ponto de Venda (PDV)</h2>
-    
-    <div>
-        <button type="button" class="btn btn-info btn-sm" id="btn-fechar-caixa">
-            <i class="fas fa-lock me-1"></i> Fechar Caixa
-        </button>
+<div id="modal-overlay"></div>
+
+<div id="sucesso-venda-card" class="card text-center bg-light shadow-lg" style="display: none;">
+    <div class="card-body p-4">
+        <h4 class="card-title text-success mb-3">Venda Realizada com Sucesso!</h4>
+        
+        <i class="fas fa-check-circle fa-4x text-success mb-3" style="animation: bounce 0.5s ease-in-out infinite alternate;"></i>
+
+        <p class="card-text text-muted mb-0" id="mensagem-sucesso-venda"></p>
+        <button type="button" class="btn btn-sm btn-success mt-3" onclick="fecharSucesso();">Continuar Vendas</button>
     </div>
 </div>
+<div id="main-content-wrapper">
 
-<div id="status-message-area">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2><i class="fas fa-cash-register me-2"></i> Ponto de Venda (PDV)</h2>
+        
+        <div>
+            <button type="button" class="btn btn-info btn-sm" id="btn-fechar-caixa">
+                <i class="fas fa-lock me-1"></i> Fechar Caixa
+            </button>
+        </div>
     </div>
 
-<form id="form-pdv" method="POST" action="vendas_processar.php">
-    <div class="row g-2">
-        
-        <div class="col-lg-8">
-            <div class="card shadow-sm mb-2">
-                <div class="card-header bg-primary text-white p-2">
-                    <h6 class="mb-0"><i class="fas fa-search me-2"></i> Adicionar Item</h6>
-                    </div>
-                <div class="card-body p-2">
-                    <div class="row g-2">
-                        <div class="col-md-7">
-                            <label for="busca_item" class="form-label mb-1" style="font-size: 0.8rem;">Produto/Serviço (Cód. Barras / Nome)</label>
-                            <input type="text" id="busca_item" name="busca_item" class="form-control form-control-sm" placeholder="Buscar por nome ou código...">
-                            <input type="hidden" id="item_selecionado_id" name="item_selecionado_id">
-                        </div>
-                        <div class="col-md-2">
-                            <label for="quantidade_item" class="form-label mb-1" style="font-size: 0.8rem;">Qtde.</label>
-                            <input type="number" id="quantidade_item" name="quantidade_item" class="form-control form-control-sm" value="1" min="1">
-                        </div>
-                        <div class="col-md-3 d-flex align-items-end">
-                            <button type="button" class="btn btn-success btn-sm w-100" id="btn-adicionar-item" disabled>
-                                <i class="fas fa-cart-plus me-1"></i> Adicionar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <div id="status-message-area">
+    </div>
 
-            <div class="card shadow-sm">
-                <div class="card-header bg-secondary text-white p-2">
-                    <h6 class="mb-0"><i class="fas fa-list me-2"></i> Itens da Venda (<span id="contador_itens">0</span>)</h6>
+    <form id="form-pdv" method="POST" action="vendas_processar.php">
+        <div class="row g-2">
+            
+            <div class="col-lg-8">
+                <div class="card shadow-sm mb-2">
+                    <div class="card-header bg-primary text-white p-2">
+                        <h6 class="mb-0"><i class="fas fa-search me-2"></i> Adicionar Item</h6>
+                        </div>
+                    <div class="card-body p-2">
+                        <div class="row g-2">
+                            <div class="col-md-7">
+                                <label for="busca_item" class="form-label mb-1" style="font-size: 0.8rem;">Produto/Serviço (Cód. Barras / Nome)</label>
+                                <input type="text" id="busca_item" name="busca_item" class="form-control form-control-sm" placeholder="Buscar por nome ou código...">
+                                <input type="hidden" id="item_selecionado_id" name="item_selecionado_id">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="quantidade_item" class="form-label mb-1" style="font-size: 0.8rem;">Qtde.</label>
+                                <input type="number" id="quantidade_item" name="quantidade_item" class="form-control form-control-sm" value="1" min="1">
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button type="button" class="btn btn-success btn-sm w-100" id="btn-adicionar-item" disabled>
+                                    <i class="fas fa-cart-plus me-1"></i> Adicionar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive" id="area-itens-scroll">
-                        <table class="table table-striped table-hover mb-0">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Item</th>
-                                    <th>Qtde.</th>
-                                    <th>Preço Un.</th>
-                                    <th>Subtotal</th>
-                                    <th>Ação</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tabela_itens_venda">
-                                <tr id="linha-vazia">
-                                    <td colspan="6" class="text-center text-muted">Nenhum produto ou serviço adicionado.</td>
-                                </tr>
-                            </tbody>
-                        </table>
+
+                <div class="card shadow-sm">
+                    <div class="card-header bg-secondary text-white p-2">
+                        <h6 class="mb-0"><i class="fas fa-list me-2"></i> Itens da Venda (<span id="contador_itens">0</span>)</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive" id="area-itens-scroll">
+                            <table class="table table-striped table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Item</th>
+                                        <th>Qtde.</th>
+                                        <th>Preço Un.</th>
+                                        <th>Subtotal</th>
+                                        <th>Ação</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabela_itens_venda">
+                                    <tr id="linha-vazia">
+                                        <td colspan="6" class="text-center text-muted">Nenhum produto ou serviço adicionado.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        
-        <div class="col-lg-4">
-            <div class="card p-2 shadow-sm">
-                <h6 class="mb-2 text-primary"><i class="fas fa-user-tag me-2"></i> Cliente</h6>
-                
-                <div class="mb-2">
-                    <label for="cliente_id" class="form-label mb-1" style="font-size: 0.8rem;">Cliente (Tabela `cliente`)</label>
-                    <select id="cliente_id" name="cliente_id" class="form-select form-select-sm">
-                        <option value="">(Venda Anônima)</option>
-                        <option value="1">1 - Aleksander Gustavo</option>
+            
+            <div class="col-lg-4">
+                <div class="card p-2 shadow-sm">
+                    <h6 class="mb-2 text-primary"><i class="fas fa-user-tag me-2"></i> Cliente</h6>
+                    
+                    <div class="mb-2">
+                        <label for="cliente_id" class="form-label mb-1" style="font-size: 0.8rem;">Cliente (Tabela `cliente`)</label>
+                        <select id="cliente_id" name="cliente_id" class="form-select form-select-sm">
+                            <option value="">(Venda Anônima)</option>
+                            <?php 
+                            // ITERAÇÃO DINÂMICA DE CLIENTES
+                            foreach ($clientes as $cliente): 
+                                $label = $cliente['id'] . ' - ' . htmlspecialchars($cliente['nome']);
+                            ?>
+                            <option value="<?php echo $cliente['id']; ?>"><?php echo $label; ?></option>
+                            <?php endforeach; ?>
                         </select>
-                </div>
-                
-                <hr class="my-2">
-
-                <h6 class="mb-2 text-primary"><i class="fas fa-file-invoice-dollar me-2"></i> Pagamento</h6>
-                
-                <div class="mb-2">
-                    <label for="desconto" class="form-label mb-1" style="font-size: 0.8rem;">Desconto (R$)</label>
-                    <input type="number" id="desconto" name="desconto" class="form-control form-control-sm" value="0.00" step="0.01" min="0">
-                </div>
-
-                <div class="mb-2">
-                    <label for="forma_pagamento" class="form-label mb-1" style="font-size: 0.8rem;">Forma de Pagamento</label>
-                    <select id="forma_pagamento" name="forma_pagamento" class="form-select form-select-sm" required>
-                        <option value="">Selecione...</option>
-                        <option value="pix">PIX</option>
-                        <option value="cartao_credito">Cartão de Crédito</option>
-                        <option value="cartao_debito">Cartão de Débito</option>
-                        <option value="dinheiro">Dinheiro</option>
-                        <option value="transferencia">Transferência</option>
-                    </select>
-                </div>
-
-                <div class="mb-2">
-                    <label for="observacoes" class="form-label mb-1" style="font-size: 0.8rem;">Obs.</label>
-                    <textarea id="observacoes" name="observacoes" class="form-control form-control-sm" rows="1"></textarea>
                     </div>
-                
-                <hr class="my-2">
+                    
+                    <hr class="my-2">
 
-                <div class="d-flex justify-content-between align-items-center bg-dark text-white p-2 rounded mb-3">
-                    <h5 class="mb-0">TOTAL:</h5>
-                    <h5 class="mb-0" id="valor_total_display">R$ 0,00</h5>
-                    <input type="hidden" id="valor_total" name="valor_total" value="0.00">
-                    <input type="hidden" id="itens_venda_json" name="itens_venda_json">
+                    <h6 class="mb-2 text-primary"><i class="fas fa-file-invoice-dollar me-2"></i> Pagamento</h6>
+                    
+                    <div class="mb-2">
+                        <label for="desconto" class="form-label mb-1" style="font-size: 0.8rem;">Desconto (R$)</label>
+                        <input type="number" id="desconto" name="desconto" class="form-control form-control-sm" value="0.00" step="0.01" min="0">
+                    </div>
+
+                    <div class="mb-2">
+                        <label for="forma_pagamento" class="form-label mb-1" style="font-size: 0.8rem;">Forma de Pagamento</label>
+                        <select id="forma_pagamento" name="forma_pagamento" class="form-select form-select-sm" required>
+                            <option value="">Selecione...</option>
+                            <option value="pix">PIX</option>
+                            <option value="cartao_credito">Cartão de Crédito</option>
+                            <option value="cartao_debito">Cartão de Débito</option>
+                            <option value="dinheiro">Dinheiro</option>
+                            <option value="transferencia">Transferência</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-2">
+                        <label for="observacoes" class="form-label mb-1" style="font-size: 0.8rem;">Obs.</label>
+                        <textarea id="observacoes" name="observacoes" class="form-control form-control-sm" rows="1"></textarea>
+                        </div>
+                    
+                    <hr class="my-2">
+
+                    <div class="d-flex justify-content-between align-items-center bg-dark text-white p-2 rounded mb-3">
+                        <h5 class="mb-0">TOTAL:</h5>
+                        <h5 class="mb-0" id="valor_total_display">R$ 0,00</h5>
+                        <input type="hidden" id="valor_total" name="valor_total" value="0.00">
+                        <input type="hidden" id="itens_venda_json" name="itens_venda_json">
+                    </div>
+
+                    <button type="submit" class="btn btn-danger w-100" id="btn-finalizar-venda" disabled>
+                        <i class="fas fa-check-circle me-2"></i> FINALIZAR VENDA
+                    </button>
+                    
+                    <small class="text-muted mt-1 text-center" style="font-size: 0.7rem;">O Funcionário logado será registrado automaticamente.</small>
                 </div>
-
-                <button type="submit" class="btn btn-danger w-100" id="btn-finalizar-venda" disabled>
-                    <i class="fas fa-check-circle me-2"></i> FINALIZAR VENDA
-                </button>
-                
-                <small class="text-muted mt-1 text-center" style="font-size: 0.7rem;">O Funcionário logado será registrado automaticamente.</small>
             </div>
         </div>
-    </div>
-</form>
+    </form>
+    
+</div>
+<link rel="stylesheet" href="//code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
 
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script> 
+<script src="//code.jquery.com/ui/1.13.2/jquery-ui.js"></script> 
+
 <script>
     // Usa jQuery(document).ready para garantir que o jQuery UI funcione
     jQuery(document).ready(function($) {
@@ -151,15 +240,28 @@
         const descontoInput = document.getElementById('desconto');
         const btnFinalizar = document.getElementById('btn-finalizar-venda');
         
-        // Elementos jQuery para Autocomplete
         const buscaItemInput = $('#busca_item'); 
         const itemSelecionadoId = document.getElementById('item_selecionado_id');
         const btnAdicionar = document.getElementById('btn-adicionar-item');
         const quantidadeItemInput = document.getElementById('quantidade_item');
         const itensVendaJson = document.getElementById('itens_venda_json');
+        
+        // NOVAS VARIÁVEIS PARA O EFEITO BLUR E OVERLAY
+        const sucessoCard = $('#sucesso-venda-card');
+        const overlay = $('#modal-overlay');
+        const mainContent = $('#main-content-wrapper');
 
         // Variável local para armazenar os dados do item da venda
         let itensVenda = []; 
+
+        // FUNÇÃO GLOBAL PARA FECHAR O CARD E REMOVER O BLUR
+        window.fecharSucesso = function() {
+            sucessoCard.fadeOut(200, function() {
+                overlay.hide();
+                mainContent.removeClass('blur-effect');
+                buscaItemInput.focus(); // Retorna o foco para a busca
+            });
+        };
 
         function calcularTotal() {
             let subtotalGeral = 0;
@@ -180,6 +282,8 @@
             itensVendaJson.value = JSON.stringify(itensVenda);
         }
 
+        // ... (Função adicionarItem, window.removerItem e renderizarItens mantidas inalteradas) ...
+        
         // FUNÇÃO PRINCIPAL: ADICIONA ITEM SELECIONADO À LISTA
         function adicionarItem(item) {
             const quantidade = parseInt(quantidadeItemInput.value);
@@ -202,7 +306,7 @@
                     preco: item.preco, // Preço unitário (do banco)
                     quantidade: quantidade,
                     tipo: item.tipo,   // 'produto' ou 'servico'
-                    codigo_barras: item.codigo_barras || null // Adicionado para manter
+                    codigo_barras: item.codigo_barras || null 
                 };
                 itensVenda.push(novoItem);
             }
@@ -214,7 +318,7 @@
             itemSelecionadoId.value = '';
             quantidadeItemInput.value = 1;
             btnAdicionar.disabled = true;
-            buscaItemInput.removeData('selectedItem'); // Limpa o dado armazenado
+            buscaItemInput.removeData('selectedItem'); 
 
             // Foca na busca para o próximo item
             buscaItemInput.focus();
@@ -276,7 +380,6 @@
         
         // EVENTO PARA ALTERAR QUANTIDADE DIRETO NA TABELA
         $(document).on('change', '.input-quantidade-pdv', function() {
-            // Converte para Int para comparação
             const itemId = parseInt($(this).data('item-id'));
             const itemTipo = $(this).data('item-tipo');
             const novaQuantidade = parseInt($(this).val());
@@ -288,7 +391,6 @@
                     renderizarItens();
                 }
             } else {
-                // Se a quantidade for 0 ou menos, remove o item
                 window.removerItem(itemId, itemTipo);
             }
         });
@@ -301,46 +403,31 @@
          * -------------------------------------------------- */
         
         buscaItemInput.autocomplete({
-            minLength: 2, // Começa a buscar a partir de 2 caracteres
+            minLength: 2, 
             source: "pdv_buscar_itens.php", // Arquivo PHP que retorna o JSON
             
-            // Função executada quando um item é SELECIONADO
             select: function(event, ui) {
                 const item = ui.item;
                 
-                // 1. Preenche o campo de busca com o nome do item
                 buscaItemInput.val(item.nome);
-                
-                // 2. Armazena o ID (e o TIPO) para a validação (Ex: "101-produto")
                 itemSelecionadoId.value = `${item.id}-${item.tipo}`;
-                
-                // 3. Armazena o objeto completo para uso no 'Adicionar'
                 buscaItemInput.data('selectedItem', item); 
-
-                // 4. Habilita o botão de adicionar
                 btnAdicionar.disabled = false;
-                
-                // 5. Move o foco para a quantidade
                 quantidadeItemInput.focus(); 
 
-                return false; // Previne que o valor padrão seja inserido no campo
+                return false; 
             },
-            // Função executada quando o foco muda para um item (útil para navegação com teclado)
             focus: function(event, ui) {
-                buscaItemInput.val(ui.item.nome); // Exibe apenas o nome no campo
+                buscaItemInput.val(ui.item.nome); 
                 return false;
             }
         }).autocomplete("instance")._renderItem = function(ul, item) {
-            // Personaliza a exibição da lista de sugestões (usa o 'label' do JSON)
-            // item.label contém o nome + (R$ preço)
             return $("<li>")
                 .append(`<div>${item.label}</div>`)
                 .appendTo(ul);
         };
         
-        // Se o texto for alterado *após* uma seleção (digitando), desabilita o botão Adicionar
         buscaItemInput.on('input', function() {
-            // Limpa o ID e o selectedItem se o texto não corresponder ao nome do item selecionado
             if ($(this).val() !== buscaItemInput.data('selectedItem')?.nome) {
                 itemSelecionadoId.value = '';
                 btnAdicionar.disabled = true;
@@ -348,14 +435,66 @@
             }
         });
         
-        // Ativar a busca ao pressionar ENTER no campo de busca (se houver item selecionado)
         buscaItemInput.keypress(function(e) {
-            if (e.which === 13) { // 13 é a tecla ENTER
+            if (e.which === 13) { 
                 e.preventDefault();
                 if (!btnAdicionar.disabled) {
                     btnAdicionar.click();
                 }
             }
+        });
+        
+        /* --------------------------------------------------
+         * LÓGICA DE FINALIZAR VENDA (Submissão do Formulário)
+         * -------------------------------------------------- */
+        $('#form-pdv').on('submit', function(e) {
+            e.preventDefault();
+            
+            if (itensVenda.length === 0) {
+                alert('Adicione itens à venda antes de finalizar.');
+                return;
+            }
+
+            const form = $(this);
+            const statusArea = $('#status-message-area');
+            
+            // Desabilita o botão para evitar cliques duplos
+            btnFinalizar.disabled = true;
+
+            $.ajax({
+                url: form.attr('action'), // vendas_processar.php
+                type: 'POST',
+                data: form.serialize(), // Envia todos os dados do formulário, incluindo o JSON
+                dataType: 'json',
+                success: function(response) {
+                    // Limpa e oculta a área de mensagens simples (erros)
+                    statusArea.empty().hide(); 
+
+                    if (response.success) {
+                        // 1. Aplica o efeito blur no conteúdo principal e exibe o overlay
+                        mainContent.addClass('blur-effect');
+                        overlay.show();
+                        
+                        // 2. Exibe a mensagem da venda no card animado
+                        $('#mensagem-sucesso-venda').text(response.message);
+                        sucessoCard.fadeIn(300); 
+
+                        // 3. Limpar a interface após a venda bem-sucedida
+                        itensVenda = [];
+                        renderizarItens(); // Zera a tabela e recalcula o total
+                        form[0].reset(); // Limpa os campos do formulário principal
+                        
+                    } else {
+                        // Se falhar, exibe a mensagem de erro normal e reabilita o botão
+                        statusArea.html('<div class="alert alert-danger">' + response.message + '</div>').show();
+                        btnFinalizar.disabled = false;
+                    }
+                },
+                error: function(xhr, status, error) {
+                    statusArea.html('<div class="alert alert-danger">Erro de comunicação com o servidor. Tente novamente.</div>').show();
+                    btnFinalizar.disabled = false;
+                }
+            });
         });
 
     });

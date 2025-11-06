@@ -46,9 +46,8 @@ try {
         </a>
         
         <a href="#" id="btn-esconder-produtos" class="btn btn-warning btn-sm">
-            <i class="fas fa-eye-slash me-2"></i> Esconder Fora de Estoque
+            <i class="fas fa-eye-slash me-2"></i> Esconder Lista
         </a>
-        
         <a href="#" class="btn btn-success btn-sm item-menu-ajax" data-pagina="produtos_cadastro.php">
             <i class="fas fa-plus me-2"></i> Novo Produto
         </a>

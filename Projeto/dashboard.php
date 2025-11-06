@@ -571,26 +571,47 @@ $(document).on('click', '#btn-listar-todos-produtos', function(e) {
     });
 });
 
-// LÓGICA DE ESCONDER/FILTRAR PRODUTOS (Esconder Fora de Estoque)
-     $(document).on('click', '#btn-esconder-produtos', function(e) {
+// LÓGICA DE ESCONDER/MOSTRAR TODOS OS PRODUTOS (Alternar Visibilidade da Lista)
+$(document).on('click', '#btn-esconder-produtos', function(e) {
     e.preventDefault();
     
     var $button = $(this);
-    var $produtosForaEstoque = $('#tabela-produtos .produto-item').filter(function() {
-        return $(this).data('estoque') === 0; 
-    });
+    var $containerLista = $('#resultado-busca-rapida'); // O container principal
     
-    if ($button.hasClass('active')) {
-        $produtosForaEstoque.fadeIn(300);
-        $button.removeClass('active btn-secondary').addClass('btn-warning');
-        $button.html('<i class="fas fa-eye-slash me-2"></i> Esconder Fora de Estoque');
+    // Verifica se o container está visível (se ele NÃO tem a classe 'd-none')
+    if (!$containerLista.hasClass('d-none')) {
+        
+        // A lista está visível, vamos ESCONDER
+        
+        // 1. Esconde o container principal com animação
+        $containerLista.fadeOut(300, function() {
+            // Adiciona a classe d-none após a animação para garantir o estado oculto
+            $(this).addClass('d-none');
+        }); 
+        
+        // 2. Atualiza o botão para "Mostrar Lista"
+        $button.removeClass('btn-warning').addClass('btn-secondary'); // Mudar cor/estado
+        $button.html('<i class="fas fa-eye me-2"></i> Mostrar Lista');
+        
+        // Remove qualquer mensagem de status de filtro (opcional)
+        $('#status-message-area').html('');
         
     } else {
-        $produtosForaEstoque.fadeOut(300);
-        $button.addClass('active btn-secondary').removeClass('btn-warning');
-        $button.html('<i class="fas fa-eye me-2"></i> Mostrar Fora de Estoque (' + $produtosForaEstoque.length + ')');
+        
+        // A lista está oculta, vamos MOSTRAR
+        
+        // 1. Remove a classe d-none imediatamente para que o fadeIn funcione
+        $containerLista.removeClass('d-none');
+        
+        // 2. Mostra o container principal com animação
+        $containerLista.fadeIn(300);
+        
+        // 3. Atualiza o botão para "Esconder Lista"
+        $button.removeClass('btn-secondary').addClass('btn-warning');
+        $button.html('<i class="fas fa-eye-slash me-2"></i> Esconder Lista');
+        
     }
-});
+  });
         
         // CARREGA O CONTEÚDO INICIAL
         carregarConteudo(paginaInicial, false); 
