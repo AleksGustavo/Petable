@@ -2,9 +2,9 @@
 // Arquivo: conexao.php - Conexão Dupla (MySQLi para $conexao e PDO para $pdo)
 
 $host = 'localhost';
-$user = 'u579326255_g5';
-$pass = '*8AcZp6dmS'; 
-$banco = 'u579326255_g5'; 
+$user = 'root';
+$pass = '8AcZp6dmS'; 
+$banco = 'petshop_db'; 
 
 $conexao = @mysqli_connect($host, $user, $pass, $banco);
 
