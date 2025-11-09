@@ -184,10 +184,14 @@ try {
                     <h6 class="mb-2 text-primary"><i class="fas fa-file-invoice-dollar me-2"></i> Pagamento</h6>
                     
                     <div class="mb-2">
-                        <label for="desconto" class="form-label mb-1" style="font-size: 0.8rem;">Desconto (R$)</label>
-                        <input type="number" id="desconto" name="desconto" class="form-control form-control-sm" value="0.00" step="0.01" min="0">
+                        <label for="desconto_percentual" class="form-label mb-1" style="font-size: 0.8rem;">Desconto (%)</label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" id="desconto_percentual" class="form-control" value="0" min="0" max="100" step="0.01">
+                            <span class="input-group-text">%</span>
+                        </div>
+                        <input type="hidden" id="desconto_valor" name="desconto" value="0.00">
+                        <small class="text-muted" id="desconto_valor_display" style="font-size: 0.7rem;">R$ 0,00 descontados</small>
                     </div>
-
                     <div class="mb-2">
                         <label for="forma_pagamento" class="form-label mb-1" style="font-size: 0.8rem;">Forma de Pagamento</label>
                         <select id="forma_pagamento" name="forma_pagamento" class="form-select form-select-sm" required>
@@ -237,7 +241,6 @@ try {
         const tabelaItens = document.getElementById('tabela_itens_venda');
         const valorTotalInput = document.getElementById('valor_total');
         const valorTotalDisplay = document.getElementById('valor_total_display');
-        const descontoInput = document.getElementById('desconto');
         const btnFinalizar = document.getElementById('btn-finalizar-venda');
         
         const buscaItemInput = $('#busca_item'); 
@@ -250,6 +253,12 @@ try {
         const sucessoCard = $('#sucesso-venda-card');
         const overlay = $('#modal-overlay');
         const mainContent = $('#main-content-wrapper');
+
+        // NOVAS VARIÁVEIS PARA O DESCONTO (%)
+        const descontoPercentualInput = document.getElementById('desconto_percentual');
+        const descontoValorInput = document.getElementById('desconto_valor'); // Campo HIDDEN name="desconto"
+        const descontoValorDisplay = document.getElementById('desconto_valor_display'); // Display R$ descontado
+
 
         // Variável local para armazenar os dados do item da venda
         let itensVenda = []; 
@@ -269,8 +278,22 @@ try {
                 subtotalGeral += item.quantidade * item.preco;
             });
 
-            let desconto = parseFloat(descontoInput.value) || 0;
-            let totalFinal = Math.max(0, subtotalGeral - desconto);
+            // ----------------------------------------------------
+            // NOVO: CALCULA O DESCONTO EM R$ BASEADO NA PORCENTAGEM
+            // ----------------------------------------------------
+            let percentual = parseFloat(descontoPercentualInput.value) || 0;
+            
+            // Garante que o percentual esteja entre 0 e 100
+            percentual = Math.min(100, Math.max(0, percentual));
+            
+            let descontoValor = (subtotalGeral * (percentual / 100));
+            
+            // Armazena o valor do desconto (R$) no campo oculto (name="desconto")
+            descontoValorInput.value = descontoValor.toFixed(2);
+            descontoValorDisplay.textContent = 'R$ ' + descontoValor.toFixed(2).replace('.', ',') + ' descontados';
+            // ----------------------------------------------------
+
+            let totalFinal = Math.max(0, subtotalGeral - descontoValor);
 
             valorTotalInput.value = totalFinal.toFixed(2);
             valorTotalDisplay.textContent = 'R$ ' + totalFinal.toFixed(2).replace('.', ',');
@@ -281,8 +304,6 @@ try {
             // ATUALIZA O JSON PARA ENVIO NO FORMULÁRIO (CRÍTICO para o backend)
             itensVendaJson.value = JSON.stringify(itensVenda);
         }
-
-        // ... (Função adicionarItem, window.removerItem e renderizarItens mantidas inalteradas) ...
         
         // FUNÇÃO PRINCIPAL: ADICIONA ITEM SELECIONADO À LISTA
         function adicionarItem(item) {
@@ -323,7 +344,6 @@ try {
             // Foca na busca para o próximo item
             buscaItemInput.focus();
         }
-
 
         // ADICIONA EVENTO AO BOTÃO "ADICIONAR"
         btnAdicionar.addEventListener('click', function() {
@@ -395,7 +415,8 @@ try {
             }
         });
 
-        descontoInput.addEventListener('input', calcularTotal);
+        // NOVO EVENT LISTENER: OUVINDO O CAMPO DE PORCENTAGEM
+        descontoPercentualInput.addEventListener('input', calcularTotal); 
         calcularTotal();
         
         /* --------------------------------------------------
@@ -455,6 +476,9 @@ try {
                 return;
             }
 
+            // Garante que o total está calculado com o desconto % antes de enviar
+            calcularTotal();
+            
             const form = $(this);
             const statusArea = $('#status-message-area');
             
@@ -464,7 +488,7 @@ try {
             $.ajax({
                 url: form.attr('action'), // vendas_processar.php
                 type: 'POST',
-                data: form.serialize(), // Envia todos os dados do formulário, incluindo o JSON
+                data: form.serialize(), // Envia todos os dados do formulário, incluindo o JSON e o desconto em R$
                 dataType: 'json',
                 success: function(response) {
                     // Limpa e oculta a área de mensagens simples (erros)
@@ -482,7 +506,8 @@ try {
                         // 3. Limpar a interface após a venda bem-sucedida
                         itensVenda = [];
                         renderizarItens(); // Zera a tabela e recalcula o total
-                        form[0].reset(); // Limpa os campos do formulário principal
+                        // Reset do formulário, limpando também o campo de desconto %
+                        form[0].reset(); 
                         
                     } else {
                         // Se falhar, exibe a mensagem de erro normal e reabilita o botão

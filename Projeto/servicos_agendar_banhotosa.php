@@ -15,7 +15,9 @@ $all_servico_ids = array_merge(BANHO_TOSA_IDS, VACINAS_IDS, CONSULTAS_IDS);
 $servicos_map = []; // Contém todos os serviços (nomes e preços por porte)
 
 // A. Buscar TODOS os Serviços Ativos (Nomes e IDs)
-$sql_servicos = "SELECT id, nome, ativo FROM servico WHERE id IN (" . implode(', ', $all_servico_ids) . ") AND ativo = 1"; 
+// CORREÇÃO APLICADA: Removido o campo 'ativo' e a condição "AND ativo = 1"
+// Assumindo que você tem uma tabela chamada 'servico' com as colunas 'id' e 'nome'.
+$sql_servicos = "SELECT id, nome FROM servico WHERE id IN (" . implode(', ', $all_servico_ids) . ")"; 
 $result_servicos = mysqli_query($conexao, $sql_servicos);
 $servicos_lista = mysqli_fetch_all($result_servicos, MYSQLI_ASSOC);
 
@@ -32,12 +34,15 @@ $sql_precos_porte = "SELECT servico_id, porte, preco
                      WHERE servico_id IN ({$banho_tosa_ids_str})";
 $result_precos_porte = mysqli_query($conexao, $sql_precos_porte);
 
-while ($row = mysqli_fetch_assoc($result_precos_porte)) {
-    // Adiciona o preço do porte ao mapa do serviço correspondente (Apenas Banho/Tosa)
-    if (isset($servicos_map[$row['servico_id']])) {
-        $servicos_map[$row['servico_id']][$row['porte']] = (float)$row['preco'];
+if ($result_precos_porte) {
+    while ($row = mysqli_fetch_assoc($result_precos_porte)) {
+        // Adiciona o preço do porte ao mapa do serviço correspondente (Apenas Banho/Tosa)
+        if (isset($servicos_map[$row['servico_id']])) {
+            $servicos_map[$row['servico_id']][$row['porte']] = (float)$row['preco'];
+        }
     }
 }
+
 
 // C. Buscar Funcionários (Groomers e Veterinários)
 $sql_funcionarios = "SELECT f.id, f.nome
@@ -70,12 +75,15 @@ $veterinarios_select = $funcionarios;
 
 <div class="card p-0 shadow-sm main-compact-card">
     <div class="card-body">
-        <form id="form-agendar-servico" action="servicos_processar_agendamento.php" method="POST">
+        <form id="form-agendar-servico" action="servicos_processar_agendamento.php" method="POST" novalidate>
 
             <input type="hidden" id="cliente_id_hidden" name="cliente_id" value="">
             <input type="hidden" id="pet_id_hidden" name="pet_id" value="">
             <input type="hidden" id="pet_porte_hidden" name="pet_porte" value=""> 
-            <input type="hidden" id="tipo_servico_principal" name="tipo_servico_principal" value=""> <input type="hidden" id="servicos_agendados_json" name="servicos_agendados_json" value=""> <div id="step-cliente" class="mb-3">
+            <input type="hidden" id="tipo_servico_principal" name="tipo_servico_principal" value=""> 
+            <input type="hidden" id="servicos_agendados_json" name="servicos_agendados_json" value=""> 
+            
+            <div id="step-cliente" class="mb-3">
                 <label for="search_cliente" class="form-label">Buscar Cliente *</label>
                 <input type="text" class="form-control form-control-sm" id="search_cliente" placeholder="Digite o nome ou CPF do Cliente">
                 <div id="search-cliente-results" class="list-group mt-1">
@@ -87,7 +95,7 @@ $veterinarios_select = $funcionarios;
 
             <div id="step-pet" class="mb-3" style="display: none;">
                 <label for="pet_id_select" class="form-label">Pet do Cliente Selecionado *</label>
-                <select class="form-select form-select-sm" id="pet_id_select" required disabled>
+                <select class="form-select form-select-sm" id="pet_id_select" disabled>
                     <option value="">Carregando Pets...</option>
                 </select>
                 <div class="form-text mt-2 text-muted" id="selected-pet-info" style="display: none;">
@@ -159,7 +167,7 @@ $veterinarios_select = $funcionarios;
                         <div class="row">
                             <div class="col-md-6 mb-2">
                                 <label for="vacina_retorno_previsto" class="form-label">Retorno Previsto (Validade) *</label>
-                                <input type="date" class="form-control form-control-sm" id="vacina_retorno_previsto" required>
+                                <input type="date" class="form-control form-control-sm" id="vacina_retorno_previsto">
                                 <div class="form-text text-muted">Data para a próxima aplicação ou validade.</div>
                             </div>
                         </div>
@@ -178,7 +186,7 @@ $veterinarios_select = $funcionarios;
                     <div id="campos-consulta" style="display: none;">
                         <div class="mb-2">
                             <label for="consulta_servico_id" class="form-label">Tipo de Consulta *</label>
-                            <select class="form-select form-select-sm" id="consulta_servico_id" required>
+                            <select class="form-select form-select-sm" id="consulta_servico_id">
                                 <option value="">Selecione o Tipo de Consulta</option>
                                 <?php foreach ($consultas_select as $consulta): ?>
                                     <option value="<?php echo $consulta['id']; ?>"><?php echo $consulta['nome']; ?></option>
@@ -189,7 +197,7 @@ $veterinarios_select = $funcionarios;
 
                         <div class="mb-2">
                             <label for="funcionario_id_consulta" class="form-label">Veterinário Responsável *</label>
-                            <select class="form-select form-select-sm" id="funcionario_id_consulta" required>
+                            <select class="form-select form-select-sm" id="funcionario_id_consulta">
                                 <option value="">Selecione o Veterinário</option>
                                 <?php foreach ($veterinarios_select as $vet): ?>
                                     <option value="<?php echo $vet['id']; ?>"><?php echo $vet['nome']; ?></option>
@@ -217,7 +225,7 @@ $veterinarios_select = $funcionarios;
                         
                         <div class="mb-2" id="vacina-retorno-previsto-common" style="display: none;">
                             <label for="vacina_retorno_previsto_hidden" class="form-label">Retorno Previsto (Validade) *</label>
-                            <input type="date" class="form-control form-control-sm" id="vacina_retorno_previsto_hidden" name="vacina_retorno_previsto" required>
+                            <input type="date" class="form-control form-control-sm" id="vacina_retorno_previsto_hidden" name="vacina_retorno_previsto">
                             <div class="form-text text-muted">Data para a próxima aplicação ou validade.</div>
                         </div>
 
@@ -227,7 +235,8 @@ $veterinarios_select = $funcionarios;
                         </div>
                     </div>
 
-                </div> <div id="total-estimado-area" class="alert alert-info py-1 mb-3" role="alert" style="display: none;">
+                </div> 
+                <div id="total-estimado-area" class="alert alert-info py-1 mb-3" role="alert" style="display: none;">
                     Total Estimado: <strong id="total-estimado">R$ 0,00</strong>
                 </div>
 
@@ -356,7 +365,7 @@ $(document).ready(function() {
                 }
                 break;
             case 'vacina':
-                // Requer Vacina e Retorno Previsto
+                // Requer Vacina e Retorno Previsto (checa o campo hidden, que é sincronizado)
                 if (!$('#vacina_servico_id').val() || !$('#vacina_retorno_previsto_hidden').val()) {
                     isValid = false;
                 }
@@ -376,15 +385,14 @@ $(document).ready(function() {
     
     // --- Lógica de Exibição Progressiva e Eventos ---
 
-    // 1. Busca de Cliente (mantida e adaptada)
+    // 1. Busca de Cliente
     $('#search_cliente').on('input', function() {
-        // ... (Lógica de busca e reset mantida do código anterior) ...
         const termo = $(this).val().trim();
         const resultsDiv = $('#search-cliente-results');
         resultsDiv.show();
         resultsDiv.empty();
         
-        // Reseta etapas seguintes
+        // Reseta etapas seguintes ao iniciar nova busca
         selectedClienteId = null;
         selectedPetId = null;
         selectedPetPorte = 'Pequeno';
@@ -393,7 +401,7 @@ $(document).ready(function() {
         $('#pet_id_hidden').val('');
         $('#pet_porte_hidden').val('');
         $('#tipo_servico_principal').val('');
-        $('#servico_categoria').val(''); // Reseta o select principal
+        $('#servico_categoria').val(''); 
         
         $('#step-pet').hide();
         $('#step-agendamento').hide();
@@ -401,14 +409,14 @@ $(document).ready(function() {
         $('#pet_porte_info').hide();
         $('#servico-campos-especificos').children().hide();
         $('#campos-comuns-agendamento').hide();
-        $('#vacina-retorno-previsto-common').hide(); // Esconde campo de retorno da vacina
+        $('#vacina-retorno-previsto-common').hide();
 
         if (termo.length < 3) {
             validateForm();
             return;
         }
         
-        // ** A Lógica AJAX deve ser mantida aqui, apenas o corpo foi omitido por simplicidade **
+        // Lógica AJAX para buscar clientes
         $.ajax({
             url: 'search_data.php?type=client&term=' + encodeURIComponent(termo),
             method: 'GET',
@@ -447,13 +455,12 @@ $(document).ready(function() {
         validateForm();
     });
 
-    // 2. Busca de Pet (mantida)
+    // 2. Busca de Pet 
     function loadPets(clienteId) {
         $('#step-pet').show();
         const petSelect = $('#pet_id_select');
         petSelect.empty().append('<option value="">Carregando Pets...</option>').prop('disabled', true);
         
-        // ** A Lógica AJAX para pets deve ser mantida aqui **
          $.ajax({
             url: 'search_data.php?type=pet&client_id=' + clienteId,
             method: 'GET',
@@ -519,7 +526,7 @@ $(document).ready(function() {
         $('#servico-campos-especificos').children().hide();
         $('#campos-comuns-agendamento').hide();
         $('#tosa-options').hide();
-        $('#vacina-retorno-previsto-common').hide(); // Esconde o campo de retorno
+        $('#vacina-retorno-previsto-common').hide();
 
         // Limpa campos de seleção para forçar nova seleção/validação
         $('#servico_tipo_banho_tosa').val('');
@@ -527,9 +534,10 @@ $(document).ready(function() {
         $('#vacina_servico_id').val('');
         $('#consulta_servico_id').val('');
         $('#funcionario_id_consulta').val('');
-        $('#vacina_retorno_previsto_hidden').val('');
+        // Importante: limpa os dois campos de data da vacina
+        $('#vacina_retorno_previsto').val('');
+        $('#vacina_retorno_previsto_hidden').val(''); 
 
-        // Limpa a lista de IDs agendados
         servicosAgendados = [];
 
         if (selectedServiceCategory) {
@@ -550,7 +558,7 @@ $(document).ready(function() {
             }
         }
         
-        calcularTotal(); // Recalcula (será 0 para Vacina/Consulta)
+        calcularTotal();
         validateForm();
     });
 
@@ -564,7 +572,6 @@ $(document).ready(function() {
         
         if (tipo === 'tosa' || tipo === 'banho_e_tosa') {
             tosaOptions.show();
-            // A Tosa deve ser selecionada
         } else {
             tosaOptions.hide();
             tosaSelect.val('');
@@ -576,14 +583,77 @@ $(document).ready(function() {
     // Recalcula o total ao selecionar o tipo de tosa
     $('#tosa_tipo').on('change', calcularTotal);
     
-    // Recalcula/valida ao selecionar a vacina/consulta ou outros campos específicos
-    $('#vacina_servico_id, #consulta_servico_id, #funcionario_id_consulta, #vacina_retorno_previsto_hidden, #data_agendamento, #hora_agendamento').on('change', function() {
-        // Para Vacina/Consulta, o 'change' precisa atualizar o servicos_agendados_json
-        if (selectedServiceCategory === 'vacina' || selectedServiceCategory === 'consulta') {
-            calcularTotal();
-        } else {
-            validateForm();
-        }
+    // 🎯 SINCRONIZAÇÃO CRÍTICA (Linha 169 -> Linha 204)
+    // Copia o valor do campo de data visível (sem required) para o campo hidden (com name)
+    $('#vacina_retorno_previsto').on('change', function() {
+        const dataRetorno = $(this).val();
+        $('#vacina_retorno_previsto_hidden').val(dataRetorno);
+        calcularTotal(); // Chama calcularTotal para atualizar JSON e validar
+    });
+
+    // Recalcula/valida ao selecionar a vacina/consulta ou outros campos comuns
+    $('#vacina_servico_id, #consulta_servico_id, #funcionario_id_consulta, #data_agendamento, #hora_agendamento').on('change', function() {
+        calcularTotal();
+    });
+
+    // --- Lógica de Envio do Formulário (AJAX) ---
+    $('#form-agendar-servico').on('submit', function(e) {
+        e.preventDefault(); 
+
+        // Se o botão estiver desabilitado (validação JS falhou), não envia
+        if ($('#submit-button').prop('disabled')) return;
+
+        const form = $(this);
+        const btnSubmit = $('#submit-button');
+        const statusArea = $('#status-message-area');
+
+        btnSubmit.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i> Processando...');
+        statusArea.empty(); 
+
+        $.ajax({
+            url: form.attr('action'),
+            type: 'POST',
+            data: form.serialize(),
+            dataType: 'json',
+            success: function(response) {
+                
+                if (response.success) {
+                    statusArea.html('<div class="alert alert-success mt-3">' + response.message + '</div>');
+                    
+                    // Reseta o formulário e o estado
+                    form[0].reset(); 
+                    selectedClienteId = null;
+                    selectedPetId = null;
+                    selectedPetPorte = 'Pequeno';
+                    selectedServiceCategory = '';
+
+                    // Esconde as etapas seguintes e reabilita a busca
+                    $('#selected-cliente-info, #selected-pet-info, #pet_porte_info').hide();
+                    $('#pet_id_select').empty().prop('disabled', true);
+                    $('#step-pet').hide();
+                    $('#step-agendamento').hide();
+                    $('#search_cliente').prop('disabled', false).val(''); 
+                    $('#total-estimado-area').hide();
+
+                } else {
+                    statusArea.html('<div class="alert alert-danger mt-3">' + response.message + '</div>');
+                }
+                
+                btnSubmit.html('<i class="fas fa-check-circle me-2"></i> Confirmar Agendamento');
+                validateForm(); 
+            },
+            error: function(xhr, status, error) {
+                let errorMessage = "Erro de comunicação com o servidor ao processar o agendamento.";
+                if (xhr.status === 500) {
+                     errorMessage += " (Erro Interno do Servidor)";
+                }
+                
+                statusArea.html('<div class="alert alert-danger mt-3">' + errorMessage + '</div>');
+                
+                btnSubmit.html('<i class="fas fa-check-circle me-2"></i> Confirmar Agendamento');
+                validateForm(); 
+            }
+        });
     });
 
     // Inicialização

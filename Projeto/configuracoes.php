@@ -1,23 +1,26 @@
 <?php
 // Arquivo: configuracoes.php (Página Simples de Perfil e Informações Estáticas)
 session_start();
-require_once 'conexao.php'; // Inclui a conexão (usando MySQLi ou PDO, dependendo de como está configurado)
+require_once 'conexao.php'; // Inclui a conexão (usando MySQLi ou PDO)
 
-// Verifica se o usuário está logado
-if (!isset($_SESSION['logado']) || $_SESSION['logado'] !== true || !isset($_SESSION['user_id'])) {
+// Verifica se o usuário está logado.
+// CHAVE CORRIGIDA: Agora verifica 'id_usuario'
+if (!isset($_SESSION['logado']) || $_SESSION['logado'] !== true || !isset($_SESSION['id_usuario'])) {
     // Se não estiver logado ou sem o ID na sessão, exibe erro
-    echo '<div class="alert alert-danger">Erro: Usuário não logado ou sessão incompleta.</div>';
+    echo '<div class="alert alert-danger">Erro: Usuário não logado ou sessão incompleta. Por favor, faça login novamente.</div>';
     exit();
 }
 
-$usuario_id = $_SESSION['user_id'];
-$usuario_logado = htmlspecialchars($_SESSION['username']);
+// CHAVES CORRIGIDAS: Acessando 'id_usuario' e 'usuario'
+$usuario_id = $_SESSION['id_usuario'];
+$usuario_logado = htmlspecialchars($_SESSION['usuario']);
 $usuario_detalhes = [];
 $mensagem_conexao = '';
 
 // --- 1. Busca Detalhes do Usuário (Tabela: usuario) ---
+// NOTA: Este bloco usa MySQLi Procedural, mantido para compatibilidade com seu código original.
 if (isset($conexao)) {
-    // Usando MySQLi Procedural (comumente usado com $conexao)
+    
     $sql_detalhes = "SELECT * FROM `usuario` WHERE id = ?";
     
     // É necessário usar Prepared Statements para segurança
@@ -46,11 +49,11 @@ $email_contato = "pet&pet@exemplo.com";
 $telefone_contato = "(19) 98765-4321";
 $endereco_base = "Rua Francisco Travestino, 320 - Quaglia - Leme/SP";
 
-// Informações básicas do perfil que você pode ter:
-$nome_completo = $usuario_detalhes['nome_completo'] ?? 'Não informado'; // Exemplo de campo extra
-$email_usuario = $usuario_detalhes['email'] ?? 'Não informado';         // Exemplo de campo extra
-$data_cadastro = $usuario_detalhes['data_cadastro'] ?? 'Não informado';  // Exemplo de campo extra
-$papel_usuario = $usuario_detalhes['papel_id'] == 1 ? 'Administrador' : 'Funcionário';
+// Informações básicas do perfil (obtidas da busca ou padrões):
+$nome_completo = $usuario_detalhes['nome_completo'] ?? 'Não informado'; 
+$email_usuario = $usuario_detalhes['email'] ?? 'Não informado'; 
+$data_cadastro = $usuario_detalhes['data_cadastro'] ?? 'Não informado'; 
+$papel_usuario = (isset($usuario_detalhes['papel_id']) && $usuario_detalhes['papel_id'] == 1) ? 'Administrador' : 'Funcionário';
 ?>
 
 <div class="container mt-4">
@@ -111,7 +114,9 @@ $papel_usuario = $usuario_detalhes['papel_id'] == 1 ? 'Administrador' : 'Funcion
 <?php
 // Fecha a conexão (Importante! Apenas se for usada aqui)
 if (isset($conexao)) {
-    mysqli_close($conexao);
+    // Usado se 'conexao.php' utiliza MySQLi e define a variável $conexao
+    // Se 'conexao.php' usa PDO e $pdo, esta linha não fará nada.
+    @mysqli_close($conexao); 
 }
 ?>
 

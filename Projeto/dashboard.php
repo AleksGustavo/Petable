@@ -6,7 +6,7 @@ if (!isset($_SESSION['logado']) || $_SESSION['logado'] !== true) {
     exit();
 }
 
-$usuario_logado = htmlspecialchars($_SESSION['username']);
+$usuario_logado = htmlspecialchars($_SESSION['usuario']);
 ?>
 
 <!DOCTYPE html>
@@ -21,78 +21,99 @@ $usuario_logado = htmlspecialchars($_SESSION['username']);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     
 <style>
-    /* GARANTE QUE O SCROLL FUNCIONE CORRETAMENTE NA JANELA */
-    html, body {
-        height: 100%;
-        overflow-x: hidden;
-    }
+/* GARANTE QUE O SCROLL FUNCIONE CORRETAMENTE NA JANELA */
+html, body {
+    height: 100%;
+    overflow-x: hidden;
+    margin: 0;
+    
+    /* ---------------------------------------------------- */
+    /* MUDANÇA: Fundo Principal (body) com as patinhas */
+    /* Cor de fundo Bege Aconchegante (#FAFAF5) */
+    background-color: #FAFAF5; 
+    
+    /* Patinhas Sutil (A mesma usada no login/registro) */
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="%23EFEFEA" d="M 50 20 L 70 30 L 60 50 L 80 60 L 60 70 L 40 60 L 50 80 L 30 70 L 40 50 L 20 60 L 30 30 Z M 50 20 C 45 15, 55 15, 50 20 Z M 35 35 C 30 30, 40 30, 35 35 Z M 65 35 C 60 30, 70 30, 65 35 Z M 35 65 C 30 60, 40 60, 35 65 Z M 65 65 C 60 60, 70 60, 65 65 Z"/></svg>');
+    background-size: 80px; 
+    background-repeat: repeat;
+    opacity: 0.9;
+    /* ---------------------------------------------------- */
+}
 
-    .sidebar {
-        min-height: 100vh; /* Garante a altura mínima */
-        background-color: #343a40;
-        color: white;
-        padding-top: 20px;
-        /* Position sticky funciona melhor dentro do fluxo normal da coluna (col-md-3) */
-        position: sticky; 
-        top: 0; 
-        z-index: 100;
-        /* Aumenta a altura da coluna da sidebar para evitar problemas de scroll */
-        height: 100%;
-    }
+.sidebar {
+    min-height: 100vh;
+    /* ---------------------------------------------------- */
+    /* MUDANÇA: Cor Sólida Marrom Escuro do Login */
+    background-color: #3E2723; /* Marrom Profundo */
+    /* Removido o background-image (patinhas) da sidebar */
+    /* ---------------------------------------------------- */
     
-    /* ESTILO PADRÃO MANTIDO */
-    .nav-link {
-        color: rgba(255, 255, 255, 0.75);
-        transition: all 0.2s;
-    }
-    .nav-link:hover {
-        color: white;
-        background-color: rgba(255, 255, 255, 0.1);
-    }
-    .collapse.show .nav-link {
-        padding-left: 2rem;
-        font-size: 0.95em;
-    }
-    .nav-link.active {
-        color: white;
-        background-color: rgba(255, 255, 255, 0.2);
-        border-radius: 5px;
-    }
-    .sidebar-heading {
-        margin-top: 0.5rem !important;
-        margin-bottom: 0.5rem !important;
-        color: #ffffff !important;
-        font-size: 1.1rem;
-        font-weight: 700;
-        letter-spacing: .15rem;
-        padding-top: 0 !important;
-    }
+    color: white;
+    padding-top: 20px;
+    position: sticky; 
+    top: 0; 
+    z-index: 100;
+    height: 100%;
+}
+    
+/* ESTILO PADRÃO MANTIDO (Fundo Escuro -> Texto Branco) */
+.nav-link {
+    color: rgba(255, 255, 255, 0.75);
+    transition: all 0.2s;
+}
+.nav-link:hover {
+    color: white;
+    /* Hover leve no fundo escuro */
+    background-color: rgba(255, 255, 255, 0.1); 
+}
+.collapse.show .nav-link {
+    padding-left: 2rem;
+    font-size: 0.95em;
+}
+.nav-link.active {
+    color: white;
+    /* Fundo Ativo mais destacado */
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+}
+.sidebar-heading {
+    margin-top: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+    color: #ffffff !important;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: .15rem;
+    padding-top: 0 !important;
+}
 
-    /* Estilo Compacto para Formulários Grandes (Mantido) */
-    .main-compact-card {
-        padding: 0.5rem !important;
-    }
-    
-    .g-compact {
-        --bs-gutter-y: 0.5rem; 
-        --bs-gutter-x: 1.5rem; 
-    }
-    
-    .g-compact .form-label {
-        margin-bottom: 0.2rem;
-        font-size: 0.9rem;
-    }
-    
-    .g-compact hr {
-        margin-top: 0.75rem !important;
-        margin-bottom: 0.75rem !important;
-    }
-    
-    /* Adiciona uma regra para garantir que a coluna main se estenda,
-        embora o fluxo de documentos já deva fazer isso */
-    main {
-        padding-bottom: 50px; /* Adiciona um padding na parte inferior do main */
-    }
+/* Estilo Compacto para Formulários Grandes (Mantido) */
+.main-compact-card {
+    padding: 0.5rem !important;
+    /* Opcional: Para cards internos, use um fundo branco para contraste */
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.g-compact {
+    --bs-gutter-y: 0.5rem; 
+    --bs-gutter-x: 1.5rem; 
+}
+
+.g-compact .form-label {
+    margin-bottom: 0.2rem;
+    font-size: 0.9rem;
+}
+
+.g-compact hr {
+    margin-top: 0.75rem !important;
+    margin-bottom: 0.75rem !important;
+}
+
+/* Garante que a coluna main se estenda */
+main {
+    padding-bottom: 50px; 
+}
 </style>
 </head>
 <body>
@@ -156,6 +177,30 @@ $usuario_logado = htmlspecialchars($_SESSION['username']);
                             </ul>
                         </div>
                     </li>
+                     
+                <li class="nav-item">
+    <a class="nav-link dropdown-toggle" data-bs-toggle="collapse" href="#servicosSubmenu" role="button" aria-expanded="false" aria-controls="servicosSubmenu">
+        <i class="fas fa-box me-2"></i>Serviços
+    </a>
+    
+    <div class="collapse" id="servicosSubmenu">
+        <ul class="nav flex-column ms-3">
+            
+            <li class="nav-item">
+                <a class="nav-link item-menu-ajax" data-pagina="servicos_agendar_banhotosa.php" href="#">
+                    <i class="fas fa-calendar-plus me-2"></i> Agendamentos
+                </a>
+            </li>
+            
+            <li class="nav-item">
+                <a class="nav-link item-menu-ajax" data-pagina="servicos_listar.php" href="#">
+                    <i class="fas fa-list me-2"></i> Listar / Gerenciar
+                </a>
+            </li>
+            
+        </ul>
+    </div>
+</li>
                 
                 <hr class="my-3 text-white-50">
                 
