@@ -3,7 +3,7 @@
 
 session_start(); 
 
-require_once 'conexao.php'; // Inclui a conexão PDO ($pdo)
+require_once 'conexao.php';
 
 $mensagem_status = "";
 $sucesso = false;
