@@ -93,5 +93,15 @@ Criação e complementação dos seguintes Diagramas de Sequência:
 
 **Atividade Principal:** *Merge* (Integração de Código)
 
-* Realização do **Merge** da *branch* de desenvolvimento (`feature/nome-da-branch` ou similar) com a ramificação **main** no GitHub.
+* Realização do **Merge** da *branch* de desenvolvimento (`feature/Aleksander`) com a ramificação **main** no GitHub.
 * Objetivo: Centralizar todas as informações e códigos mais recentes na ramificação principal do projeto.
+
+### 📅 10/11/2025
+
+**Responsável:** Aleksander
+
+**Atividade Principal** Continuidade da Documentação
+
+* Dedicado a continuidade e **revisão da documentação** do projeto, cumpcumprindo as responsabilidades atribuídas.
+* Realização de **ajustes finos** e complementos nas seções documentais durante o período do meu horário de almoço.
+* Realização do preenchimento dos **testes de usabilidade** na parte de testes da documentação.
