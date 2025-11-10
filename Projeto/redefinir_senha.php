@@ -1,0 +1,120 @@
+<?php
+// Arquivo: redefinir_senha.php
+
+session_start();
+require_once 'conexao.php'; 
+
+$mensagem_status = "";
+$token_valido = false;
+$token = $_GET['token'] ?? '';
+$usuario_id = null;
+
+if (!isset($pdo)) {
+    $mensagem_status = "<div class='alert alert-danger'>Erro: Falha na conexão com o banco de dados.</div>";
+    goto exibir_html;
+}
+
+// --- VERIFICAÇÃO INICIAL DO TOKEN ---
+if (!empty($token)) {
+    // 1. Buscar usuário pelo token
+    $sql = "SELECT id FROM usuario WHERE token_senha = ? AND token_expira > NOW()";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$token]);
+    $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($usuario) {
+        $token_valido = true;
+        $usuario_id = $usuario['id'];
+    } else {
+        $mensagem_status = "<div class='alert alert-danger'>Link inválido ou expirado. Solicite a recuperação novamente.</div>";
+    }
+} else {
+    $mensagem_status = "<div class='alert alert-danger'>Token de redefinição não fornecido.</div>";
+}
+
+// --- PROCESSAMENTO DA NOVA SENHA (apenas se o token for válido e o formulário enviado) ---
+if ($token_valido && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $nova_senha = $_POST['nova_senha'] ?? '';
+    $confirma_senha = $_POST['confirma_senha'] ?? '';
+    
+    if (empty($nova_senha) || empty($confirma_senha)) {
+        $mensagem_status = "<div class='alert alert-warning'>Preencha todos os campos.</div>";
+    } elseif ($nova_senha !== $confirma_senha) {
+        $mensagem_status = "<div class='alert alert-danger'>As senhas não coincidem.</div>";
+    } elseif (strlen($nova_senha) < 6) {
+        $mensagem_status = "<div class='alert alert-warning'>A senha deve ter pelo menos 6 caracteres.</div>";
+    } else {
+        try {
+            // 2. Hash da nova senha
+            $nova_senha_hash = password_hash($nova_senha, PASSWORD_BCRYPT);
+
+            // 3. Atualizar a senha e invalidar o token (limpar as colunas)
+            $sql_update = "UPDATE usuario SET senha_hash = ?, token_senha = NULL, token_expira = NULL WHERE id = ?";
+            $stmt_update = $pdo->prepare($sql_update);
+            $stmt_update->execute([$nova_senha_hash, $usuario_id]);
+
+            $mensagem_status = "<div class='alert alert-success'>Senha redefinida com sucesso! Você pode fazer login agora.</div>";
+            $token_valido = false; // Impede a exibição do formulário
+            
+        } catch (PDOException $e) {
+            $mensagem_status = "<div class='alert alert-danger'>Erro interno ao salvar a nova senha.</div>";
+        }
+    }
+}
+
+
+exibir_html:
+?>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redefinir Senha - PetShop</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        /* Estilos do login.php para manter a aparência */
+        body { background-color: #FAFAF5; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .login-card { max-width: 400px; width: 90%; padding: 2rem; box-shadow: 0 4px 15px rgba(0,0,0,0.15); background-color: #fff; border-radius: 10px; }
+        .btn-primary, .login-btn { background-color: #964B00 !important; border-color: #964B00 !important; font-weight: bold; }
+        .btn-primary:hover, .login-btn:hover { background-color: #703600 !important; border-color: #703600 !important; }
+    </style>
+</head>
+<body>
+
+    <div class="card login-card">
+        <div class="card-body">
+            
+            <h2 class="card-title text-center mb-4"><i class="fas fa-redo-alt me-2"></i> Nova Senha</h2> 
+
+            <?php echo $mensagem_status; ?>
+            
+            <?php if ($token_valido): ?>
+            
+                <form action="redefinir_senha.php?token=<?= htmlspecialchars($token) ?>" method="POST">
+                    
+                    <div class="mb-3 input-group">
+                        <span class="input-group-text"><i class="fa-solid fa-key"></i></span>
+                        <input type="password" name="nova_senha" class="form-control" placeholder="Nova Senha" required>
+                    </div>
+
+                    <div class="mb-3 input-group">
+                        <span class="input-group-text"><i class="fa-solid fa-key"></i></span>
+                        <input type="password" name="confirma_senha" class="form-control" placeholder="Confirme a Nova Senha" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 mt-2 login-btn">
+                        <i class="fas fa-check me-2"></i> Redefinir Senha
+                    </button>
+                </form>
+
+            <?php endif; ?>
+
+            <div class="links text-center mt-3">
+                <a href="login.php" class="d-block text-muted">Fazer Login</a>
+            </div>
+        </div>
+    </div> 
+</body>
+</html>
