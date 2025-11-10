@@ -77,12 +77,53 @@ exibir_html:
     <title>Recuperar Senha - PetShop</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <style>
-        /* Estilos do login.php para manter a aparência */
-        body { background-color: #FAFAF5; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        .login-card { max-width: 400px; width: 90%; padding: 2rem; box-shadow: 0 4px 15px rgba(0,0,0,0.15); background-color: #fff; border-radius: 10px; }
-        .btn-primary, .login-btn { background-color: #964B00 !important; border-color: #964B00 !important; font-weight: bold; }
-        .btn-primary:hover, .login-btn:hover { background-color: #703600 !important; border-color: #703600 !important; }
+   <style>
+        /* TEMA PET SHOP: Bege Aconchegante e Marrom Caramelo */
+        
+        /* Fundo com Patinhas (Marca D'água) */
+        body {
+            /* Bege Aconchegante */
+            background-color: #FAFAF5; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            
+            /* Efeito Patinhas Sutil (via CSS) */
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="%23EFEFEA" d="M 50 20 L 70 30 L 60 50 L 80 60 L 60 70 L 40 60 L 50 80 L 30 70 L 40 50 L 20 60 L 30 30 Z M 50 20 C 45 15, 55 15, 50 20 Z M 35 35 C 30 30, 40 30, 35 35 Z M 65 35 C 60 30, 70 30, 65 35 Z M 35 65 C 30 60, 40 60, 35 65 Z M 65 65 C 60 60, 70 60, 65 65 Z"/></svg>');
+            background-size: 80px; /* Tamanho da patinha */
+            background-repeat: repeat;
+            opacity: 0.9; /* Deixa o fundo opaco */
+        }
+
+        /* Card de Login */
+        .login-card {
+            max-width: 400px; 
+            width: 90%; 
+            padding: 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15); /* Sombra mais destacada */
+            background-color: #fff; /* Fundo branco para contraste */
+            border-radius: 10px;
+        }
+
+        /* Botão Primário (Marrom Caramelo) */
+        .btn-primary, .login-btn {
+            background-color: #964B00 !important; /* Marrom Caramelo */
+            border-color: #964B00 !important;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            transition: background-color 0.3s;
+        }
+
+        .btn-primary:hover, .login-btn:hover {
+            background-color: #703600 !important; /* Marrom mais escuro no hover */
+            border-color: #604d3cff !important;
+        }
+        
+        /* Detalhe da Logo */
+        .logo-borda {
+             border: 3px solid #964B00 !important;
+        }
     </style>
 </head>
 <body>
