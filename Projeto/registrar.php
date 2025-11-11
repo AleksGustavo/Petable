@@ -9,7 +9,7 @@ $sucesso = false;
 
 // Regex para Senha Forte
 // NOTA: Esta Regex JÁ permite ordem livre dos caracteres, pois utiliza lookaheads.
-const REGEX_SENHA_FORTE = '/^(?=.[a-z])(?=.[A-Z])(?=.\d)(?=.[\W_]).{8,}$/';
+const REGEX_SENHA_FORTE = '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
@@ -236,7 +236,7 @@ exibir_html:
                                     <i class="fas fa-times-circle me-1"></i> Pelo menos 1 Caractere Especial
                                 </li>
                             </ul>
-                            <p id="validationWarning" class="text-danger small mt-2" style="display:none;">*A senha não atende a todos os requisitos.*</p>
+                            <p id="validationWarning" class="text-danger small mt-2" style="display:none;">**A senha não atende a todos os requisitos.**</p>
                         </div>
                     </div>
 
@@ -309,7 +309,7 @@ exibir_html:
                 // Mudar o ícone para check-circle ou times-circle
                 const iconClass = isValid ? 'fa-check-circle' : 'fa-times-circle';
                 const textContent = element.textContent.substring(element.textContent.indexOf(' ') + 1).trim();
-                element.innerHTML = <i class="fas ${iconClass} me-1"></i> ${textContent};
+                element.innerHTML = `<i class="fas ${iconClass} me-1"></i> ${textContent}`;
             }
 
             // Função principal de validação em tempo real
