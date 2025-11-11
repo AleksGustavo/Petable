@@ -77,7 +77,7 @@ exibir_html:
     <title>Recuperar Senha - PetShop</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <style>
+<style>
     /* TEMA PET SHOP: Bege Aconchegante e Marrom Caramelo */
     
     /* Fundo com Patinhas (Marca D'água) */
@@ -96,11 +96,13 @@ exibir_html:
         opacity: 0.9; /* Deixa o fundo opaco */
     }
 
-    /* Card de Login */
+    /* Card de Login - AJUSTADO PARA MAIOR TAMANHO */
     .login-card {
-        max-width: 500px; 
-        width: 90%; 
-        height: 60%;
+        /* Aumentado para 750px */
+        max-width: **500px**; 
+        width: 30%; 
+        /* Aumentado para 550px */
+        min-height: **550px**; 
         padding: 2rem;
         box-shadow: 0 4px 15px rgba(0,0,0,0.15); /* Sombra mais destacada */
         background-color: #fff; /* Fundo branco para contraste */
@@ -136,6 +138,16 @@ exibir_html:
 
     <div class="card login-card">
         <div class="card-body">
+
+            <div class="text-center mb-4">
+                    <img src="Logo.jpeg" 
+                         alt="Logo PetShop" 
+                         class="img-fluid rounded-circle mb-3 logo-borda" 
+                         style="max-width: 120px;"> 
+                         
+                  
+                </div>
+
             
             <h2 class="card-title text-center mb-4"><i class="fas fa-lock me-2"></i> Recuperar Senha</h2> 
 

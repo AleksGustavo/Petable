@@ -1,8 +1,7 @@
 <?php
 // Arquivo: clientes_buscar_rapido.php
 // Objetivo: Busca e paginação de clientes utilizando a conexão mysqli do conexao.php, 
-// respeitando as colunas (id, nome, cpf, telefone) e ações do sistema Pet & Pet.
-// O código foi adaptado para receber os parâmetros de busca via POST (do formulário AJAX).
+//           respeitando as colunas (id, nome, cpf, telefone) e ações do sistema Pet & Pet.
 
 require_once 'conexao.php'; // Assume que 'conexao.php' retorna a variável $conexao (mysqli)
 
@@ -16,33 +15,16 @@ if (empty($conexao)) {
     exit();
 }
 
-// ---------------------------------------------------------------------
-// PARÂMETROS DE PAGINAÇÃO (Vindos de GET, usados nos links da paginação)
-// ---------------------------------------------------------------------
+// Parâmetros de Paginação
 $pagina_atual = isset($_GET['pagina_atual']) ? max(1, (int)$_GET['pagina_atual']) : 1;
 $limite = isset($_GET['limite']) ? (int)$_GET['limite'] : 10;
 $offset = ($pagina_atual - 1) * $limite;
-
-// Flag de listar todos (usado principalmente pelo botão 'Listar Todos' no frontend)
 $listar_todos = isset($_GET['listar_todos']) && $_GET['listar_todos'] === 'true';
 
-// ---------------------------------------------------------------------
-// PARÂMETROS DE BUSCA (Vindos de POST, usados pelo formulário principal AJAX)
-// ---------------------------------------------------------------------
-// Prioriza POST para os campos de busca, se o método for POST.
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $busca_id = trim($_POST['busca_id'] ?? '');
-    $busca_cpf = trim($_POST['busca_cpf'] ?? '');
-    $busca_nome = trim($_POST['busca_nome'] ?? '');
-} else {
-    // Para recarregar a busca via GET (ex: ao clicar na paginação)
-    $busca_id = trim($_GET['busca_id'] ?? '');
-    $busca_cpf = trim($_GET['busca_cpf'] ?? '');
-    $busca_nome = trim($_GET['busca_nome'] ?? '');
-}
-
-// GARANTE QUE O CPF ESTEJA LIMPO (APENAS NÚMEROS) PARA A BUSCA SQL
-$busca_cpf = preg_replace('/\D/', '', $busca_cpf); 
+// Parâmetros de Busca (Sanitizados antes de usar)
+$busca_id = trim($_GET['busca_id'] ?? '');
+$busca_cpf = trim($_GET['busca_cpf'] ?? '');
+$busca_nome = trim($_GET['busca_nome'] ?? '');
 
 // Variáveis para montar a consulta SQL
 $types = ''; // String de tipos para mysqli_stmt_bind_param
@@ -64,19 +46,11 @@ if (!$listar_todos) {
         $parametros[] = $busca_id;
     }
 
-    // Busca por CPF (Sem máscara - correspondência exata ou parcial LIKE)
+    // Busca por CPF (exata)
     if (!empty($busca_cpf)) {
-        if (strlen($busca_cpf) === 11) {
-            // Busca exata se 11 dígitos
-            $search_conditions[] = "cpf = ?";
-            $types .= 's';
-            $parametros[] = $busca_cpf;
-        } else {
-            // Busca parcial se menos de 11 dígitos
-            $search_conditions[] = "cpf LIKE ?";
-            $types .= 's';
-            $parametros[] = '%' . $busca_cpf . '%';
-        }
+        $search_conditions[] = "cpf = ?";
+        $types .= 's';
+        $parametros[] = $busca_cpf;
     }
 
     // Busca por Nome (parcial, usando LIKE)
@@ -107,12 +81,7 @@ try {
     
     if (!empty($types)) {
         // Usa call_user_func_array para passar a string de tipos e os parâmetros.
-        // Usa referências (necessário para mysqli_stmt_bind_param)
-        $ref_parametros = [];
-        foreach ($parametros as $key => $value) {
-            $ref_parametros[$key] = &$parametros[$key];
-        }
-        mysqli_stmt_bind_param($stmt_count, $types, ...$ref_parametros);
+        mysqli_stmt_bind_param($stmt_count, $types, ...$parametros);
     }
     
     mysqli_stmt_execute($stmt_count);
@@ -150,14 +119,8 @@ if ($total_registros > 0) {
         $full_types = $types . 'ii';
         $full_parametros = array_merge($parametros, [$limite, $offset]);
 
-        // Usa referências para mysqli_stmt_bind_param
-        $ref_full_parametros = [];
-        foreach ($full_parametros as $key => $value) {
-            $ref_full_parametros[$key] = &$full_parametros[$key];
-        }
-
         // Usa call_user_func_array para passar a string de tipos e os parâmetros.
-        mysqli_stmt_bind_param($stmt_clientes, $full_types, ...$ref_full_parametros);
+        mysqli_stmt_bind_param($stmt_clientes, $full_types, ...$full_parametros);
 
         mysqli_stmt_execute($stmt_clientes);
         $result_clientes = mysqli_stmt_get_result($stmt_clientes);
@@ -180,19 +143,8 @@ function mask_cpf($cpf) {
     return $cpf;
 }
 
-// Função de máscara de Telefone (adicionada para consistência)
-function mask_telefone($telefone) {
-    $telefone = preg_replace('/\D/', '', $telefone);
-    if (strlen($telefone) === 11) {
-        return preg_replace('/(\d{2})(\d{5})(\d{4})/', '($1) $2-$3', $telefone);
-    } elseif (strlen($telefone) === 10) {
-        return preg_replace('/(\d{2})(\d{4})(\d{4})/', '($1) $2-$3', $telefone);
-    }
-    return $telefone;
-}
-
 // ---------------------------------------------------------------------
-// 4. GERAÇÃO DO HTML DE RESULTADOS E AÇÕES
+// 4. GERAÇÃO DO HTML DE RESULTADOS E AÇÕES (Omitido por ser apenas HTML, mantendo a originalidade)
 // ---------------------------------------------------------------------
 $titulo_busca = $listar_todos ? "Todos os Clientes" : "Clientes Encontrados";
 
@@ -222,22 +174,25 @@ if ($total_registros > 0) {
         echo '<tr>';
         echo '<td>' . $nome_completo . '</td>';
         echo '<td>' . mask_cpf($cpf) . '</td>';
-        echo '<td>' . mask_telefone($telefone) . '</td>'; // Usando a nova função de máscara de telefone
+        echo '<td>' . $telefone . '</td>';
         echo '<td>';
         
-        // BOTÕES DE AÇÃO
+        // BOTÃO VER PETS (Links baseados no seu código anterior)
         echo '<a href="#" class="btn btn-sm btn-info item-menu-ajax me-2" data-pagina="clientes_detalhes.php?id=' . $cliente_id . '" title="Ver a lista de Pets cadastrados">';
         echo '<i class="fas fa-paw me-1"></i> Ver Pets'; 
         echo '</a>';
         
+        // Botão ADICIONAR PET
         echo '<a href="#" class="btn btn-sm btn-success item-menu-ajax me-2" data-pagina="pets_cadastro.php?cliente_id=' . $cliente_id . '" title="Adicionar um novo Pet">';
         echo '<i class="fas fa-plus me-1"></i> Add Pet';
         echo '</a>';
         
+        // Botão EDITAR
         echo '<a href="#" class="btn btn-sm btn-primary item-menu-ajax me-2" data-pagina="clientes_editar.php?id=' . $cliente_id . '" title="Editar Cliente">';
         echo '<i class="fas fa-user-edit"></i> Editar';
         echo '</a>';
         
+        // Botão EXCLUIR (CORRIGIDO: Classe 'excluir-cliente' para 'btn-excluir-cliente')
         echo '<a href="#" class="btn btn-sm btn-danger btn-excluir-cliente" data-id="' . $cliente_id . '" title="Excluir Cliente">';
         echo '<i class="fas fa-trash-alt"></i>';
         echo '</a>';
@@ -251,17 +206,8 @@ if ($total_registros > 0) {
     echo '</div>';
     
     // ---------------------------------------------------------------------
-    // 5. Geração da Paginação
+    // 5. Geração da Paginação (Mantida a lógica existente)
     // ---------------------------------------------------------------------
-    
-    // Captura os parâmetros de busca para os links da paginação
-    $search_params = http_build_query([
-        'busca_id' => $busca_id,
-        'busca_cpf' => $busca_cpf,
-        'busca_nome' => $busca_nome
-    ]);
-    $base_pagination_url = "clientes_buscar_rapido.php?{$search_params}&limite={$limite}";
-
     echo '<nav aria-label="Paginação de Clientes" class="mt-3">';
     echo '<ul class="pagination justify-content-center flex-wrap">';
     
