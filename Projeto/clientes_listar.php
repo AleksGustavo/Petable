@@ -1,6 +1,7 @@
 <?php
 // Arquivo: clientes_listar.php
-// ... (Seu código PHP) ...
+// Este arquivo contém o HTML e o JavaScript que envia os dados de busca via AJAX.
+// Inclua aqui seu código PHP que precede o HTML, se houver.
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -25,8 +26,8 @@
                     <input type="number" id="busca_id" name="busca_id" class="form-control" placeholder="Ex: 123">
                 </div>
                 <div class="col-md-4">
-                    <label for="busca_cpf" class="form-label">Buscar por CPF</label>
-                    <input type="text" id="busca_cpf" name="busca_cpf" class="form-control" placeholder="Ex: 123.456.789-00">
+                    <label for="busca_cpf" class="form-label">Buscar por CPF (Apenas números)</label>
+                    <input type="tel" id="busca_cpf" name="busca_cpf" class="form-control input-numbers-only" maxlength="11" placeholder="Ex: 12345678900">
                 </div>
                 <div class="col-md-4">
                     <label for="busca_nome" class="form-label">Buscar por Nome</label>
@@ -35,7 +36,7 @@
             </div>
 
             <div class="mt-3 d-flex flex-column flex-md-row gap-2">
-                <button type="submit" class="btn btn-primary w-100 w-md-auto">
+                <button type="submit" class="btn btn-primary w-100 w-md-auto" id="btn-buscar">
                     <i class="fas fa-search me-1"></i> Buscar Clientes
                 </button>
                 
@@ -60,3 +61,70 @@
     </div>
 
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // ... (código mantido) ...
+
+        // 2. Lógica de submissão do formulário via AJAX/Fetch
+        formBusca.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            // GARANTINDO O ENVIO DO CPF LIMPO PARA O PHP (essencial para a busca sem máscara)
+            const buscaCpfClean = formData.get('busca_cpf').replace(/\D/g, '');
+            formData.set('busca_cpf', buscaCpfClean); 
+
+            // Desabilita o botão e mostra status
+            btnBuscar.disabled = true;
+            btnBuscar.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Buscando...';
+            resultadoArea.innerHTML = '<div class="alert alert-warning">Carregando resultados...</div>'; 
+
+            // ALTERAÇÃO AQUI: Chamando clientes_buscar_rapido.php
+            fetch('clientes_buscar_rapido.php', { 
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro de rede: ' + response.statusText);
+                }
+                return response.text(); 
+            }) 
+            .then(html => {
+                resultadoArea.innerHTML = html; 
+            })
+            .catch(error => {
+                console.error('Erro na busca AJAX:', error);
+                resultadoArea.innerHTML = '<div class="alert alert-danger">Erro ao buscar clientes. Por favor, verifique o console para mais detalhes.</div>';
+            })
+            .finally(() => {
+                btnBuscar.disabled = false;
+                btnBuscar.innerHTML = '<i class="fas fa-search me-1"></i> Buscar Clientes';
+            });
+        });
+        
+        // 3. Lógica do botão "Listar Todos"
+        const btnListarTodos = document.getElementById('btn-listar-todos-clientes');
+        if (btnListarTodos) {
+            btnListarTodos.addEventListener('click', function() {
+                // Limpa todos os campos antes de submeter
+                document.getElementById('busca_id').value = '';
+                document.getElementById('busca_cpf').value = '';
+                document.getElementById('busca_nome').value = '';
+                
+                // Dispara a submissão do formulário, que agora irá listar todos
+                formBusca.dispatchEvent(new Event('submit'));
+            });
+        }
+        
+        // 4. Lógica do botão "Esconder"
+        const btnEsconder = document.getElementById('btn-esconder-clientes');
+        if (btnEsconder) {
+            btnEsconder.addEventListener('click', function() {
+                resultadoArea.innerHTML = '<div class="alert alert-info">Resultados escondidos. Clique em "Buscar Clientes" ou "Listar Todos" para reexibir.</div>';
+            });
+        }
+    });
+</script>

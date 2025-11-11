@@ -37,11 +37,17 @@
                     <div id="cpf-feedback" class="invalid-feedback">
                         CPF inválido.
                     </div>
+                    <div id="cpf-duplicidade-feedback" class="invalid-feedback" style="display: none;">
+                        Este CPF já está cadastrado.
+                    </div>
                 </div>
                 
                 <div class="col-md-4">
                     <label for="celular" class="form-label">Celular *</label>
                     <input type="text" id="celular" name="celular" class="form-control form-control-sm mask-celular input-numbers-only" required maxlength="15" placeholder="(00) 00000-0000">
+                    <div id="celular-duplicidade-feedback" class="invalid-feedback" style="display: none;">
+                        Este telefone já está cadastrado.
+                    </div>
                 </div>
 
                 <hr class="mt-2">
@@ -109,27 +115,35 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        const nomeInput = document.getElementById('nome');
         const cepInput = document.getElementById('cep');
         const ruaInput = document.getElementById('rua');
         const bairroInput = document.getElementById('bairro');
         const ufInput = document.getElementById('uf');
         const numeroInput = document.getElementById('numero');
+        const celularInput = document.getElementById('celular');
         const cpfInput = document.getElementById('cpf');
+        
         const cpfFeedback = document.getElementById('cpf-feedback');
+        const cpfDuplicidadeFeedback = document.getElementById('cpf-duplicidade-feedback');
+        const celularDuplicidadeFeedback = document.getElementById('celular-duplicidade-feedback');
         const cepFeedback = document.getElementById('cep-feedback');
         const form = document.getElementById('form-cadastro-cliente');
+        const btnCadastrar = document.getElementById('btn-cadastrar-cliente');
+        
+        // Estado de validação
+        let isCpfDuplicated = false;
+        let isCelularDuplicated = false;
 
         // --- 1. Validação de CPF (Algoritmo de Luhn) ---
         
-        // Função de Validação do CPF (Retorna true ou false)
         function validarCPF(cpf) {
-            cpf = cpf.replace(/[^\d]/g, ''); // Remove caracteres não numéricos
-            if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false; // 11 dígitos e evita sequências repetidas
+            cpf = cpf.replace(/[^\d]/g, ''); 
+            if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
 
             let soma = 0;
             let resto;
 
-            // Validação do 1º dígito verificador
             for (let i = 1; i <= 9; i++) {
                 soma += parseInt(cpf.substring(i - 1, i)) * (11 - i);
             }
@@ -138,7 +152,6 @@
             if (resto !== parseInt(cpf.substring(9, 10))) return false;
 
             soma = 0;
-            // Validação do 2º dígito verificador
             for (let i = 1; i <= 10; i++) {
                 soma += parseInt(cpf.substring(i - 1, i)) * (12 - i);
             }
@@ -148,27 +161,105 @@
 
             return true;
         }
+        
+        // NOVO: Função para verificar duplicidade de CPF e Celular
+        async function checkDuplicity(field, value) {
+            // value já deve estar limpo (somente números)
+            if (value.length === 0) return false;
 
-        function checkCpfValidity() {
-            const cpfValue = cpfInput.value;
-            const isCpfValid = validarCPF(cpfValue);
+            const endpoint = 'clientes_validar_duplicidade.php'; // PONTO DE ATENÇÃO: Arquivo PHP necessário!
+            const formData = new FormData();
+            formData.append('campo', field);
+            formData.append('valor', value);
 
-            if (cpfValue.length === 14) { // Só valida se estiver completo (máscara)
-                if (isCpfValid) {
-                    cpfInput.classList.remove('is-invalid');
-                    cpfInput.classList.add('is-valid');
-                } else {
-                    cpfInput.classList.remove('is-valid');
-                    cpfInput.classList.add('is-invalid');
-                }
-            } else {
-                 cpfInput.classList.remove('is-valid', 'is-invalid');
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                
+                return data.existe_duplicidade; // Espera true se for duplicado
+            } catch (error) {
+                console.error(`Erro ao verificar duplicidade de ${field}:`, error);
+                // Em caso de erro, assumimos que não há duplicidade para não bloquear o usuário.
+                return false; 
             }
-            return isCpfValid;
+        }
+        
+        async function checkCpfValidity() {
+            const cpfValue = cpfInput.value;
+            const cpfClean = cpfValue.replace(/\D/g, '');
+            const isCpfValid = validarCPF(cpfValue);
+            
+            cpfInput.classList.remove('is-valid', 'is-invalid');
+            cpfFeedback.style.display = 'none';
+            cpfDuplicidadeFeedback.style.display = 'none';
+            isCpfDuplicated = false;
+
+            if (cpfClean.length === 11) {
+                if (!isCpfValid) {
+                    cpfInput.classList.add('is-invalid');
+                    cpfFeedback.style.display = 'block';
+                    return false;
+                }
+                
+                // 1. Verificar Duplicidade
+                cpfInput.disabled = true;
+                const isDuplicated = await checkDuplicity('cpf', cpfClean);
+                cpfInput.disabled = false;
+                
+                if (isDuplicated) {
+                    cpfInput.classList.add('is-invalid');
+                    cpfDuplicidadeFeedback.style.display = 'block';
+                    isCpfDuplicated = true;
+                    return false;
+                }
+                
+                // 2. Passou nas validações
+                cpfInput.classList.add('is-valid');
+                celularInput.focus();
+                return true;
+
+            } else {
+                 return false;
+            }
+        }
+        
+        async function checkCelularValidity() {
+            const celularValue = celularInput.value;
+            const celularClean = celularValue.replace(/\D/g, '');
+            
+            celularInput.classList.remove('is-valid', 'is-invalid');
+            celularDuplicidadeFeedback.style.display = 'none';
+            isCelularDuplicated = false;
+
+            if (celularClean.length === 11) {
+                
+                // 1. Verificar Duplicidade
+                celularInput.disabled = true;
+                const isDuplicated = await checkDuplicity('celular', celularClean);
+                celularInput.disabled = false;
+                
+                if (isDuplicated) {
+                    celularInput.classList.add('is-invalid');
+                    celularDuplicidadeFeedback.style.display = 'block';
+                    isCelularDuplicated = true;
+                    return false;
+                }
+                
+                // 2. Passou na validação
+                celularInput.classList.add('is-valid');
+                cepInput.focus();
+                return true;
+            } else {
+                return false;
+            }
         }
 
-        cpfInput.addEventListener('keyup', checkCpfValidity);
-        cpfInput.addEventListener('change', checkCpfValidity);
+
+        cpfInput.addEventListener('blur', checkCpfValidity);
+        celularInput.addEventListener('blur', checkCelularValidity);
 
 
         // --- 2. API de Busca de CEP (ViaCEP) ---
@@ -177,17 +268,29 @@
             ruaInput.value = "";
             bairroInput.value = "";
             ufInput.value = "";
+            ruaInput.readOnly = false;
+            bairroInput.readOnly = false;
+            ufInput.readOnly = false;
         }
 
         function fillAddressFields(data) {
-            ruaInput.value = data.logradouro;
-            bairroInput.value = data.bairro;
-            ufInput.value = data.uf;
-            numeroInput.focus(); // Foca no campo de número após preencher
+            ruaInput.value = data.logradouro || '';
+            bairroInput.value = data.bairro || '';
+            ufInput.value = data.uf || '';
+            
+            ruaInput.readOnly = !!data.logradouro;
+            bairroInput.readOnly = !!data.bairro;
+            ufInput.readOnly = !!data.uf;
+            
+            if (data.logradouro) {
+                numeroInput.focus();
+            } else {
+                ruaInput.focus();
+            }
         }
 
         function searchCep() {
-            const cepValue = cepInput.value.replace(/\D/g, ''); // Remove formatação
+            const cepValue = cepInput.value.replace(/\D/g, '');
 
             if (cepValue.length !== 8) {
                 clearAddressFields();
@@ -195,14 +298,11 @@
                 return;
             }
 
-            // Exibe indicador de carregamento (opcional, mas recomendado)
             cepInput.classList.remove('is-valid', 'is-invalid');
             cepInput.disabled = true;
-
-            // Limpa campos para evitar dados antigos
             clearAddressFields();
 
-            fetch(https://viacep.com.br/ws/${cepValue}/json/)
+            fetch(`https://viacep.com.br/ws/${cepValue}/json/`)
                 .then(response => response.json())
                 .then(data => {
                     if (!data.erro) {
@@ -210,68 +310,115 @@
                         cepInput.classList.add('is-valid');
                         cepInput.classList.remove('is-invalid');
                     } else {
-                        // CEP não encontrado
+                        clearAddressFields();
                         cepInput.classList.add('is-invalid');
                         cepFeedback.textContent = "CEP não encontrado. Digite o endereço manualmente.";
+                        ruaInput.focus();
                     }
                 })
                 .catch(error => {
                     console.error('Erro na API ViaCEP:', error);
                     cepInput.classList.add('is-invalid');
                     cepFeedback.textContent = "Erro ao buscar CEP. Tente novamente.";
+                    clearAddressFields();
                 })
                 .finally(() => {
                     cepInput.disabled = false;
                 });
         }
 
-        // Adiciona o evento de busca ao perder o foco (blur) no campo CEP
+        // CORREÇÃO do Enter: Impede a submissão padrão do formulário ao pressionar Enter no campo CEP.
+        cepInput.addEventListener('keyup', function(e) {
+            if (e.key === 'Enter' || e.keyCode === 13) {
+                e.preventDefault(); 
+                
+                if (this.value.length === 9) {
+                    searchCep();
+                }
+            } else if (this.value.length === 9) {
+                searchCep();
+            }
+        });
+        
         cepInput.addEventListener('blur', searchCep);
         
-        // --- 3. Prevenção de envio se o CPF for inválido ---
+        // --- 3. Prevenção de envio ---
         
-        form.addEventListener('submit', function(e) {
-            if (!validarCPF(cpfInput.value)) {
-                e.preventDefault();
-                cpfInput.classList.add('is-invalid');
-                alert('Por favor, corrija o CPF. Ele é obrigatório e precisa ser válido.');
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault(); // Previne o envio inicial
+            
+            // Revalida CPF e Celular na submissão
+            const isCpfOk = await checkCpfValidity();
+            const isCelularOk = await checkCelularValidity();
+
+            // Verifica se há CPF inválido (padrão ou duplicidade)
+            if (!isCpfOk || isCpfDuplicated) {
+                alert('Por favor, corrija o CPF. Ele é obrigatório, precisa ser válido e não deve ser duplicado.');
                 cpfInput.focus();
+                return;
             }
-            // A validação do CEP é menos crítica, mas a API já ajuda a guiar o usuário
+            
+            // Verifica se há Celular duplicado
+            if (isCelularDuplicated) {
+                alert('Por favor, corrija o Celular. Ele não pode ser duplicado.');
+                celularInput.focus();
+                return;
+            }
+            
+            // Se todas as validações de JS passaram, submete o formulário
+            // Nota: Se houver outros campos que o navegador possa marcar como inválidos (required),
+            // você deve forçar o clique no botão de submit aqui, mas como já deu preventDefault,
+            // a maneira mais segura é submeter via JS:
+            this.submit();
         });
         
-        // No caso de dados preenchidos previamente (ex: erro de server-side), verifica o CPF
-        if(cpfInput.value) {
-            checkCpfValidity();
-        }
-    });
+        // --- 4. Máscaras (Ajustadas para não forçar foco) ---
 
-    // Função de máscara (pressupõe que você já tenha implementado ou vai usar uma biblioteca externa)
-    // Exemplo simplificado (você pode precisar de um arquivo de script de máscara mais robusto):
-    document.querySelectorAll('.mask-cpf').forEach(input => {
-        input.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length > 9) {
-                value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-            } else if (value.length > 6) {
-                value = value.replace(/(\d{3})(\d{3})(\d{3})/, '$1.$2.$3');
-            } else if (value.length > 3) {
-                value = value.replace(/(\d{3})(\d{3})/, '$1.$2');
-            } else if (value.length > 0) {
-                value = value.replace(/(\d{3})/, '$1');
-            }
-            e.target.value = value;
+        // Função de máscara CPF (Mantida a correção para não pular campo)
+        document.querySelectorAll('.mask-cpf').forEach(input => {
+            input.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length > 9) {
+                    value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+                } else if (value.length > 6) {
+                    value = value.replace(/(\d{3})(\d{3})(\d{3})/, '$1.$2.$3');
+                } else if (value.length > 3) {
+                    value = value.replace(/(\d{3})(\d{3})/, '$1.$2');
+                } else if (value.length > 0) {
+                    value = value.replace(/(\d{3})/, '$1');
+                }
+                e.target.value = value;
+            });
         });
-    });
 
-    document.querySelectorAll('.mask-cep').forEach(input => {
-        input.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length > 5) {
-                value = value.replace(/(\d{5})(\d{1,3})/, '$1-$2');
-            }
-            e.target.value = value;
+        // Função de máscara Celular 
+        document.querySelectorAll('.mask-celular').forEach(input => {
+            input.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length > 10) {
+                    value = value.replace(/^(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+                } else if (value.length > 6) {
+                    value = value.replace(/^(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+                } else if (value.length > 2) {
+                    value = value.replace(/^(\d{2})(\d{0,5})/, '($1) $2');
+                } else if (value.length > 0) {
+                    value = value.replace(/^(\d{0,2})/, '($1');
+                }
+                e.target.value = value;
+            });
         });
-    });
 
+        // Função de máscara CEP
+        document.querySelectorAll('.mask-cep').forEach(input => {
+            input.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length > 5) {
+                    value = value.replace(/(\d{5})(\d{1,3})/, '$1-$2');
+                }
+                e.target.value = value;
+            });
+        });
+        
+        nomeInput.focus(); // Foco inicial
+    });
 </script>
