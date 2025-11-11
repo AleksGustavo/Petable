@@ -1,10 +1,8 @@
 <?php
-// Arquivo: configuracoes.php (Página Simples de Perfil e Informações Estáticas)
 session_start();
-require_once 'conexao.php'; // Inclui a conexão (usando MySQLi ou PDO)
+require_once 'conexao.php'; // Inclui a conexão
 
 // Verifica se o usuário está logado.
-// CHAVE CORRIGIDA: Agora verifica 'id_usuario'
 if (!isset($_SESSION['logado']) || $_SESSION['logado'] !== true || !isset($_SESSION['id_usuario'])) {
     // Se não estiver logado ou sem o ID na sessão, exibe erro
     echo '<div class="alert alert-danger">Erro: Usuário não logado ou sessão incompleta. Por favor, faça login novamente.</div>';
@@ -17,11 +15,10 @@ $usuario_logado = htmlspecialchars($_SESSION['usuario']);
 $usuario_detalhes = [];
 $mensagem_conexao = '';
 
-// --- 1. Busca Detalhes do Usuário (Tabela: usuario) ---
-// NOTA: Este bloco usa MySQLi Procedural, mantido para compatibilidade com seu código original.
+// Busca Detalhes do Usuário (Tabela: usuario)
 if (isset($conexao)) {
     
-    $sql_detalhes = "SELECT * FROM `usuario` WHERE id = ?";
+    $sql_detalhes = "SELECT * FROM usuario WHERE id = ?";
     
     // É necessário usar Prepared Statements para segurança
     if ($stmt = mysqli_prepare($conexao, $sql_detalhes)) {
@@ -70,7 +67,7 @@ $papel_usuario = (isset($usuario_detalhes['papel_id']) && $usuario_detalhes['pap
         <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="fas fa-id-card-alt me-2"></i> Detalhes da sua Conta</h5>
             <span class="badge bg-light text-dark fs-6">
-                **<?= $usuario_logado ?>**
+                <?= $usuario_logado ?>
             </span>
         </div>
         <div class="card-body">
@@ -100,7 +97,7 @@ $papel_usuario = (isset($usuario_detalhes['papel_id']) && $usuario_detalhes['pap
     </div>
     <div class="card shadow-sm mb-4 border-secondary">
         <div class="card-header bg-secondary text-white">
-            <h5 class="mb-0"><i class="fas fa-store me-2"></i> Informações do Pet & Pet Shop</h5>
+            <h5 class="mb-0"><i class="fas fa-store me-2"></i> Informações do Pet & Pet</h5>
         </div>
         <div class="card-body">
             <p><strong>E-mail de Contato:</strong> <a href="mailto:<?= $email_contato ?>"><?= $email_contato ?></a></p>
@@ -112,10 +109,7 @@ $papel_usuario = (isset($usuario_detalhes['papel_id']) && $usuario_detalhes['pap
 </div>
 
 <?php
-// Fecha a conexão (Importante! Apenas se for usada aqui)
 if (isset($conexao)) {
-    // Usado se 'conexao.php' utiliza MySQLi e define a variável $conexao
-    // Se 'conexao.php' usa PDO e $pdo, esta linha não fará nada.
     @mysqli_close($conexao); 
 }
 ?>
@@ -144,7 +138,6 @@ if (isset($conexao)) {
                 data: { user_id: idUsuario },
                 success: function(data) {
                     $('#perfil-form-area').html(data);
-                    // IMPORTANTE: Se o formulário tiver máscaras/validações, chame aqui:
                     if (typeof inicializarMascarasEValidacoes === 'function') {
                          inicializarMascarasEValidacoes(); 
                     }

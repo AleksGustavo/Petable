@@ -191,10 +191,15 @@ main {
                     <i class="fas fa-calendar-plus me-2"></i> Agendamentos
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link item-menu-ajax" data-pagina="servicos_agendar_banhotosa.php" href="#">
+                    <i class="fas fa-calendar-plus me-2"></i> Listagem De Agendamentos
+                </a>
+            </li>
             
             <li class="nav-item">
                 <a class="nav-link item-menu-ajax" data-pagina="servicos_listar.php" href="#">
-                    <i class="fas fa-list me-2"></i> Listar / Gerenciar
+                    <i class="fas fa-list me-2"></i> Nossos Serviços
                 </a>
             </li>
             
