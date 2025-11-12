@@ -1,5 +1,6 @@
 <?php
 session_start();
+// Inicia a sessão para garantir que as variáveis de sessão estejam acessíveis
 require_once 'conexao.php'; // Inclui a conexão
 
 // Verifica se o usuário está logado.
@@ -12,10 +13,12 @@ if (!isset($_SESSION['logado']) || $_SESSION['logado'] !== true || !isset($_SESS
 // CHAVES CORRIGIDAS: Acessando 'id_usuario' e 'usuario'
 $usuario_id = $_SESSION['id_usuario'];
 $usuario_logado = htmlspecialchars($_SESSION['usuario']);
+
 $usuario_detalhes = [];
+$funcionario_detalhes = []; // NOVO: Para guardar os dados do funcionário
 $mensagem_conexao = '';
 
-// Busca Detalhes do Usuário (Tabela: usuario)
+// 1. Busca Detalhes da Conta (Tabela: usuario)
 if (isset($conexao)) {
     
     $sql_detalhes = "SELECT * FROM usuario WHERE id = ?";
@@ -29,28 +32,67 @@ if (isset($conexao)) {
         if ($result && $row = mysqli_fetch_assoc($result)) {
             $usuario_detalhes = $row;
         } else {
-            $mensagem_conexao = '<div class="alert alert-warning">Detalhes do usuário não encontrados no banco.</div>';
+            $mensagem_conexao = '<div class="alert alert-warning">Detalhes do usuário (conta) não encontrados no banco.</div>';
         }
         mysqli_stmt_close($stmt);
     } else {
-         $mensagem_conexao = '<div class="alert alert-danger">Erro ao preparar a consulta do perfil: ' . mysqli_error($conexao) . '</div>';
+         $mensagem_conexao = '<div class="alert alert-danger">Erro ao preparar a consulta do perfil (usuario): ' . mysqli_error($conexao) . '</div>';
     }
+
+    // 2. NOVO BLOCO: Busca Detalhes do Funcionário (Tabela: funcionario)
+    $sql_funcionario = "SELECT nome, data_nascimento FROM funcionario WHERE usuario_id = ?";
+    
+    if ($stmt_func = mysqli_prepare($conexao, $sql_funcionario)) {
+        mysqli_stmt_bind_param($stmt_func, "i", $usuario_id);
+        mysqli_stmt_execute($stmt_func);
+        $result_func = mysqli_stmt_get_result($stmt_func);
+        
+        if ($result_func && $row_func = mysqli_fetch_assoc($result_func)) {
+            $funcionario_detalhes = $row_func;
+        }
+        // Nota: Se não encontrar, mantemos $funcionario_detalhes vazio e usamos 'Não informado' como fallback.
+        mysqli_stmt_close($stmt_func);
+    } else {
+        $mensagem_conexao = '<div class="alert alert-danger">Erro ao preparar a consulta do perfil (funcionário): ' . mysqli_error($conexao) . '</div>';
+    }
+
 } else {
     $mensagem_conexao = '<div class="alert alert-danger">Erro Crítico: Conexão com o banco de dados falhou (conexao.php).</div>';
 }
 
 
-// --- 2. Informações Estáticas do Pet Shop ---
+// --- 3. Consolidação e Formatação de Informações para Exibição ---
+
+// Informações Estáticas do Pet Shop
 $nome_pet_shop = "Pet & Pet Shop";
 $email_contato = "pet&pet@exemplo.com";
 $telefone_contato = "(19) 98765-4321";
 $endereco_base = "Rua Francisco Travestino, 320 - Quaglia - Leme/SP";
 
-// Informações básicas do perfil (obtidas da busca ou padrões):
-$nome_completo = $usuario_detalhes['nome_completo'] ?? 'Não informado'; 
+// Dados da tabela 'usuario'
 $email_usuario = $usuario_detalhes['email'] ?? 'Não informado'; 
 $data_cadastro = $usuario_detalhes['data_cadastro'] ?? 'Não informado'; 
 $papel_usuario = (isset($usuario_detalhes['papel_id']) && $usuario_detalhes['papel_id'] == 1) ? 'Administrador' : 'Funcionário';
+
+// Dados da tabela 'funcionario'
+$nome_completo_func = $funcionario_detalhes['nome'] ?? 'Não informado';
+$data_nascimento = $funcionario_detalhes['data_nascimento'] ?? 'Não informado';
+
+// Quebra o nome completo do funcionário em nome e sobrenome (heurística do arquivo de formulário)
+$partes_nome = explode(' ', trim($nome_completo_func));
+$nome_func = htmlspecialchars(array_shift($partes_nome) ?: 'Não informado');
+$sobrenome_func = htmlspecialchars(implode(' ', $partes_nome) ?: 'Não informado');
+
+// Formatação da Data de Nascimento (para o formato brasileiro dd/mm/yyyy)
+$data_nascimento_formatada = 'Não informado';
+if (!empty($data_nascimento) && $data_nascimento !== 'Não informado') {
+    try {
+        $data_nascimento_obj = new DateTime($data_nascimento);
+        $data_nascimento_formatada = $data_nascimento_obj->format('d/m/Y');
+    } catch (Exception $e) {
+        $data_nascimento_formatada = 'Data Inválida';
+    }
+}
 ?>
 
 <div class="container mt-4">
@@ -75,7 +117,9 @@ $papel_usuario = (isset($usuario_detalhes['papel_id']) && $usuario_detalhes['pap
             <div class="row">
                 <div class="col-md-6">
                     <p class="mb-2"><strong>Nome de Usuário (Login):</strong> <code><?= $usuario_logado ?></code></p>
-                    <p class="mb-2"><strong>Nome Completo:</strong> <?= htmlspecialchars($nome_completo) ?></p>
+                    <p class="mb-2"><strong>Primeiro Nome:</strong> <?= $nome_func ?></p>
+                    <p class="mb-2"><strong>Sobrenome(s):</strong> <?= $sobrenome_func ?></p>
+                    <p class="mb-2"><strong>Data de Nascimento:</strong> <?= $data_nascimento_formatada ?></p>
                     <p class="mb-2"><strong>Email de Contato:</strong> <?= htmlspecialchars($email_usuario) ?></p>
                     <p class="mb-2"><strong>Nível de Acesso:</strong> <span class="badge bg-primary"><?= $papel_usuario ?></span></p>
                     <p class="mb-2 text-muted small"><strong>Membro Desde:</strong> <?= $data_cadastro ?></p>
@@ -139,7 +183,7 @@ if (isset($conexao)) {
                 success: function(data) {
                     $('#perfil-form-area').html(data);
                     if (typeof inicializarMascarasEValidacoes === 'function') {
-                         inicializarMascarasEValidacoes(); 
+                          inicializarMascarasEValidacoes(); 
                     }
                 },
                 error: function(xhr, status, error) {
