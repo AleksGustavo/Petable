@@ -6,7 +6,7 @@
 require_once 'conexao.php'; // Assume que 'conexao.php' retorna a variável $conexao (mysqli)
 
 // Configuração de Caminhos WEB: Necessário para os links de ação
-$BASE_PATH = '/PHP_PI/'; 
+$BASE_PATH = '/PHP_PI/';
 
 // Verifica se a conexão mysqli está ativa.
 if (empty($conexao)) {
@@ -46,18 +46,24 @@ if (!$listar_todos) {
         $parametros[] = $busca_id;
     }
 
-    // Busca por CPF (exata)
+    // Busca por CPF (ignora máscara e busca o valor limpo)
     if (!empty($busca_cpf)) {
-        $search_conditions[] = "cpf = ?";
+        // 1. Remove caracteres não numéricos do CPF digitado pelo usuário
+        $cpf_limpo = preg_replace('/[^0-9]/', '', $busca_cpf);
+
+        // 2. Busca pelo valor limpo ou mascarado (usa LIKE para ser permissivo)
+        $search_conditions[] = "cpf LIKE ?";
         $types .= 's';
-        $parametros[] = $busca_cpf;
+        // Adiciona o '%' para buscar a correspondência em qualquer parte da string 'cpf'
+        // no banco, caso ela esteja mascarada.
+        $parametros[] = '%' . $cpf_limpo . '%';
     }
 
     // Busca por Nome (parcial, usando LIKE)
     if (!empty($busca_nome)) {
         $search_conditions[] = "nome LIKE ?";
         $types .= 's';
-        $parametros[] = '%' . $busca_nome . '%'; 
+        $parametros[] = '%' . $busca_nome . '%';
     }
 }
 
@@ -76,25 +82,24 @@ $total_paginas = 1;
 try {
     // Consulta de contagem total
     $sql_count = "SELECT COUNT(id) AS total FROM cliente" . $where_clause;
-    
+
     $stmt_count = mysqli_prepare($conexao, $sql_count);
-    
+
     if (!empty($types)) {
         // Usa call_user_func_array para passar a string de tipos e os parâmetros.
         mysqli_stmt_bind_param($stmt_count, $types, ...$parametros);
     }
-    
+
     mysqli_stmt_execute($stmt_count);
     $result_count = mysqli_stmt_get_result($stmt_count);
-    
+
     if ($result_count) {
         $row_count = mysqli_fetch_assoc($result_count);
         $total_registros = (int)$row_count['total'];
         $total_paginas = ceil($total_registros / $limite);
     }
-    
-    mysqli_stmt_close($stmt_count);
 
+    mysqli_stmt_close($stmt_count);
 } catch (Exception $e) {
     error_log("Erro na contagem de clientes: " . $e->getMessage());
     $total_registros = 0;
@@ -109,9 +114,9 @@ $clientes = [];
 if ($total_registros > 0) {
     try {
         // Consulta dos clientes da página atual, ordenando por nome e usando LIMIT/OFFSET
-        $sql_clientes = "SELECT id, nome, cpf, telefone FROM cliente" 
-                      . $where_clause 
-                      . " ORDER BY nome ASC LIMIT ? OFFSET ?";
+        $sql_clientes = "SELECT id, nome, cpf, telefone FROM cliente"
+            . $where_clause
+            . " ORDER BY nome ASC LIMIT ? OFFSET ?";
 
         $stmt_clientes = mysqli_prepare($conexao, $sql_clientes);
 
@@ -125,9 +130,8 @@ if ($total_registros > 0) {
         mysqli_stmt_execute($stmt_clientes);
         $result_clientes = mysqli_stmt_get_result($stmt_clientes);
         $clientes = mysqli_fetch_all($result_clientes, MYSQLI_ASSOC);
-        
-        mysqli_stmt_close($stmt_clientes);
 
+        mysqli_stmt_close($stmt_clientes);
     } catch (Exception $e) {
         error_log("Erro na consulta de clientes: " . $e->getMessage());
         $clientes = [];
@@ -135,7 +139,8 @@ if ($total_registros > 0) {
 }
 
 // Função de máscara de CPF (mantida a lógica de mascaramento)
-function mask_cpf($cpf) {
+function mask_cpf($cpf)
+{
     $cpf = preg_replace('/[^0-9]/', '', $cpf);
     if (strlen($cpf) == 11) {
         return preg_replace('/(\d{3})(\d{3})(\d{3})(\d{2})/', '$1.$2.$3-$4', $cpf);
@@ -163,7 +168,7 @@ if ($total_registros > 0) {
     // HEADER: Adotando o header do código anterior do usuário
     echo '<thead class="table-dark"><tr><th>Cliente (Dono)</th><th>CPF</th><th>Telefone</th><th style="min-width: 380px;">Ações</th></tr></thead>';
     echo '<tbody>';
-    
+
     // LOOP AGORA USA DADOS REAIS DO BANCO DE DADOS
     foreach ($clientes as $cliente) {
         $cliente_id = htmlspecialchars($cliente['id']);
@@ -176,44 +181,44 @@ if ($total_registros > 0) {
         echo '<td>' . mask_cpf($cpf) . '</td>';
         echo '<td>' . $telefone . '</td>';
         echo '<td>';
-        
+
         // BOTÃO VER PETS (Links baseados no seu código anterior)
         echo '<a href="#" class="btn btn-sm btn-info item-menu-ajax me-2" data-pagina="clientes_detalhes.php?id=' . $cliente_id . '" title="Ver a lista de Pets cadastrados">';
-        echo '<i class="fas fa-paw me-1"></i> Ver Pets'; 
+        echo '<i class="fas fa-paw me-1"></i> Ver Pets';
         echo '</a>';
-        
+
         // Botão ADICIONAR PET
         echo '<a href="#" class="btn btn-sm btn-success item-menu-ajax me-2" data-pagina="pets_cadastro.php?cliente_id=' . $cliente_id . '" title="Adicionar um novo Pet">';
         echo '<i class="fas fa-plus me-1"></i> Add Pet';
         echo '</a>';
-        
+
         // Botão EDITAR
         echo '<a href="#" class="btn btn-sm btn-primary item-menu-ajax me-2" data-pagina="clientes_editar.php?id=' . $cliente_id . '" title="Editar Cliente">';
         echo '<i class="fas fa-user-edit"></i> Editar';
         echo '</a>';
-        
+
         // Botão EXCLUIR (CORRIGIDO: Classe 'excluir-cliente' para 'btn-excluir-cliente')
         echo '<a href="#" class="btn btn-sm btn-danger btn-excluir-cliente" data-id="' . $cliente_id . '" title="Excluir Cliente">';
         echo '<i class="fas fa-trash-alt"></i>';
         echo '</a>';
-        
+
         echo '</td>';
         echo '</tr>';
     }
-    
+
     echo '</tbody>';
     echo '</table>';
     echo '</div>';
-    
+
     // ---------------------------------------------------------------------
     // 5. Geração da Paginação (Mantida a lógica existente)
     // ---------------------------------------------------------------------
     echo '<nav aria-label="Paginação de Clientes" class="mt-3">';
     echo '<ul class="pagination justify-content-center flex-wrap">';
-    
-    $max_botoes = 7; 
+
+    $max_botoes = 7;
     $botoes_antes_depois = floor(($max_botoes - 1) / 2);
-    
+
     // Calcula o início e o fim do range de botões a mostrar
     $start_page = max(1, $pagina_atual - $botoes_antes_depois);
     $end_page = min($total_paginas, $pagina_atual + $botoes_antes_depois);
@@ -237,7 +242,7 @@ if ($total_registros > 0) {
     if ($start_page > 1) {
         echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
     }
-    
+
     // Números das Páginas
     for ($i = $start_page; $i <= $end_page; $i++) {
         $active = ($i == $pagina_atual) ? 'active' : '';
@@ -255,18 +260,16 @@ if ($total_registros > 0) {
     if ($pagina_atual < $total_paginas) {
         $proxima_pagina = $pagina_atual + 1;
         echo '<li class="page-item"><a class="page-link btn-pagina-cliente" href="#" data-pagina="' . $proxima_pagina . '" data-listar-todos="' . $listar_todos_js . '">Próxima</a></li>';
-        
+
         // Adicionar o botão "Última" se a próxima página não for a última
         if ($proxima_pagina < $total_paginas) {
-              echo '<li class="page-item"><a class="page-link btn-pagina-cliente" href="#" data-pagina="' . $total_paginas . '" data-listar-todos="' . $listar_todos_js . '">Última</a></li>';
+            echo '<li class="page-item"><a class="page-link btn-pagina-cliente" href="#" data-pagina="' . $total_paginas . '" data-listar-todos="' . $listar_todos_js . '">Última</a></li>';
         }
     }
-    
+
     echo '</ul></nav>';
-    
 } else {
     echo '<div class="alert alert-warning">Nenhum cliente encontrado com os critérios de busca.</div>';
 }
 
 echo '</div></div>'; // Fecha o card e o body
-?>
