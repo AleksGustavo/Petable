@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // O E-MAIL FOI REMOVIDO DA COLETA
     $senha_digitada = $_POST['password'] ?? '';
 
-    // 3. Consulta Segura (Prepared Statement)
+    // 3. Consulta Segura
     // ATENÇÃO: A consulta AGORA BUSCA APENAS pelo USUARIO e verifica se está ativo
     $sql = "SELECT id, usuario, email, senha_hash, papel_id FROM usuario 
             WHERE usuario = ? AND ativo = 1";

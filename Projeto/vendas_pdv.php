@@ -1,9 +1,4 @@
 <?php
-// Arquivo: vendas_pdv.php
-// ------------------------------------------------------------
-// 1. INCLUSÃO DA CONEXÃO E BUSCA DE DADOS
-// ------------------------------------------------------------
-// Você DEVE garantir que 'conexao.php' inicializa a variável $pdo (PDO)
 require_once 'conexao.php'; 
 
 $clientes = [];
@@ -18,7 +13,6 @@ try {
 ?>
 
 <style>
-    /* Estilos para o Autocomplete */
     .ui-autocomplete {
         z-index: 1050; 
         max-height: 200px;

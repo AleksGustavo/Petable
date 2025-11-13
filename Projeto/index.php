@@ -1,7 +1,16 @@
 <?php
-//redireciona para o login, tipo um loop 
-header("Location: login.php");
-exit(); 
+// Certifique-se de que a sessão foi iniciada em algum lugar (ex: session_start() no topo)
+// Se não tiver certeza, adicione-o aqui:
+// session_start(); 
+
+// 1. VERIFICAÇÃO DE AUTENTICAÇÃO (Corrigida)
+// Se o usuário NÃO estiver logado, redireciona para a página de login.
+// Você deve usar a variável de sessão que define se o usuário está autenticado.
+if (!isset($_SESSION['usuario_logado']) || $_SESSION['usuario_logado'] !== true) {
+    header("Location: login.php");
+    exit();
+}
+// Se o usuário ESTIVER logado, o script continua e carrega o HTML/JS abaixo.
 ?>
 
 <script>
@@ -17,7 +26,6 @@ exit();
     // ... Código da função carregarConteudo(pagina, pushHistory = true) ... (MANTIDO)
     function carregarConteudo(pagina, pushHistory = true) {
         // ... (Seu código de requisição AJAX para carregar páginas) ...
-        // ... (MANTENHA ESTE CÓDIGO INALTERADO) ...
         $('#conteudo-dinamico').html('<div class="text-center mt-5"><i class="fas fa-spinner fa-spin fa-3x text-primary"></i><p class="mt-2 text-muted">Carregando...</p></div>');
         
         $.ajax({
@@ -54,7 +62,6 @@ exit();
     }
 
     // NOVA FUNÇÃO: LÓGICA CENTRALIZADA DE CARREGAMENTO DE PÁGINAS DE CLIENTES
-    // Esta função será usada tanto pelo "Listar Todos" quanto pelos botões de paginação.
     function carregarPaginaClientes(pagina = 1, termoBusca = {}, listarTodos = false) {
         const limite = 10; // Definido como 10
         const offset = (pagina - 1) * limite;
@@ -66,15 +73,13 @@ exit();
         // Prepara os dados a serem enviados
         let dados = { 
             pagina_atual: pagina, // Número da página
-            limite: limite,       // Limite por página
-            offset: offset,       // Deslocamento
+            limite: limite,       // Limite por página
+            offset: offset,       // Deslocamento
             listar_todos: listarTodos ? 'true' : 'false',
             // Adiciona termos de busca se existirem
             ...termoBusca 
         };
 
-        // NOTA: Para simulação, estamos usando um arquivo que faria a consulta paginada.
-        // O cliente_buscar_rapido.php real deve ser modificado para aceitar estes parâmetros.
         $.ajax({
             type: 'GET', 
             url: 'clientes_buscar_rapido.php', // Use o seu arquivo de busca real
@@ -92,9 +97,10 @@ exit();
 
     $(document).ready(function() {
         
-        // ... (Seu código para urlParams, paginaInicial, e Navegação por Menu) ... (MANTIDO)
+        // 💡 LÓGICA CORRETA PARA DEFINIR A PÁGINA INICIAL
         const urlParams = new URLSearchParams(window.location.search);
-        const paginaInicial = urlParams.get('p') || 'home.php';
+        // Se 'p' não estiver na URL, carrega home.php
+        const paginaInicial = urlParams.get('p') || 'home.php'; 
 
         $(document).on('click', '.item-menu-ajax', function(e) {
             e.preventDefault(); 
@@ -105,10 +111,9 @@ exit();
             }
         });
 
-        // ... (Seu código para LÓGICA DE ENVIO DE FORMULÁRIOS) ... (MANTIDO)
+        // ... (Seu código para LÓGICA DE ENVIO DE FORMULÁRIOS) ... 
 
-        // ... (Seu código para LÓGICA DE BUSCA RÁPIDA DE CLIENTES) ... 
-        // MODIFICAÇÃO: A busca rápida agora usará a nova função de paginação, iniciando na página 1
+        // LÓGICA DE BUSCA RÁPIDA DE CLIENTES (MODIFICADA para chamar a nova função)
         $(document).on('submit', '#form-busca-cliente-rapida', function(e) {
             e.preventDefault(); 
             
@@ -118,7 +123,6 @@ exit();
                 return obj;
             }, {});
 
-            // Remove o listar_todos se estiver presente nos dados do formulário de busca normal
             delete dados['listar_todos']; 
 
             // Chama a função de carregamento da página 1 com os termos de busca
@@ -126,7 +130,7 @@ exit();
         });
 
 
-        // ... (Seu código para MONITORA O BOTÃO VOLTAR/AVANÇAR) ... (MANTIDO)
+        // MONITORA O BOTÃO VOLTAR/AVANÇAR (MANTIDO)
         window.onpopstate = function(event) {
             if (event.state && event.state.pagina) {
                 carregarConteudo(event.state.pagina, false); 
@@ -139,10 +143,8 @@ exit();
         $(document).on('click', '#btn-listar-todos-clientes', function(e) {
             e.preventDefault(); 
             
-            // Limpa o formulário de busca
             $('#form-busca-cliente-rapida')[0].reset();
             
-            // Chama a função de carregamento para listar TODOS a partir da página 1
             carregarPaginaClientes(1, {}, true); 
         });
 
@@ -153,19 +155,18 @@ exit();
             var paginaDesejada = $(this).data('pagina');
             var listarTodos = $(this).data('listar-todos') === true; // true ou false
             
-            // Reutiliza os termos de busca atuais do formulário, ou usa {} se for 'listar todos'
             var termoBusca = {};
             if (!listarTodos) {
                  termoBusca = $('#form-busca-cliente-rapida').serializeArray().reduce(function(obj, item) {
-                    obj[item.name] = item.value;
-                    return obj;
-                }, {});
+                     obj[item.name] = item.value;
+                     return obj;
+                 }, {});
             }
 
             carregarPaginaClientes(paginaDesejada, termoBusca, listarTodos);
         });
         
-        // ... (Seu código para LÓGICA DE ESCONDER CLIENTES) ... (MANTIDO)
+        // LÓGICA DE ESCONDER CLIENTES (MANTIDO)
         $(document).on('click', '#btn-esconder-clientes', function(e) {
             e.preventDefault(); 
             var resultadoArea = $('#resultado-busca-rapida'); 
@@ -176,7 +177,7 @@ exit();
             `);
         });
 
-        // CARREGA O CONTEÚDO INICIAL
+        // CARREGA O CONTEÚDO INICIAL (home.php ou o que estiver em ?p=...)
         carregarConteudo(paginaInicial, false); 
     });
 </script>
