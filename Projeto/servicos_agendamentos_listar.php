@@ -9,13 +9,13 @@ require_once 'conexao.php';
 $ID_SERVICO_VACINA = 6; 
 
 // ==============================================================================
-// 1. Lógica de Pesquisa e Filtro
+// 1. Lógica de Pesquisa e Filtro (CORRIGIDA COM GROUP BY)
 // ==============================================================================
 $termo_busca = $_GET['busca'] ?? '';
 $filtro_status = $_GET['status_filtro'] ?? 'todos';
 
-// CORREÇÃO CRÍTICA (DUPLICAÇÃO): Adicionado DISTINCT
-$sql = "SELECT DISTINCT
+// Removido o DISTINCT e o GROUP BY será adicionado no final
+$sql = "SELECT 
             a.id AS agendamento_id, 
             a.data_agendamento, 
             a.status, 
@@ -53,6 +53,9 @@ if ($filtro_status !== 'todos' && in_array($filtro_status, ['agendado', 'confirm
     $params[] = $filtro_status;
 }
 
+// Adiciona o GROUP BY para evitar duplicação no resultado final da agregação
+$sql .= " GROUP BY a.id, a.data_agendamento, a.status, a.servico_id, a.pet_id, c.nome, p.nome, s.nome";
+
 $sql .= " ORDER BY a.data_agendamento ASC"; 
 
 $agendamentos = [];
@@ -65,8 +68,9 @@ if (isset($conexao) && $conexao) {
         
         if (!empty($params)) {
             // Se você está usando PHP < 8.1, pode precisar de uma chamada dinâmica para mysqli_stmt_bind_param
+            // CORREÇÃO: Usando o array_merge correto para a chamada dinâmica
             $bind_params = array_merge([$stmt, $params_types], $params);
-            call_user_func_array('mysqli_stmt_bind_param', $bind_params);
+            call_user_func_array('mysqli_stmt_bind_param', array_ref($bind_params));
         }
 
         mysqli_stmt_execute($stmt);
@@ -83,6 +87,17 @@ if (isset($conexao) && $conexao) {
 } else {
     $erro_sql = 'Erro crítico: Conexão mysqli indisponível.';
 }
+
+// Função auxiliar para referências (necessária para call_user_func_array com bind_param no PHP antigo)
+if (!function_exists('array_ref')) {
+    function array_ref(&$arr) {
+        $refs = [];
+        foreach ($arr as $key => $value)
+            $refs[$key] = &$arr[$key];
+        return $refs;
+    }
+}
+
 
 // Função para formatar o status com cor (Usada na listagem)
 function formatar_status($status) {
