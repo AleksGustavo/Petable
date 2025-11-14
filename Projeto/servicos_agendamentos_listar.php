@@ -1,11 +1,10 @@
 <?php
-// Arquivo: servicos_agendamentos_listar.php - Versão Final Corrigida (Puro Conteúdo)
-
-// NOTA: ESTE ARQUIVO AGORA CONTÉM APENAS O CONTEÚDO HTML PARA SER CARREGADO VIA AJAX.
-// TODO O JAVASCRIPT FOI MOVIDO PARA O dashboard.php (OU PARA ONDE O AJAX É CHAMADO).
+// Arquivo: servicos_agendamentos_listar.php
+// Contém a interface HTML e o JavaScript para busca e paginação AJAX.
 
 require_once 'conexao.php'; 
 
+<<<<<<< HEAD
 $ID_SERVICO_VACINA = 6; 
 
 // ==============================================================================
@@ -110,112 +109,271 @@ function formatar_status($status) {
     };
     return "<span class='{$classe}'>" . ucfirst($status) . "</span>";
 }
+=======
+$conteudo_inicial = ''; // Conteúdo inicial (opcionalmente vazio, carregado via JS)
+>>>>>>> b9ea0a168763b9193e16431b87dd71ac1eeaff7a
 ?>
 
-<div class="container mt-4">
+<div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="fas fa-clipboard-list me-2"></i> Listagem de Agendamentos</h2>
     
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <a href="#" class="btn btn-success item-menu-ajax" data-pagina="servicos_agendar_banhotosa.php"><i class="fas fa-plus me-1"></i> Novo Agendamento</a>
-        
-        <button id="toggle-concluidos" class="btn btn-info btn-sm">
-            <i class="fas fa-eye-slash me-1"></i> Ocultar Concluídos
-        </button>
-    </div>
-
-    <form method="GET" id="filter-form" class="mb-4 p-3 bg-white shadow-sm rounded">
-        <h5><i class="fas fa-filter me-1"></i> Filtrar Agendamentos</h5>
-        <div class="row g-2 align-items-end">
-            <div class="col-md-5">
-                <label for="busca" class="form-label mb-1">Pesquisar por Nome</label>
-                <input type="text" class="form-control form-control-sm" id="busca" name="busca" 
-                        value="<?php echo htmlspecialchars($termo_busca); ?>" placeholder="Pet, Cliente ou Serviço">
-            </div>
-            <div class="col-md-4">
-                <label for="status_filtro" class="form-label mb-1">Status</label>
-                <select class="form-select form-select-sm" id="status_filtro" name="status_filtro">
-                    <option value="todos">Todos</option>
-                    <option value="agendado" <?php if ($filtro_status === 'agendado') echo 'selected'; ?>>Agendado</option>
-                    <option value="confirmado" <?php if ($filtro_status === 'confirmado') echo 'selected'; ?>>Confirmado</option>
-                    <option value="concluido" <?php if ($filtro_status === 'concluido') echo 'selected'; ?>>Concluído</option>
-                    <option value="cancelado" <?php if ($filtro_status === 'cancelado') echo 'selected'; ?>>Cancelado</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <button type="submit" class="btn btn-primary btn-sm me-2"><i class="fas fa-search me-1"></i> Buscar</button>
-                <a href="#" class="btn btn-secondary btn-sm item-menu-ajax" data-pagina="servicos_agendamentos_listar.php"><i class="fas fa-sync-alt me-1"></i> Limpar</a>
-            </div>
-        </div>
-    </form>
-
-
-    <div id="agendamentos-content">
-        <?php if (!empty($erro_sql)): ?>
-            <div class="alert alert-danger"><?php echo $erro_sql; ?></div>
-        <?php endif; ?>
-        <?php if (empty($agendamentos)): ?>
-            <div class="alert alert-warning text-center">Nenhum agendamento encontrado com os filtros aplicados.</div>
-        <?php else: ?>
-            <div class="table-responsive">
-                <table class="table table-striped table-hover align-middle">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Data/Hora</th>
-                            <th>Pet</th>
-                            <th>Cliente</th>
-                            <th>Serviço</th>
-                            <th>Status</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($agendamentos as $agendamento): ?>
-                        <tr id="agendamento-<?php echo $agendamento['agendamento_id']; ?>" class="<?php echo $agendamento['status'] === 'concluido' ? 'status-concluido' : ''; ?>">
-                            <td><?php echo $agendamento['agendamento_id']; ?></td>
-                            <td><?php echo date('d/m/Y H:i', strtotime($agendamento['data_agendamento'])); ?></td>
-                            <td><?php echo htmlspecialchars($agendamento['pet_nome']); ?></td>
-                            <td><?php echo htmlspecialchars($agendamento['cliente_nome']); ?></td>
-                            <td><?php echo htmlspecialchars($agendamento['servico_nome']); ?></td>
-                            <td class="status-cell">
-                                <?php echo formatar_status($agendamento['status']); ?>
-                            </td>
-                            <td>
-                                <a href="#" 
-                                   class="btn btn-sm btn-warning me-1 item-menu-ajax" 
-                                   data-pagina="servicos_agendar_banhotosa.php?id=<?php echo $agendamento['agendamento_id']; ?>" 
-                                   title="Editar Agendamento">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-
-                                <?php if (!in_array($agendamento['status'], ['concluido', 'cancelado'])): ?>
-                                <button class="btn btn-sm btn-success btn-processar-agendamento me-1" 
-                                        data-id="<?php echo $agendamento['agendamento_id']; ?>"
-                                        data-acao="concluir_status" 
-                                        title="Marcar como Concluído">
-                                    <i class="fas fa-check-circle"></i>
-                                </button>
-                                <?php endif; ?>
-                                
-                                <button class="btn btn-sm btn-danger btn-processar-agendamento me-1" 
-                                        data-id="<?php echo $agendamento['agendamento_id']; ?>"
-                                        data-acao="deletar"
-                                        title="Excluir Permanentemente">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
-
-                                <button class="btn btn-sm btn-secondary btn-processar-agendamento" 
-                                        data-id="<?php echo $agendamento['agendamento_id']; ?>"
-                                        data-acao="cancelar_status"
-                                        title="Cancelar Agendamento">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        <?php endif; ?>
+    <div>
+        <a href="#" class="btn btn-success item-menu-ajax" data-pagina="servicos_agendar_banhotosa.php">
+            <i class="fas fa-plus me-2"></i> Novo Agendamento
+        </a>
     </div>
 </div>
+
+<div id="status-message-area">
+    </div>
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-secondary text-white">
+        <i class="fas fa-search me-2"></i> Pesquisar Agendamento
+    </div>
+    <div class="card-body">
+        <form id="form-busca-agendamento-rapida"> 
+            <div class="row g-3">
+                
+                <div class="col-md-5">
+                    <label for="busca" class="form-label">Pesquisar</label>
+                    <input type="text" id="busca" name="busca" class="form-control" placeholder="Pet, Cliente ou Serviço">
+                </div>
+                
+                <div class="col-md-3">
+                    <label for="status_filtro" class="form-label">Status</label>
+                    <select class="form-select" id="status_filtro" name="status_filtro">
+                        <option value="todos">Todos</option>
+                        <option value="agendado">Agendado</option>
+                        <option value="confirmado">Confirmado</option>
+                        <option value="concluido">Concluído</option>
+                        <option value="cancelado">Cancelado</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-4">
+                    <label for="ordenacao" class="form-label">Ordenar por</label>
+                    <select id="ordenacao" name="ordenacao" class="form-select">
+                        <option value="data_crescente">Data (Mais Antiga)</option>
+                        <option value="data_decrescente">Data (Mais Recente)</option>
+                        <option value="cliente">Cliente (Nome)</option>
+                        <option value="pet">Pet (Nome)</option>
+                    </select>
+                </div>
+                
+            </div>
+
+            <div class="mt-3 d-flex flex-column flex-md-row gap-2">
+                <button type="submit" class="btn btn-primary w-100 w-md-auto">
+                    <i class="fas fa-search me-1"></i> Buscar Agendamentos
+                </button>
+                
+                <div class="d-flex flex-grow-1 justify-content-end">
+                    <button type="button" id="btn-toggle-agendamentos" class="btn btn-success flex-fill">
+                        <i class="fas fa-eye me-1"></i> Mostrar Agendamentos
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="resultado-busca-rapida" class="mt-4">
+    <div class="alert alert-info" id="msg-informativa">
+        Clique em "Mostrar Agendamentos" para listar todos (paginado em 10) ou preencha os campos para buscar.
+    </div>
+
+    <div id="tabela-agendamentos-container" style="display: none;">
+        <?php echo $conteudo_inicial; ?>
+    </div>
+</div>
+
+
+<script>
+$(document).ready(function() {
+    
+    // =========================================================================
+    // VARIÁVEIS DE CONFIGURAÇÃO E REFERÊNCIA DO DOM
+    // =========================================================================
+    const $container = $('#tabela-agendamentos-container');
+    const $msgInformativa = $('#msg-informativa');
+    const $form = $('#form-busca-agendamento-rapida');
+    const $campoBusca = $('#busca');
+    const $statusFiltro = $('#status_filtro');
+    const $ordenacao = $('#ordenacao');
+    const $btnToggle = $('#btn-toggle-agendamentos');
+    let timerBusca = null; 
+
+    // =========================================================================
+    // FUNÇÃO PRINCIPAL: REALIZAR REQUISIÇÃO AJAX (Busca, Filtro e Paginação)
+    // =========================================================================
+    function realizarBusca(pagina_atual = 1, listar_todos = false) {
+        
+        // Esconde a mensagem informativa durante a busca
+        $msgInformativa.hide(); 
+
+        // 1. Coleta e codificação dos valores do formulário
+        const busca = $campoBusca.val().trim();
+        const status_filtro = $statusFiltro.val();
+        const ordenacao = $ordenacao.val(); 
+
+        // 2. Montagem da URL base (limite=10 é fixo)
+        let url = 'servicos_agendamento_buscar_rapido.php?limite=10&pagina_atual=' + pagina_atual;
+        url += '&ordenacao=' + encodeURIComponent(ordenacao);
+
+        // 3. Adiciona os parâmetros de filtro (Busca ou Listar Todos)
+        if (listar_todos) {
+            url += '&listar_todos=true';
+        } else {
+            let temFiltroAtivo = false;
+            
+            if (busca.length > 0) {
+                url += '&busca=' + encodeURIComponent(busca);
+                temFiltroAtivo = true;
+            }
+            if (status_filtro !== 'todos') {
+                url += '&status_filtro=' + encodeURIComponent(status_filtro);
+                temFiltroAtivo = true;
+            }
+            
+            // Se nenhum filtro estiver ativo, força a listagem completa (paginada) 
+            // e mostra a mensagem informativa novamente
+            if (!temFiltroAtivo) {
+                 url = 'servicos_agendamento_buscar_rapido.php?listar_todos=true&limite=10&pagina_atual=1';
+                 url += '&ordenacao=' + encodeURIComponent(ordenacao);
+                 $msgInformativa.show(); 
+            }
+        }
+
+        // 4. Efeito de carregamento e Requisição AJAX (GET)
+        $container.html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i><p class="mt-2">Buscando agendamentos...</p></div>');
+        
+        $.ajax({
+            url: url,
+            method: 'GET',
+            success: function(response) {
+                $container.html(response);
+            },
+            error: function() {
+                $container.html('<div class="alert alert-danger">Erro de conexão com o servidor. Tente novamente.</div>');
+            }
+        });
+    }
+    
+    // Função auxiliar para garantir que o container esteja visível e o botão atualizado
+    function mostrarContainer() {
+        if ($container.is(':hidden')) {
+            $container.show();
+            $btnToggle.removeClass('btn-success').addClass('btn-danger');
+            $btnToggle.html('<i class="fas fa-eye-slash me-1"></i> Esconder Agendamentos');
+        }
+    }
+
+
+    // =========================================================================
+    // EVENTOS DE INTERAÇÃO (Busca em Tempo Real, Submit e Toggle)
+    // =========================================================================
+
+    // 1. Busca em Tempo Real (keyup no campo de busca com Debounce)
+    $campoBusca.on('keyup', function() {
+        clearTimeout(timerBusca);
+        // Executa a busca após 300ms de inatividade
+        timerBusca = setTimeout(function() {
+            realizarBusca(1, false);
+            mostrarContainer();
+        }, 300); 
+    });
+
+    // 2. Filtro de Status e Ordenação (change no select)
+    $statusFiltro.on('change', function() {
+        realizarBusca(1, false);
+        mostrarContainer();
+    });
+    
+    $ordenacao.on('change', function() {
+        realizarBusca(1, false);
+        mostrarContainer();
+    });
+
+
+    // 3. Busca Explícita (Submit do Formulário)
+    $form.on('submit', function(e) {
+        e.preventDefault(); 
+        clearTimeout(timerBusca); 
+        realizarBusca(1, false); 
+        mostrarContainer();
+    });
+
+
+    // 4. Botão "Mostrar/Esconder Agendamentos" (Toggle)
+    $btnToggle.on('click', function() {
+        const isHidden = $container.is(':hidden');
+
+        if (isHidden) {
+            // Lógica de MOSTRAR: Carrega a primeira página da lista completa
+            mostrarContainer(); 
+            realizarBusca(1, true); 
+            
+        } else {
+            // Lógica de ESCONDER
+            $container.hide();
+            $btnToggle.removeClass('btn-danger').addClass('btn-success');
+            $btnToggle.html('<i class="fas fa-eye me-1"></i> Mostrar Agendamentos');
+        }
+    });
+    
+    
+    // 5. Paginação (Delegação de Eventos para botões gerados dinamicamente)
+    // Os botões de paginação devem ter a classe .btn-pagina-agendamento (definida no PHP do backend)
+    $container.on('click', '.btn-pagina-agendamento', function(e) {
+        e.preventDefault();
+        
+        const pagina = $(this).data('pagina');
+        // Converte a string 'true'/'false' em booleano
+        const listar_todos_flag = $(this).data('listar-todos') === true || $(this).data('listar-todos') === 'true'; 
+        
+        realizarBusca(pagina, listar_todos_flag);
+    });
+
+    
+    // 6. Lógica de "Ocultar Concluídos" (Não implementado, apenas o HTML do botão removido)
+    // O status-filtro já gerencia isso. Você pode adicionar um evento para isso aqui, se quiser.
+    // Exemplo: $('#toggle-concluidos').on('click', function() { /* ... */ });
+
+
+    // 7. Lógica de Ações (Editar, Concluir, Cancelar, Excluir - delegação de evento)
+    // Presume-se que um arquivo 'servicos_agendamento_processar.php' ou similar
+    // fará o processamento dessas ações e retornará uma mensagem de status.
+    $container.on('click', '.btn-processar-agendamento', function() {
+        // Lógica de AJAX para processar a ação (Concluir, Excluir, Cancelar)
+        // Após o sucesso, você deve chamar `realizarBusca(pagina_atual, listar_todos_flag)`
+        // para recarregar a tabela e refletir a mudança.
+        const id = $(this).data('id');
+        const acao = $(this).data('acao');
+        
+        // Exemplo: Confirmar ação antes de executar
+        if (confirm(`Tem certeza que deseja ${acao === 'deletar' ? 'EXCLUIR PERMANENTEMENTE' : acao.toUpperCase()} o agendamento ${id}?`)) {
+            $.ajax({
+                url: 'servicos_agendamento_processar.php', // Crie este arquivo, se não existir
+                method: 'POST',
+                data: { id: id, acao: acao },
+                success: function(response) {
+                    $('#status-message-area').html(response.mensagem); // Presume que o backend retorna JSON com 'mensagem'
+                    
+                    // Recarrega a página atual para refletir a alteração
+                    // É preciso saber a página atual e o status de listagem atual
+                    // Para simplificar, vamos recarregar a lista completa, se estiver visível.
+                    if ($container.is(':visible')) {
+                        // Encontra a página e status de listagem atuais do último request bem sucedido
+                        // (Isso é uma simplificação, o ideal seria guardar o último estado)
+                        realizarBusca(1, true); // Recarrega do início
+                    }
+                },
+                error: function() {
+                    $('#status-message-area').html('<div class="alert alert-danger">Erro ao processar a ação.</div>');
+                }
+            });
+        }
+    });
+});
+</script>
