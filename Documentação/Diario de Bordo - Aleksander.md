@@ -105,3 +105,14 @@ Criação e complementação dos seguintes Diagramas de Sequência:
 * Dedicado a continuidade e **revisão da documentação** do projeto, cumpcumprindo as responsabilidades atribuídas.
 * Realização de **ajustes finos** e complementos nas seções documentais durante o período do meu horário de almoço.
 * Realização do preenchimento dos **testes de usabilidade** na parte de testes da documentação.
+
+### 📅 14/11/25
+
+**Responsável:** Aleksander
+
+**Atividade Principal** Continuidade da Documentação e Commits no projeto
+
+* Dedicado a continuidade e **revisão da documentação** do projeto, cumpcumprindo as responsabilidades atribuídas.
+* Atualização do **diário de bordo** sobre tarefas executadas.
+* Realização de **ajustes finos** e complementos no projeto, ajustando erros de exibição e criação de serviços
+* Adicionando as imagens da documentação na seção de **interfaces de usuário**
