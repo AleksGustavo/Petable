@@ -35,7 +35,7 @@ if (!isset($_SESSION['admin_pode_registrar']) || $_SESSION['admin_pode_registrar
             <p>O formulário de criação de contas está bloqueado. Apenas um SuperAdmin pode liberá-lo.</p>
             
             <a href="registrar_autenticar_adm.php" class="btn btn-warning mt-3">
-                <i class="fas fa-user-shield"></i> Autenticar Administrador
+                <i class="fas fa-user-shield"></i> Entrar Como Administrador
             </a>
             <a href="login.php" class="btn btn-secondary mt-3">
                 <i class="fas fa-sign-in-alt"></i> Voltar ao Login
