@@ -93,7 +93,7 @@ try {
             <div class="row">
                 <div class="col-md-4 mb-3">
                     <label for="especie_id" class="form-label">Espécie <span class="text-danger">*</span></label>
-                    <select id="especie_id" name="especie_id" class="form-select" required> 
+                    <select id="especie_id" name="especie_id" class="form-select"> 
                         <option value="">Selecione a Espécie...</option>
                         <?php foreach ($especies as $e): ?>
                             <option value="<?= $e['id'] ?>" <?= ($e['id'] == $pet['especie_id']) ? 'selected' : '' ?>>
@@ -172,9 +172,10 @@ try {
             <button type="submit" class="btn btn-primary mt-3">
                 <i class="fas fa-save me-1"></i> Salvar Alterações
             </button>
-            <a href="#" class="btn btn-outline-secondary mt-3 item-menu-ajax" data-pagina="clientes_listar.php">
-                Cancelar
-            </a>
+            
+            <button type="button" class="btn btn-danger mt-3" onclick="history.back()">
+                <i class="fas fa-times me-1"></i> Cancelar
+            </button>
             
         </form>
     </div>
@@ -193,12 +194,11 @@ $(document).ready(function() {
             // Se for Cachorro, torna o campo visível e habilitado.
             porteRow.show();
             porteSelect.prop('disabled', false);
-            // REMOVIDO: porteSelect.prop('required', true); 
+            // O required foi removido da edição, permitindo salvar sem preencher o porte se não desejar
         } else {
             // Para outras espécies, esconde e desabilita.
             porteRow.hide();
             porteSelect.prop('disabled', true);
-            // REMOVIDO: porteSelect.prop('required', false);
         }
     }
 
