@@ -4,7 +4,114 @@
 
 require_once 'conexao.php'; 
 
+<<<<<<< HEAD
+$ID_SERVICO_VACINA = 6; 
+
+// ==============================================================================
+// 1. Lógica de Pesquisa e Filtro (CORRIGIDA COM GROUP BY)
+// ==============================================================================
+$termo_busca = $_GET['busca'] ?? '';
+$filtro_status = $_GET['status_filtro'] ?? 'todos';
+
+// Removido o DISTINCT e o GROUP BY será adicionado no final
+$sql = "SELECT 
+            a.id AS agendamento_id, 
+            a.data_agendamento, 
+            a.status, 
+            a.servico_id,     
+            a.pet_id,         
+            c.nome AS cliente_nome, 
+            p.nome AS pet_nome,
+            s.nome AS servico_nome 
+        FROM 
+            agendamento a 
+        JOIN 
+            pet p ON a.pet_id = p.id
+        JOIN 
+            cliente c ON p.cliente_id = c.id
+        JOIN
+            servico s ON a.servico_id = s.id
+        WHERE 1=1 "; 
+$params_types = ''; 
+$params = [];
+
+// Filtro por termo de busca (Cliente, Pet ou Serviço)
+if (!empty($termo_busca)) {
+    $sql .= " AND (c.nome LIKE ? OR p.nome LIKE ? OR s.nome LIKE ?) ";
+    $like = '%' . $termo_busca . '%';
+    $params_types .= 'sss';
+    $params[] = $like;
+    $params[] = $like;
+    $params[] = $like;
+}
+
+// Filtro por Status
+if ($filtro_status !== 'todos' && in_array($filtro_status, ['agendado', 'confirmado', 'concluido', 'cancelado'])) {
+    $sql .= " AND a.status = ? ";
+    $params_types .= 's';
+    $params[] = $filtro_status;
+}
+
+// Adiciona o GROUP BY para evitar duplicação no resultado final da agregação
+$sql .= " GROUP BY a.id, a.data_agendamento, a.status, a.servico_id, a.pet_id, c.nome, p.nome, s.nome";
+
+$sql .= " ORDER BY a.data_agendamento ASC"; 
+
+$agendamentos = [];
+$erro_sql = ''; 
+
+// Sua conexão usa mysqli, vamos adaptar a execução para garantir
+if (isset($conexao) && $conexao) {
+    try {
+        $stmt = mysqli_prepare($conexao, $sql);
+        
+        if (!empty($params)) {
+            // Se você está usando PHP < 8.1, pode precisar de uma chamada dinâmica para mysqli_stmt_bind_param
+            // CORREÇÃO: Usando o array_merge correto para a chamada dinâmica
+            $bind_params = array_merge([$stmt, $params_types], $params);
+            call_user_func_array('mysqli_stmt_bind_param', array_ref($bind_params));
+        }
+
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        
+        if ($result) {
+            $agendamentos = mysqli_fetch_all($result, MYSQLI_ASSOC);
+        } else {
+            $erro_sql = 'Erro ao executar a consulta: ' . mysqli_error($conexao);
+        }
+    } catch (\Exception $e) {
+        $erro_sql = 'Erro na preparação da consulta: ' . $e->getMessage();
+    }
+} else {
+    $erro_sql = 'Erro crítico: Conexão mysqli indisponível.';
+}
+
+// Função auxiliar para referências (necessária para call_user_func_array com bind_param no PHP antigo)
+if (!function_exists('array_ref')) {
+    function array_ref(&$arr) {
+        $refs = [];
+        foreach ($arr as $key => $value)
+            $refs[$key] = &$arr[$key];
+        return $refs;
+    }
+}
+
+
+// Função para formatar o status com cor (Usada na listagem)
+function formatar_status($status) {
+    $classe = match ($status) {
+        'agendado' => 'badge bg-primary',
+        'confirmado' => 'badge bg-info',
+        'concluido' => 'badge bg-success',
+        'cancelado' => 'badge bg-danger',
+        default => 'badge bg-secondary',
+    };
+    return "<span class='{$classe}'>" . ucfirst($status) . "</span>";
+}
+=======
 $conteudo_inicial = ''; // Conteúdo inicial (opcionalmente vazio, carregado via JS)
+>>>>>>> b9ea0a168763b9193e16431b87dd71ac1eeaff7a
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-4">

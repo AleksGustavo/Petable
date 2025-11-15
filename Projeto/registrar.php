@@ -4,11 +4,57 @@
 session_start();
 require_once 'conexao.php';
 
+// ------------------------------------------------------------------
+// NOVO BLOCO DE VERIFICAÇÃO DE SEGURANÇA (VERIFICA SESSÃO DE ADM)
+// ------------------------------------------------------------------
+if (!isset($_SESSION['admin_pode_registrar']) || $_SESSION['admin_pode_registrar'] !== true) {
+    
+    // Se for uma tentativa de POST (registro) sem a sessão de ADM, bloqueia e exibe erro.
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $mensagem_status = "<h4 class='text-danger'>Acesso negado. A sessão de SuperAdmin expirou ou é inválida. Recarregue a página e tente novamente.</h4>";
+        // Usa goto para pular diretamente à seção de exibição de HTML (ponto de segurança)
+        goto exibir_html; 
+    }
+    
+    // Se for requisição GET (carregamento inicial), exibe a tela de bloqueio e finaliza o script.
+    header('Content-Type: text/html'); 
+    ?>
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+        <title>Acesso Negado</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+        <style>
+             body { background-color: #FAFAF5; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        </style>
+    </head>
+    <body>
+        <div class="alert alert-danger text-center mt-5 p-4 shadow mx-auto" style="max-width: 450px;">
+            <h2><i class="fas fa-lock me-2"></i> Acesso Negado!</h2>
+            <p>O formulário de criação de contas está bloqueado. Apenas um SuperAdmin pode liberá-lo.</p>
+            
+            <a href="registrar_autenticar_adm.php" class="btn btn-warning mt-3">
+                <i class="fas fa-user-shield"></i> Autenticar Administrador
+            </a>
+            <a href="login.php" class="btn btn-secondary mt-3">
+                <i class="fas fa-sign-in-alt"></i> Voltar ao Login
+            </a>
+            <p class="small text-muted mt-2"></p>
+        </div>
+    </body>
+    </html>
+    <?php
+    exit; // INTERROMPE O SCRIPT AQUI
+}
+// ------------------------------------------------------------------
+// FIM DO BLOQUEIO DE SEGURANÇA
+// ------------------------------------------------------------------
+
 $mensagem_status = "";
 $sucesso = false;
 
 // Regex para Senha Forte
-// NOTA: Esta Regex JÁ permite ordem livre dos caracteres, pois utiliza lookaheads.
 const REGEX_SENHA_FORTE = '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -66,6 +112,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($execucao_sucesso) {
                     $mensagem_status = "<h4 class='text-success'>✅ Cadastro efetuado com sucesso! Redirecionando para o login...</h4>";
                     $sucesso = true;
+                    // Remove a sessão de ADM após o registro para forçar nova autenticação na próxima vez
+                    unset($_SESSION['admin_pode_registrar']); 
                     header("Refresh: 3; URL=login.php"); 
                     
                 } else {
@@ -80,6 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 exibir_html: 
+// O restante do HTML SÓ é exibido se a verificação de segurança no topo passar.
 ?>
 
 <!DOCTYPE html>
@@ -92,34 +141,38 @@ exibir_html:
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     
-    <style>
-        /* TEMA PET SHOP */
+  <style>
+        /* TEMA PET SHOP: Bege Aconchegante e Marrom Caramelo */
+        
+        /* Fundo com Patinhas (Marca D'água) */
         body {
+            /* Bege Aconchegante */
             background-color: #FAFAF5; 
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            /* Efeito Patinhas Sutil */
+            
+            /* Efeito Patinhas Sutil (via CSS) */
             background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="%23EFEFEA" d="M 50 20 L 70 30 L 60 50 L 80 60 L 60 70 L 40 60 L 50 80 L 30 70 L 40 50 L 20 60 L 30 30 Z M 50 20 C 45 15, 55 15, 50 20 Z M 35 35 C 30 30, 40 30, 35 35 Z M 65 35 C 60 30, 70 30, 65 35 Z M 35 65 C 30 60, 40 60, 35 65 Z M 65 65 C 60 60, 70 60, 65 65 Z"/></svg>');
-            background-size: 80px;
+            background-size: 80px; /* Tamanho da patinha */
             background-repeat: repeat;
-            opacity: 0.9;
+            opacity: 0.9; /* Deixa o fundo opaco */
         }
 
-        /* Card de Login/Registro */
+        /* Card de Login */
         .login-card {
-            max-width: 450px; 
+            max-width: 400px; 
             width: 90%; 
             padding: 2rem;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15); 
-            background-color: #fff; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15); /* Sombra mais destacada */
+            background-color: #fff; /* Fundo branco para contraste */
             border-radius: 10px;
         }
 
         /* Botão Primário (Marrom Caramelo) */
         .btn-primary, .login-btn {
-            background-color: #964B00 !important;
+            background-color: #964B00 !important; /* Marrom Caramelo */
             border-color: #964B00 !important;
             font-weight: bold;
             letter-spacing: 0.5px;
@@ -127,49 +180,13 @@ exibir_html:
         }
 
         .btn-primary:hover, .login-btn:hover {
-            background-color: #703600 !important;
-            border-color: #703600 !important;
+            background-color: #703600 !important; /* Marrom mais escuro no hover */
+            border-color: #604d3cff !important;
         }
         
+        /* Detalhe da Logo */
         .logo-borda {
-             border: 3px solid #795548 !important;
-             box-shadow: 0 0 10px rgba(121, 85, 72, 0.7);
-        }
-        
-        /* ESTILOS DO NOVO CARD DE VALIDAÇÃO DE SENHA (FLUTUANTE) */
-        .password-validation-card {
-            position: absolute;
-            width: 100%; 
-            background-color: #fff;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            padding: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            z-index: 10;
-            margin-top: 5px;
-            /* Esconder por padrão */
-            display: none;
-        }
-
-        .password-check {
-            font-size: 0.85rem;
-            padding: 0;
-            margin: 0;
-        }
-
-        .check-item {
-            color: #dc3545; /* Vermelho (falhando) */
-            transition: color 0.3s;
-            margin-bottom: 2px;
-        }
-
-        .check-item.valid {
-            color: #198754; /* Verde (sucesso) */
-        }
-        
-        /* Estilo para o ícone de olho */
-        .toggle-password {
-            cursor: pointer;
+             border: 3px solid #964B00 !important;
         }
     </style>
 </head>
@@ -269,7 +286,7 @@ exibir_html:
             const confirmPasswordInput = document.getElementById('confirm_password');
             const form = document.getElementById('registroForm');
             const validationCard = document.getElementById('validationCard');
-            const validationWarning = document.getElementById('validationWarning'); // Novo elemento de aviso
+            const validationWarning = document.getElementById('validationWarning'); 
             
             // Elementos do Checklist
             const checkLength = document.getElementById('check-length');
