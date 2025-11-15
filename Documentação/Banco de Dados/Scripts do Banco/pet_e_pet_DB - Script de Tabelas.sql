@@ -1,12 +1,31 @@
+-- phpMyAdmin SQL Dump
+-- version 5.2.1
+-- https://www.phpmyadmin.net/
+--
+-- Host: 127.0.0.1:3307
+-- Tempo de geração: 15/11/2025 às 08:35
+-- Versão do servidor: 10.4.32-MariaDB
+-- Versão do PHP: 8.2.12
+
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
+
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!40101 SET NAMES utf8mb4 */;
 
+--
+-- Banco de dados: `petshop_db`
+--
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `agendamento`
+--
 
 CREATE TABLE `agendamento` (
   `id` int(11) NOT NULL,
@@ -20,6 +39,12 @@ CREATE TABLE `agendamento` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Gerencia compromissos para serviços de pets (banho, tosa, consulta).';
 
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `carteira_vacina`
+--
+
 CREATE TABLE `carteira_vacina` (
   `id` int(11) NOT NULL,
   `pet_id` int(11) NOT NULL COMMENT 'FK: O pet que recebeu a vacina (exclusão em cascata).',
@@ -31,12 +56,24 @@ CREATE TABLE `carteira_vacina` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Armazena o histórico de vacinação de cada pet.';
 
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `categoria_produto`
+--
+
 CREATE TABLE `categoria_produto` (
   `id` int(11) NOT NULL,
   `nome` varchar(50) NOT NULL COMMENT 'Nome da categoria (Ex: Ração, Brinquedo).',
   `descricao` text DEFAULT NULL COMMENT 'Descrição detalhada da categoria.',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Define as categorias para organização dos produtos.';
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `cliente`
+--
 
 CREATE TABLE `cliente` (
   `id` int(11) NOT NULL,
@@ -56,6 +93,12 @@ CREATE TABLE `cliente` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Dados cadastrais dos proprietários dos pets.';
 
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `compra`
+--
+
 CREATE TABLE `compra` (
   `id` int(11) NOT NULL,
   `fornecedor_id` int(11) NOT NULL COMMENT 'FK: Fornecedor de quem a compra foi feita.',
@@ -69,11 +112,23 @@ CREATE TABLE `compra` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Registra pedidos de compra de mercadorias a fornecedores.';
 
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `especie`
+--
+
 CREATE TABLE `especie` (
   `id` int(11) NOT NULL,
   `nome` varchar(50) NOT NULL COMMENT 'Nome da espécie.',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Lista as espécies de pets atendidas (Cão, Gato, etc.).';
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `fornecedor`
+--
 
 CREATE TABLE `fornecedor` (
   `id` int(11) NOT NULL,
@@ -94,11 +149,19 @@ CREATE TABLE `fornecedor` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Dados cadastrais das empresas fornecedoras de produtos.';
 
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `funcionario`
+--
+
 CREATE TABLE `funcionario` (
   `id` int(11) NOT NULL,
   `usuario_id` int(11) NOT NULL COMMENT 'FK: Vínculo com a conta de acesso ao sistema (único).',
   `nome` varchar(100) NOT NULL COMMENT 'Nome completo do funcionário.',
   `cpf` varchar(14) NOT NULL COMMENT 'CPF do funcionário (único).',
+  `data_nascimento` date DEFAULT NULL,
+  `sexo` enum('Masculino','Feminino','Outro') NOT NULL DEFAULT 'Outro',
   `telefone` varchar(15) DEFAULT NULL,
   `cep` varchar(10) DEFAULT NULL,
   `rua` varchar(150) DEFAULT NULL,
@@ -109,6 +172,12 @@ CREATE TABLE `funcionario` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Dados pessoais dos funcionários, vinculados a um usuário de sistema.';
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `historico_consulta`
+--
 
 CREATE TABLE `historico_consulta` (
   `id` int(11) NOT NULL,
@@ -122,6 +191,12 @@ CREATE TABLE `historico_consulta` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Histórico detalhado de atendimentos veterinários.';
 
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `item_compra`
+--
+
 CREATE TABLE `item_compra` (
   `id` int(11) NOT NULL,
   `compra_id` int(11) NOT NULL COMMENT 'FK: Pedido de compra ao qual o item pertence (exclusão em cascata).',
@@ -132,6 +207,12 @@ CREATE TABLE `item_compra` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Detalhes dos produtos comprados em um pedido de compra.';
 
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `item_venda`
+--
+
 CREATE TABLE `item_venda` (
   `id` int(11) NOT NULL,
   `venda_id` int(11) NOT NULL COMMENT 'FK: Venda à qual o item pertence (exclusão em cascata).',
@@ -140,6 +221,12 @@ CREATE TABLE `item_venda` (
   `preco_unitario` decimal(10,2) NOT NULL COMMENT 'Preço de venda unitário no momento da transação.',
   `subtotal` decimal(10,2) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Detalhes dos produtos vendidos em uma transação.';
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `movimentacao_financeira`
+--
 
 CREATE TABLE `movimentacao_financeira` (
   `id` int(11) NOT NULL,
@@ -153,12 +240,24 @@ CREATE TABLE `movimentacao_financeira` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Registro de todas as entradas e saídas de dinheiro.';
 
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `papel`
+--
+
 CREATE TABLE `papel` (
   `id` int(11) NOT NULL,
   `nome` varchar(50) NOT NULL COMMENT 'Nome do papel (Ex: SuperAdmin, FuncionarioVendas).',
   `descricao` text DEFAULT NULL COMMENT 'Permissões e responsabilidades do papel.',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Define os níveis de acesso (funções/roles) dos usuários no sistema.';
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `pet`
+--
 
 CREATE TABLE `pet` (
   `id` int(11) NOT NULL,
@@ -179,12 +278,24 @@ CREATE TABLE `pet` (
   `porte` enum('Pequeno','Medio','Grande') DEFAULT NULL COMMENT 'Porte do animal, relevante principalmente para cães.'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Dados cadastrais dos animais.';
 
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `preco_servico_porte`
+--
+
 CREATE TABLE `preco_servico_porte` (
   `id` int(11) NOT NULL,
   `servico_id` int(11) NOT NULL,
   `porte` enum('Pequeno','Medio','Grande') NOT NULL,
   `preco` decimal(10,2) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `produto`
+--
 
 CREATE TABLE `produto` (
   `id` int(11) NOT NULL,
@@ -202,12 +313,24 @@ CREATE TABLE `produto` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Catálogo e estoque de produtos para venda.';
 
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `raca`
+--
+
 CREATE TABLE `raca` (
   `id` int(11) NOT NULL,
   `nome` varchar(50) NOT NULL,
   `especie_id` int(11) NOT NULL COMMENT 'FK: Espécie à qual a raça pertence (exclusão em cascata).',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Lista as raças de pets disponíveis, vinculadas à espécie.';
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `servico`
+--
 
 CREATE TABLE `servico` (
   `id` int(11) NOT NULL,
@@ -219,6 +342,12 @@ CREATE TABLE `servico` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Catálogo de serviços oferecidos (banho, tosa, consultas).';
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `servico_realizado`
+--
 
 CREATE TABLE `servico_realizado` (
   `id` int(11) NOT NULL,
@@ -232,6 +361,12 @@ CREATE TABLE `servico_realizado` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Registro de um serviço que foi efetivamente concluído.';
 
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `super_usuario`
+--
+
 CREATE TABLE `super_usuario` (
   `id` int(11) NOT NULL,
   `usuario_id` int(11) NOT NULL COMMENT 'FK: Usuário com permissão de SuperAdmin (único).',
@@ -239,16 +374,30 @@ CREATE TABLE `super_usuario` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Vínculo de usuários com o papel de SuperAdmin.';
 
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `usuario`
+--
+
 CREATE TABLE `usuario` (
   `id` int(11) NOT NULL,
   `usuario` varchar(50) NOT NULL COMMENT 'Nome de usuário (login).',
   `senha_hash` varchar(255) NOT NULL COMMENT 'Hash da senha para segurança.',
+  `token_senha` varchar(255) DEFAULT NULL,
+  `token_expira` datetime DEFAULT NULL,
   `email` varchar(100) NOT NULL COMMENT 'Email de contato (único).',
   `papel_id` int(11) NOT NULL COMMENT 'FK: Nível de permissão/acesso no sistema.',
   `ativo` tinyint(1) DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Contas de acesso ao sistema.';
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `vacina`
+--
 
 CREATE TABLE `vacina` (
   `id` int(11) NOT NULL,
@@ -263,6 +412,12 @@ CREATE TABLE `vacina` (
   `especie_id` int(11) NOT NULL COMMENT 'FK: Espécie do pet para a qual a vacina se aplica.'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Catálogo de vacinas disponíveis para aplicação.';
 
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `venda`
+--
+
 CREATE TABLE `venda` (
   `id` int(11) NOT NULL,
   `cliente_id` int(11) DEFAULT NULL COMMENT 'FK: Cliente que realizou a compra. Pode ser nulo (venda anônima).',
@@ -275,67 +430,112 @@ CREATE TABLE `venda` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Registro de vendas de produtos e/ou serviços.';
 
+--
+-- Índices para tabelas despejadas
+--
 
+--
+-- Índices de tabela `agendamento`
+--
 ALTER TABLE `agendamento`
   ADD PRIMARY KEY (`id`),
   ADD KEY `pet_id` (`pet_id`),
   ADD KEY `servico_id` (`servico_id`),
   ADD KEY `funcionario_id` (`funcionario_id`);
 
+--
+-- Índices de tabela `carteira_vacina`
+--
 ALTER TABLE `carteira_vacina`
   ADD PRIMARY KEY (`id`),
   ADD KEY `pet_id` (`pet_id`);
 
+--
+-- Índices de tabela `categoria_produto`
+--
 ALTER TABLE `categoria_produto`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `nome_unico` (`nome`);
 
+--
+-- Índices de tabela `cliente`
+--
 ALTER TABLE `cliente`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `telefone_unico` (`telefone`),
   ADD UNIQUE KEY `cpf` (`cpf`);
 
+--
+-- Índices de tabela `compra`
+--
 ALTER TABLE `compra`
   ADD PRIMARY KEY (`id`),
   ADD KEY `fornecedor_id` (`fornecedor_id`),
   ADD KEY `funcionario_id` (`funcionario_id`);
 
+--
+-- Índices de tabela `especie`
+--
 ALTER TABLE `especie`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `nome_unico` (`nome`);
 
+--
+-- Índices de tabela `fornecedor`
+--
 ALTER TABLE `fornecedor`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `cnpj` (`cnpj`),
   ADD UNIQUE KEY `telefone_unico` (`telefone`);
 
+--
+-- Índices de tabela `funcionario`
+--
 ALTER TABLE `funcionario`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `usuario_id` (`usuario_id`),
   ADD UNIQUE KEY `cpf` (`cpf`),
   ADD UNIQUE KEY `telefone_unico` (`telefone`);
 
+--
+-- Índices de tabela `historico_consulta`
+--
 ALTER TABLE `historico_consulta`
   ADD PRIMARY KEY (`id`),
   ADD KEY `pet_id` (`pet_id`);
 
+--
+-- Índices de tabela `item_compra`
+--
 ALTER TABLE `item_compra`
   ADD PRIMARY KEY (`id`),
   ADD KEY `compra_id` (`compra_id`),
   ADD KEY `produto_id` (`produto_id`);
 
+--
+-- Índices de tabela `item_venda`
+--
 ALTER TABLE `item_venda`
   ADD PRIMARY KEY (`id`),
   ADD KEY `venda_id` (`venda_id`),
   ADD KEY `produto_id` (`produto_id`);
 
+--
+-- Índices de tabela `movimentacao_financeira`
+--
 ALTER TABLE `movimentacao_financeira`
   ADD PRIMARY KEY (`id`);
 
+--
+-- Índices de tabela `papel`
+--
 ALTER TABLE `papel`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `nome` (`nome`);
 
+--
+-- Índices de tabela `pet`
+--
 ALTER TABLE `pet`
   ADD PRIMARY KEY (`id`),
   ADD KEY `cliente_id` (`cliente_id`),
@@ -343,22 +543,37 @@ ALTER TABLE `pet`
   ADD KEY `raca_id` (`raca_id`),
   ADD KEY `idx_porte` (`porte`);
 
+--
+-- Índices de tabela `preco_servico_porte`
+--
 ALTER TABLE `preco_servico_porte`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `uk_servico_porte` (`servico_id`,`porte`);
 
+--
+-- Índices de tabela `produto`
+--
 ALTER TABLE `produto`
   ADD PRIMARY KEY (`id`),
   ADD KEY `categoria_id` (`categoria_id`),
   ADD KEY `fk_produto_fornecedor` (`fornecedor_padrao_id`);
 
+--
+-- Índices de tabela `raca`
+--
 ALTER TABLE `raca`
   ADD PRIMARY KEY (`id`),
   ADD KEY `especie_id` (`especie_id`);
 
+--
+-- Índices de tabela `servico`
+--
 ALTER TABLE `servico`
   ADD PRIMARY KEY (`id`);
 
+--
+-- Índices de tabela `servico_realizado`
+--
 ALTER TABLE `servico_realizado`
   ADD PRIMARY KEY (`id`),
   ADD KEY `agendamento_id` (`agendamento_id`),
@@ -366,125 +581,239 @@ ALTER TABLE `servico_realizado`
   ADD KEY `servico_id` (`servico_id`),
   ADD KEY `funcionario_id` (`funcionario_id`);
 
+--
+-- Índices de tabela `super_usuario`
+--
 ALTER TABLE `super_usuario`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `usuario_id` (`usuario_id`);
 
+--
+-- Índices de tabela `usuario`
+--
 ALTER TABLE `usuario`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `usuario` (`usuario`),
   ADD UNIQUE KEY `email` (`email`),
   ADD KEY `papel_id` (`papel_id`);
 
+--
+-- Índices de tabela `vacina`
+--
 ALTER TABLE `vacina`
   ADD PRIMARY KEY (`id`),
   ADD KEY `fk_vacina_especie` (`especie_id`);
 
+--
+-- Índices de tabela `venda`
+--
 ALTER TABLE `venda`
   ADD PRIMARY KEY (`id`),
   ADD KEY `cliente_id` (`cliente_id`),
   ADD KEY `funcionario_id` (`funcionario_id`);
 
+--
+-- AUTO_INCREMENT para tabelas despejadas
+--
 
+--
+-- AUTO_INCREMENT de tabela `agendamento`
+--
 ALTER TABLE `agendamento`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
+-- AUTO_INCREMENT de tabela `carteira_vacina`
+--
 ALTER TABLE `carteira_vacina`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
+-- AUTO_INCREMENT de tabela `categoria_produto`
+--
 ALTER TABLE `categoria_produto`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
+-- AUTO_INCREMENT de tabela `cliente`
+--
 ALTER TABLE `cliente`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
+-- AUTO_INCREMENT de tabela `compra`
+--
 ALTER TABLE `compra`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
+-- AUTO_INCREMENT de tabela `especie`
+--
 ALTER TABLE `especie`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
+-- AUTO_INCREMENT de tabela `fornecedor`
+--
 ALTER TABLE `fornecedor`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
+-- AUTO_INCREMENT de tabela `funcionario`
+--
 ALTER TABLE `funcionario`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
+-- AUTO_INCREMENT de tabela `historico_consulta`
+--
 ALTER TABLE `historico_consulta`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
+-- AUTO_INCREMENT de tabela `item_compra`
+--
 ALTER TABLE `item_compra`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
+-- AUTO_INCREMENT de tabela `item_venda`
+--
 ALTER TABLE `item_venda`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
+-- AUTO_INCREMENT de tabela `movimentacao_financeira`
+--
 ALTER TABLE `movimentacao_financeira`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
+-- AUTO_INCREMENT de tabela `papel`
+--
 ALTER TABLE `papel`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
+-- AUTO_INCREMENT de tabela `pet`
+--
 ALTER TABLE `pet`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
+-- AUTO_INCREMENT de tabela `preco_servico_porte`
+--
 ALTER TABLE `preco_servico_porte`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
+-- AUTO_INCREMENT de tabela `produto`
+--
 ALTER TABLE `produto`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
+-- AUTO_INCREMENT de tabela `raca`
+--
 ALTER TABLE `raca`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
+-- AUTO_INCREMENT de tabela `servico`
+--
 ALTER TABLE `servico`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
+-- AUTO_INCREMENT de tabela `servico_realizado`
+--
 ALTER TABLE `servico_realizado`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
+-- AUTO_INCREMENT de tabela `super_usuario`
+--
 ALTER TABLE `super_usuario`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
+-- AUTO_INCREMENT de tabela `usuario`
+--
 ALTER TABLE `usuario`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
+-- AUTO_INCREMENT de tabela `vacina`
+--
 ALTER TABLE `vacina`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
+-- AUTO_INCREMENT de tabela `venda`
+--
 ALTER TABLE `venda`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
+--
+-- Restrições para tabelas despejadas
+--
 
+--
+-- Restrições para tabelas `agendamento`
+--
 ALTER TABLE `agendamento`
   ADD CONSTRAINT `agendamento_ibfk_1` FOREIGN KEY (`pet_id`) REFERENCES `pet` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `agendamento_ibfk_2` FOREIGN KEY (`servico_id`) REFERENCES `servico` (`id`),
   ADD CONSTRAINT `agendamento_ibfk_3` FOREIGN KEY (`funcionario_id`) REFERENCES `funcionario` (`id`) ON DELETE SET NULL;
 
+--
+-- Restrições para tabelas `carteira_vacina`
+--
 ALTER TABLE `carteira_vacina`
   ADD CONSTRAINT `carteira_vacina_ibfk_1` FOREIGN KEY (`pet_id`) REFERENCES `pet` (`id`) ON DELETE CASCADE;
 
+--
+-- Restrições para tabelas `compra`
+--
 ALTER TABLE `compra`
   ADD CONSTRAINT `compra_ibfk_1` FOREIGN KEY (`fornecedor_id`) REFERENCES `fornecedor` (`id`),
   ADD CONSTRAINT `compra_ibfk_2` FOREIGN KEY (`funcionario_id`) REFERENCES `funcionario` (`id`) ON DELETE SET NULL;
 
+--
+-- Restrições para tabelas `funcionario`
+--
 ALTER TABLE `funcionario`
   ADD CONSTRAINT `funcionario_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usuario` (`id`) ON DELETE CASCADE;
 
+--
+-- Restrições para tabelas `historico_consulta`
+--
 ALTER TABLE `historico_consulta`
   ADD CONSTRAINT `historico_consulta_ibfk_1` FOREIGN KEY (`pet_id`) REFERENCES `pet` (`id`) ON DELETE CASCADE;
 
+--
+-- Restrições para tabelas `item_compra`
+--
 ALTER TABLE `item_compra`
   ADD CONSTRAINT `item_compra_ibfk_1` FOREIGN KEY (`compra_id`) REFERENCES `compra` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `item_compra_ibfk_2` FOREIGN KEY (`produto_id`) REFERENCES `produto` (`id`);
 
+--
+-- Restrições para tabelas `item_venda`
+--
 ALTER TABLE `item_venda`
   ADD CONSTRAINT `item_venda_ibfk_1` FOREIGN KEY (`venda_id`) REFERENCES `venda` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `item_venda_ibfk_2` FOREIGN KEY (`produto_id`) REFERENCES `produto` (`id`);
 
+--
+-- Restrições para tabelas `preco_servico_porte`
+--
 ALTER TABLE `preco_servico_porte`
   ADD CONSTRAINT `fk_servico_porte_servico` FOREIGN KEY (`servico_id`) REFERENCES `servico` (`id`) ON DELETE CASCADE;
 
+--
+-- Restrições para tabelas `vacina`
+--
 ALTER TABLE `vacina`
   ADD CONSTRAINT `fk_vacina_especie` FOREIGN KEY (`especie_id`) REFERENCES `especie` (`id`) ON DELETE CASCADE;
 COMMIT;

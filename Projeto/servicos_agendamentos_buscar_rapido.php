@@ -2,7 +2,7 @@
 // Arquivo: servicos_agendamento_buscar_rapido.php
 // Responsável por receber parâmetros de busca, ordenação e paginação, e retornar a tabela HTML dos agendamentos.
 
-require_once 'conexao.php';
+require_once 'conexao.php'; // Certifique-se de que este arquivo existe e conecta ao DB
 
 // Constante utilizada para lógica específica, se necessário
 $ID_SERVICO_VACINA = 6;
@@ -20,6 +20,7 @@ $filtro_status = $_GET['status_filtro'] ?? 'todos';
 $ordenacao_param = $_GET['ordenacao'] ?? 'data_crescente'; // Novo parâmetro de ordenação
 
 // Flags de controle
+// Note que 'listar_todos' é tratado como string 'true'/'false' devido à passagem via GET
 $listar_todos = $_GET['listar_todos'] ?? 'false';
 $total_registros = 0;
 $total_paginas = 1;
@@ -64,6 +65,7 @@ if ($listar_todos !== 'true') {
         $condicoes[] = "(c.nome LIKE ? OR p.nome LIKE ? OR s.nome LIKE ?)";
         $like = '%' . $termo_busca . '%';
         $params_tipos .= 'sss';
+        // É crucial usar $params_valores[] = $like; para que o array seja populado corretamente
         $params_valores[] = $like;
         $params_valores[] = $like;
         $params_valores[] = $like;
@@ -93,46 +95,54 @@ try {
     
     // Vincula os parâmetros, se houver
     if (!empty($params_valores)) {
+        // Usa o operador ... para descompactar o array para mysqli_stmt_bind_param
         mysqli_stmt_bind_param($stmt_count, $params_tipos, ...$params_valores);
     }
     
     mysqli_stmt_execute($stmt_count);
     $result_count = mysqli_stmt_get_result($stmt_count);
     $total_registros = mysqli_fetch_row($result_count)[0];
-    $total_paginas = ceil($total_registros / $limite);
+    
+    // Evita divisão por zero
+    $total_paginas = $total_registros > 0 ? ceil($total_registros / $limite) : 1;
     
     // Garante que a página atual seja válida
     $pagina_atual = max(1, min($pagina_atual, $total_paginas));
     $offset = ($pagina_atual - 1) * $limite;
 
+    // Se a busca não encontrou registros, não tenta buscar
+    if ($total_registros > 0) {
+        
+        // =========================================================================
+        // 4. MONTAGEM DA CONSULTA SQL PRINCIPAL
+        // =========================================================================
+        
+        $sql = "
+            SELECT DISTINCT
+                a.id AS agendamento_id,
+                a.data_agendamento,
+                a.status,
+                a.servico_id,
+                a.pet_id,
+                c.nome AS cliente_nome,
+                p.nome AS pet_nome,
+                s.nome AS servico_nome
+        " . $base_query . $where_clause . " ORDER BY " . $order_by . " LIMIT ? OFFSET ?";
+        
+        // Tipos e Valores para a consulta principal (adiciona limit e offset)
+        $params_tipos_principal = $params_tipos . 'ii';
+        $params_valores_principal = array_merge($params_valores, [$limite, $offset]);
 
-    // =========================================================================
-    // 4. MONTAGEM DA CONSULTA SQL PRINCIPAL
-    // =========================================================================
-    
-    $sql = "
-        SELECT DISTINCT
-            a.id AS agendamento_id,
-            a.data_agendamento,
-            a.status,
-            a.servico_id,
-            a.pet_id,
-            c.nome AS cliente_nome,
-            p.nome AS pet_nome,
-            s.nome AS servico_nome
-    " . $base_query . $where_clause . " ORDER BY " . $order_by . " LIMIT ? OFFSET ?";
-    
-    // Tipos e Valores para a consulta principal (adiciona limit e offset)
-    $params_tipos_principal = $params_tipos . 'ii';
-    $params_valores_principal = array_merge($params_valores, [$limite, $offset]);
-
-    // Execução da consulta
-    $stmt = mysqli_prepare($conexao, $sql);
-    mysqli_stmt_bind_param($stmt, $params_tipos_principal, ...$params_valores_principal);
-    mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);
-    
-    $agendamentos = $result ? mysqli_fetch_all($result, MYSQLI_ASSOC) : [];
+        // Execução da consulta
+        $stmt = mysqli_prepare($conexao, $sql);
+        // Bind dos parâmetros com os novos valores (limit e offset)
+        mysqli_stmt_bind_param($stmt, $params_tipos_principal, ...$params_valores_principal);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        
+        $agendamentos = $result ? mysqli_fetch_all($result, MYSQLI_ASSOC) : [];
+        
+    }
     
 } catch (\Exception $e) {
     $erro_sql = 'Erro no Banco de Dados: ' . $e->getMessage() . '. SQL: ' . ($sql ?? 'N/A');
@@ -168,7 +178,7 @@ if ($total_registros > 0) {
 
 <div class="card shadow-sm">
     <div class="card-body">
-        <h5 class="card-title"><?php echo $titulo_completo; ?></h5>
+        <h5 class="card-title"><i class="fas fa-search me-1"></i> <?php echo $titulo_completo; ?></h5>
 
         <?php if ($total_registros > 0): ?>
             <div class="table-responsive">
@@ -187,7 +197,7 @@ if ($total_registros > 0) {
                     <tbody>
                         <?php foreach ($agendamentos as $agendamento): ?>
                         <tr id="agendamento-<?php echo $agendamento['agendamento_id']; ?>" 
-                            class="<?php echo $agendamento['status'] === 'concluido' ? 'status-concluido' : ''; ?>">
+                            class="<?php echo $agendamento['status'] === 'concluido' ? 'table-success' : ($agendamento['status'] === 'cancelado' ? 'table-danger' : ''); ?>">
                             <td><?php echo htmlspecialchars($agendamento['agendamento_id']); ?></td>
                             <td><?php echo date('d/m/Y H:i', strtotime($agendamento['data_agendamento'])); ?></td>
                             <td><?php echo htmlspecialchars($agendamento['pet_nome']); ?></td>
@@ -234,9 +244,9 @@ if ($total_registros > 0) {
             </div>
 
             <?php
+            // Lógica de Paginação
             $flag_listar_todos = $listar_todos === 'true' ? 'true' : 'false';
             
-            // Lógica de paginação (7 botões, similar ao produtos_listar)
             $max_botoes = 7;
             $botoes_antes_depois = floor(($max_botoes - 1) / 2);
             $start_page = max(1, $pagina_atual - $botoes_antes_depois);
@@ -248,7 +258,7 @@ if ($total_registros > 0) {
             if ($end_page == $total_paginas) {
                 $start_page = max(1, $total_paginas - $max_botoes + 1);
             }
-            $start_page = max(1, $start_page);
+            $start_page = max(1, $start_page); // Garante que não comece abaixo de 1
             ?>
 
             <nav aria-label="Paginação de Agendamentos" class="mt-3">
