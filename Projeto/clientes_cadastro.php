@@ -55,11 +55,33 @@
                     </div>
                 </div>
                 
-                <div class="col-md-2">
-                    <label for="uf" class="form-label">Estado (UF) *</label>
-                    <input type="text" id="uf" name="uf" class="form-control form-control-sm" required maxlength="2" readonly>
-                </div>
-
+                <div class="mb-3 col-md-4">
+    <label for="uf" class="form-label">Estado (UF)</label>
+    <select class="form-control" id="uf" name="uf" required>
+        <option value="">Selecione o Estado</option>
+        
+        <?php
+        // Lista padrão dos estados brasileiros (Pode estar em um array no seu PHP)
+        $estados = [
+            'AC' => 'Acre', 'AL' => 'Alagoas', 'AP' => 'Amapá', 'AM' => 'Amazonas', 
+            'BA' => 'Bahia', 'CE' => 'Ceará', 'DF' => 'Distrito Federal', 'ES' => 'Espírito Santo', 
+            'GO' => 'Goiás', 'MA' => 'Maranhão', 'MT' => 'Mato Grosso', 'MS' => 'Mato Grosso do Sul', 
+            'MG' => 'Minas Gerais', 'PA' => 'Pará', 'PB' => 'Paraíba', 'PR' => 'Paraná', 
+            'PE' => 'Pernambuco', 'PI' => 'Piauí', 'RJ' => 'Rio de Janeiro', 'RN' => 'Rio Grande do Norte', 
+            'RS' => 'Rio Grande do Sul', 'RO' => 'Rondônia', 'RR' => 'Roraima', 'SC' => 'Santa Catarina', 
+            'SP' => 'São Paulo', 'SE' => 'Sergipe', 'TO' => 'Tocantins'
+        ];
+        
+        // Assume-se que a variável $cliente_uf armazena o estado atual do banco (ex: 'SP')
+        $estado_selecionado = $cliente['uf'] ?? ''; // Troque $cliente['uf'] pela sua variável real
+        
+        foreach ($estados as $uf => $nome) {
+            $selected = ($uf === $estado_selecionado) ? 'selected' : '';
+            echo "<option value='{$uf}' {$selected}>{$nome}</option>";
+        }
+        ?>
+    </select>
+</div>
                 <div class="col-md-4">
                     <label for="rua" class="form-label">Rua *</label>
                     <input type="text" id="rua" name="rua" class="form-control form-control-sm" required>

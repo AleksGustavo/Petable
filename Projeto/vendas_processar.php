@@ -42,14 +42,37 @@ if ($valor_total < 0) {
     exit;
 }
 
+// *****************************************************************
+// 2. CORREÇÃO CRÍTICA CONTRA DEADLOCK: ORDENAÇÃO DOS PRODUTOS
+// *****************************************************************
+if (!empty($itens_venda)) {
+    // Filtra e separa produtos e serviços
+    $itens_produtos = array_filter($itens_venda, function($item) {
+        return $item['tipo'] === 'produto';
+    });
+    $itens_servicos = array_filter($itens_venda, function($item) {
+        return $item['tipo'] === 'servico';
+    });
+    
+    // Classifica os PRODUTOS pelo ID em ordem crescente
+    // Isso garante que o UPDATE de estoque (bloqueio) ocorrerá na mesma ordem
+    usort($itens_produtos, function($a, $b) {
+        return $a['id'] <=> $b['id']; 
+    });
+
+    // Recompõe o array, com os produtos ordenados primeiro
+    $itens_venda = array_merge($itens_produtos, $itens_servicos);
+}
+// *****************************************************************
+
 // ------------------------------------------
-// 2. Transação e Inserção no Banco de Dados
+// 3. Transação e Inserção no Banco de Dados
 // ------------------------------------------
 try {
     // Inicia a transação (CRUCIAL para estoque)
     $pdo->beginTransaction();
 
-    // 2a. Insere a Venda na tabela 'venda'
+    // 3a. Insere a Venda na tabela 'venda'
     $sql_venda = "INSERT INTO venda 
                     (cliente_id, funcionario_id, data_venda, valor_total, desconto, forma_pagamento, observacoes) 
                   VALUES 
@@ -67,8 +90,7 @@ try {
     
     $venda_id = $pdo->lastInsertId();
 
-    // 2b. Insere os Itens na tabela 'item_venda' e Dá Baixa no Estoque
-    // USANDO PRODUTO_ID E SERVICO_ID (APÓS A CORREÇÃO NO BD)
+    // 3b. Insere os Itens na tabela 'item_venda' e Dá Baixa no Estoque
     $sql_item_venda = "INSERT INTO item_venda 
                         (venda_id, produto_id, servico_id, quantidade, preco_unitario) 
                        VALUES 
@@ -97,8 +119,8 @@ try {
 
         // Se for um PRODUTO, dá baixa no estoque
         if ($item['tipo'] === 'produto') {
+            // Este update agora acontece em uma ordem consistente
             $stmt_estoque = $pdo->prepare($sql_baixa_estoque);
-            // Verifica se a baixa de estoque resultaria em valor negativo (opcional: adicionar validação)
             $stmt_estoque->execute([$quantidade, $item_id]);
         }
     }
@@ -114,9 +136,14 @@ try {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    // Mensagem mais informativa
-    $response['message'] = 'Erro fatal ao processar a venda. Verifique a conexão com o BD. Detalhe: ' . $e->getMessage();
+    // Mensagem mais informativa, mantendo o aviso de Deadlock
+    $deadlock_message = (strpos($e->getMessage(), 'Deadlock found') !== false) 
+                        ? 'Deadlock detectado. Tente finalizar a venda novamente.' 
+                        : 'Erro fatal ao processar a venda. Verifique a conexão com o BD.';
+
+    $response['message'] = $deadlock_message . ' Detalhe técnico: ' . $e->getMessage();
     error_log("Erro no processamento da venda: " . $e->getMessage());
+
 } catch (\Exception $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();

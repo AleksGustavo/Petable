@@ -41,6 +41,15 @@ try {
             
             // SUCESSO! Define a sessão que libera o acesso ao registrar.php
             $_SESSION['admin_pode_registrar'] = true;
+            
+            // --------------------------------------------------------------
+            // CORREÇÃO CRÍTICA: ARMAZENA O TEMPO DE EXPIRAÇÃO (5 minutos)
+            // Isso impede que o registrar.php bloqueie o acesso logo após o login.
+            // --------------------------------------------------------------
+            $limite_segundos = 300; // 5 minutos * 60 segundos
+            $_SESSION['admin_auth_time'] = time() + $limite_segundos;
+            // --------------------------------------------------------------
+            
             $response['success'] = true;
             $response['message'] = "Acesso concedido. Formulário de registro liberado.";
             

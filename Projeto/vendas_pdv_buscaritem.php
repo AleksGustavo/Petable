@@ -1,5 +1,6 @@
 <?php
-// Inclui o arquivo de conexão. Ele deve fornecer a variável $conexao (MySQLi).
+// Arquivo: pdv_buscar_itens.php (Migrado para PDO)
+// Inclui o arquivo de conexão. Ele deve fornecer a variável $pdo (PDO).
 require_once 'conexao.php'; 
 
 header('Content-Type: application/json');
@@ -31,23 +32,21 @@ try {
             produto
         WHERE 
             ativo = 1 
-            AND (nome LIKE ? OR codigo_barras LIKE ?)
+            AND (nome LIKE :termo1 OR codigo_barras LIKE :termo2)
         LIMIT 10
     ";
     
     // Prepara a consulta
-    $stmt_produtos = mysqli_prepare($conexao, $sql_produtos);
+    $stmt_produtos = $pdo->prepare($sql_produtos);
     
-    // Vincula os parâmetros (ss = string, string)
-    mysqli_stmt_bind_param($stmt_produtos, 'ss', $termoBusca, $termoBusca);
+    // Vincula os parâmetros (PDO usa placeholders nomeados ou '?' - aqui usamos nomeados)
+    $stmt_produtos->bindValue(':termo1', $termoBusca);
+    $stmt_produtos->bindValue(':termo2', $termoBusca);
     
     // Executa a consulta
-    mysqli_stmt_execute($stmt_produtos);
+    $stmt_produtos->execute();
     
-    // Obtém o resultado
-    $resultado_produtos = mysqli_stmt_get_result($stmt_produtos);
-    
-    while ($row = mysqli_fetch_assoc($resultado_produtos)) {
+    while ($row = $stmt_produtos->fetch(PDO::FETCH_ASSOC)) {
         $preco_float = (float)$row['preco'];
         // Formato esperado pelo jQuery UI Autocomplete
         $resultados[] = [
@@ -60,9 +59,6 @@ try {
             'codigo_barras' => $row['codigo_barras']
         ];
     }
-
-    // Libera o statement
-    mysqli_stmt_close($stmt_produtos);
     
     // ----------------------------------------------------
     // 2. BUSCA POR SERVIÇOS (Tabela `servico`)
@@ -77,23 +73,20 @@ try {
             servico
         WHERE 
             ativo = 1 
-            AND nome LIKE ?
+            AND nome LIKE :termo
         LIMIT 5
     ";
     
     // Prepara a consulta
-    $stmt_servicos = mysqli_prepare($conexao, $sql_servicos);
+    $stmt_servicos = $pdo->prepare($sql_servicos);
     
-    // Vincula o parâmetro (s = string)
-    mysqli_stmt_bind_param($stmt_servicos, 's', $termoBusca);
+    // Vincula o parâmetro
+    $stmt_servicos->bindValue(':termo', $termoBusca);
     
     // Executa a consulta
-    mysqli_stmt_execute($stmt_servicos);
+    $stmt_servicos->execute();
     
-    // Obtém o resultado
-    $resultado_servicos = mysqli_stmt_get_result($stmt_servicos);
-    
-    while ($row = mysqli_fetch_assoc($resultado_servicos)) {
+    while ($row = $stmt_servicos->fetch(PDO::FETCH_ASSOC)) {
         $preco_float = (float)$row['preco'];
         $resultados[] = [
             'id' => $row['id'],
@@ -105,17 +98,14 @@ try {
         ];
     }
     
-    // Libera o statement
-    mysqli_stmt_close($stmt_servicos);
-
     // ----------------------------------------------------
     // 3. RETORNA O JSON
     // ----------------------------------------------------
     echo json_encode($resultados);
 
-} catch (Exception $e) {
+} catch (PDOException $e) {
     // Captura qualquer erro de execução
-    error_log("Erro na busca de itens PDV (MySQLi): " . $e->getMessage());
+    error_log("Erro na busca de itens PDV (PDO): " . $e->getMessage());
     echo json_encode(['error' => 'Erro interno do servidor.']);
 }
 ?>

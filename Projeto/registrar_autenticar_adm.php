@@ -68,7 +68,13 @@ session_start();
 <div class="card login-card mx-auto mt-5">
     <h3 class="card-title text-center"><i class="fas fa-user-shield me-2"></i> Acesso SuperAdmin</h3>
     <p class="text-center text-muted">Apenas SuperAdministradores podem liberar a criação de novas contas.</p>
-
+      
+                <div class="text-center mb-4">
+                    <img src="Logo.jpeg" 
+                             alt="Logo PetShop" 
+                             class="img-fluid rounded-circle mb-3 logo-borda" 
+                             style="max-width: 120px;"> 
+                </div>
     <div id="auth-message-area" class="mt-2">
         </div>
 

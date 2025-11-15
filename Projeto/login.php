@@ -19,11 +19,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // 2. Coletar e limpar dados
     $usuario_digitado = trim($_POST['username'] ?? ''); // Coleta APENAS o usuário
-    // O E-MAIL FOI REMOVIDO DA COLETA
     $senha_digitada = $_POST['password'] ?? '';
 
     // 3. Consulta Segura
-    // ATENÇÃO: A consulta AGORA BUSCA APENAS pelo USUARIO e verifica se está ativo
     $sql = "SELECT id, usuario, email, senha_hash, papel_id FROM usuario 
             WHERE usuario = ? AND ativo = 1";
     
@@ -46,6 +44,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['id_usuario'] = $usuario['id'];
                 $_SESSION['usuario'] = $usuario['usuario'];
                 $_SESSION['papel_id'] = $usuario['papel_id']; 
+                
+                // ------------------------------------------------------------------
+                // 6. [CORREÇÃO] BUSCAR E DEFINIR O ID DO FUNCIONÁRIO PARA O PDV
+                //    Isto é o que faltava para o 'vendas_processar.php' funcionar.
+                // ------------------------------------------------------------------
+                
+                $sql_func = "SELECT id FROM funcionario WHERE usuario_id = ?";
+                $stmt_func = $pdo->prepare($sql_func);
+                $stmt_func->execute([$_SESSION['id_usuario']]); 
+                $funcionario_detalhes = $stmt_func->fetch(PDO::FETCH_ASSOC);
+
+                if ($funcionario_detalhes) {
+                    // Armazena o ID da tabela 'funcionario'
+                    $_SESSION['id_funcionario'] = $funcionario_detalhes['id']; 
+                } else {
+                    // Se o usuário logado não tiver um perfil de funcionário na tabela, define como 0
+                    $_SESSION['id_funcionario'] = 0; 
+                }
+                
+                // ------------------------------------------------------------------
                 
                 $mensagem_status = "<h2 class='text-success'>Login efetuado com sucesso!</h2>";
                 $sucesso = true;
@@ -146,10 +164,10 @@ exibir_html:
                 
                 <div class="text-center mb-4">
                     <img src="Logo.jpeg" 
-                         alt="Logo PetShop" 
-                         class="img-fluid rounded-circle mb-3 logo-borda" 
-                         style="max-width: 120px;"> 
-                         
+                             alt="Logo PetShop" 
+                             class="img-fluid rounded-circle mb-3 logo-borda" 
+                             style="max-width: 120px;"> 
+                              
                     <h2 class="card-title">Acesso PetShop</h2> 
                 </div>
 
@@ -171,7 +189,6 @@ exibir_html:
                 </form>
 
                 <div class="links text-center mt-3">
-                    <div class="links text-center mt-3">
                     <a href="esqueci_senha.php" class="d-block text-muted">Esqueci a Senha</a>
                     <a href="registrar.php" class="d-block text-muted">Criar uma nova conta</a>
                 </div>

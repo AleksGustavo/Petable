@@ -36,10 +36,11 @@ if (isset($conexao)) {
         }
         mysqli_stmt_close($stmt);
     } else {
-         $mensagem_conexao = '<div class="alert alert-danger">Erro ao preparar a consulta do perfil (usuario): ' . mysqli_error($conexao) . '</div>';
+          $mensagem_conexao = '<div class="alert alert-danger">Erro ao preparar a consulta do perfil (usuario): ' . mysqli_error($conexao) . '</div>';
     }
 
     // 2. NOVO BLOCO: Busca Detalhes do Funcionário (Tabela: funcionario)
+    // A coluna 'data_nascimento' DEVE existir na tabela funcionario
     $sql_funcionario = "SELECT nome, data_nascimento FROM funcionario WHERE usuario_id = ?";
     
     if ($stmt_func = mysqli_prepare($conexao, $sql_funcionario)) {
