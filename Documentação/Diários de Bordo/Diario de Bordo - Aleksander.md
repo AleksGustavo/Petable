@@ -116,3 +116,13 @@ Criação e complementação dos seguintes Diagramas de Sequência:
 * Atualização do **diário de bordo** sobre tarefas executadas.
 * Realização de **ajustes finos** e complementos no projeto, ajustando erros de exibição e criação de serviços
 * Adicionando as imagens da documentação na seção de **interfaces de usuário**
+
+### 📅 18/11/2025
+
+**Responsável:** Aleksander
+
+**Atividades Principais:** Finalização de Documentação e Estruturação de Repositório
+
+* **Finalização das Interfaces:** Inserção e organização das capturas de tela das interfaces de usuário na documentação (Tela de Login, Cadastro de Clientes, Painel de Gerenciamento, etc.).
+* **Estruturação do Repositório (README):** Criação e revisão do arquivo **README.md principal** para o repositório GitHub, garantindo uma apresentação profissional do projeto, stack tecnológica e links essenciais.
+* **Revisão Final:** Última revisão da documentação, focada em alinhamento e consistência para a entrega final.
