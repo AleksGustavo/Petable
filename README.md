@@ -10,7 +10,7 @@
 
 ## 💡 Sobre o Projeto
 
-O **Pet & Pet** é um sistema de **gestão web** desenvolvido em PHP com banco de dados MySQL, projetado para simplificar e automatizar as operações diárias de petshops e clínicas veterinárias. O foco principal é no gerenciamento de **clientes**, **animais**, **agendamentos** e **produtos**, através de um CRUD (Create, Read, Update, Delete) simples e intuitivo.
+O **Pet & Pet** é um sistema de **gestão web** desenvolvido em PHP com banco de dados MySQL, projetado para simplificar e automatizar as operações diárias do petshop em questão. O foco principal é no gerenciamento de **clientes**, **animais**, **agendamentos** e **produtos**, através de um CRUD (Create, Read, Update, Delete) simples e intuitivo.
 
 ### Missão
 Nossa missão é proporcionar soluções tecnológicas inovadoras que simplifiquem a gestão de petshops, facilitando o dia a dia dos profissionais e melhorando a experiência dos clientes e seus animais.
