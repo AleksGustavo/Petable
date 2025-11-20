@@ -1,5 +1,6 @@
 <?php
 // Arquivo: clientes_cadastro.php
+// Objetivo: Formulário para cadastrar novo cliente.
 // Apenas o conteúdo HTML que será injetado pelo AJAX.
 ?>
 
@@ -45,52 +46,46 @@
                 </div>
 
                 <hr class="mt-2">
-                <h5 class="mb-2">Endereço</h5>
-
-                <div class="col-md-3">
-                    <label for="cep" class="form-label">CEP *</label>
-                    <input type="text" id="cep" name="cep" class="form-control form-control-sm mask-cep input-numbers-only" required maxlength="9" placeholder="00000-000">
-                    <div id="cep-feedback" class="invalid-feedback">
+                <h5 class="mb-2">Endereço (Opcional)</h5> <div class="col-md-3">
+                    <label for="cep" class="form-label">CEP</label>
+                    <input type="text" id="cep" name="cep" class="form-control form-control-sm mask-cep input-numbers-only" maxlength="9" placeholder="00000-000"> <div id="cep-feedback" class="invalid-feedback">
                         CEP não encontrado.
                     </div>
                 </div>
                 
                 <div class="mb-3 col-md-4">
-    <label for="uf" class="form-label">Estado (UF)</label>
-    <select class="form-control" id="uf" name="uf" required>
-        <option value="">Selecione o Estado</option>
-        
-        <?php
-        // Lista padrão dos estados brasileiros (Pode estar em um array no seu PHP)
-        $estados = [
-            'AC' => 'Acre', 'AL' => 'Alagoas', 'AP' => 'Amapá', 'AM' => 'Amazonas', 
-            'BA' => 'Bahia', 'CE' => 'Ceará', 'DF' => 'Distrito Federal', 'ES' => 'Espírito Santo', 
-            'GO' => 'Goiás', 'MA' => 'Maranhão', 'MT' => 'Mato Grosso', 'MS' => 'Mato Grosso do Sul', 
-            'MG' => 'Minas Gerais', 'PA' => 'Pará', 'PB' => 'Paraíba', 'PR' => 'Paraná', 
-            'PE' => 'Pernambuco', 'PI' => 'Piauí', 'RJ' => 'Rio de Janeiro', 'RN' => 'Rio Grande do Norte', 
-            'RS' => 'Rio Grande do Sul', 'RO' => 'Rondônia', 'RR' => 'Roraima', 'SC' => 'Santa Catarina', 
-            'SP' => 'São Paulo', 'SE' => 'Sergipe', 'TO' => 'Tocantins'
-        ];
-        
-        // Assume-se que a variável $cliente_uf armazena o estado atual do banco (ex: 'SP')
-        $estado_selecionado = $cliente['uf'] ?? ''; // Troque $cliente['uf'] pela sua variável real
-        
-        foreach ($estados as $uf => $nome) {
-            $selected = ($uf === $estado_selecionado) ? 'selected' : '';
-            echo "<option value='{$uf}' {$selected}>{$nome}</option>";
-        }
-        ?>
-    </select>
-</div>
-                <div class="col-md-4">
-                    <label for="rua" class="form-label">Rua *</label>
-                    <input type="text" id="rua" name="rua" class="form-control form-control-sm" required>
+                    <label for="uf" class="form-label">Estado (UF)</label>
+                    <select class="form-control" id="uf" name="uf"> <option value="">Selecione o Estado</option>
+                        
+                        <?php
+                        // Lista padrão dos estados brasileiros (Pode estar em um array no seu PHP)
+                        $estados = [
+                            'AC' => 'Acre', 'AL' => 'Alagoas', 'AP' => 'Amapá', 'AM' => 'Amazonas', 
+                            'BA' => 'Bahia', 'CE' => 'Ceará', 'DF' => 'Distrito Federal', 'ES' => 'Espírito Santo', 
+                            'GO' => 'Goiás', 'MA' => 'Maranhão', 'MT' => 'Mato Grosso', 'MS' => 'Mato Grosso do Sul', 
+                            'MG' => 'Minas Gerais', 'PA' => 'Pará', 'PB' => 'Paraíba', 'PR' => 'Paraná', 
+                            'PE' => 'Pernambuco', 'PI' => 'Piauí', 'RJ' => 'Rio de Janeiro', 'RN' => 'Rio Grande do Norte', 
+                            'RS' => 'Rio Grande do Sul', 'RO' => 'Rondônia', 'RR' => 'Roraima', 'SC' => 'Santa Catarina', 
+                            'SP' => 'São Paulo', 'SE' => 'Sergipe', 'TO' => 'Tocantins'
+                        ];
+                        
+                        // Assume-se que a variável $cliente_uf armazena o estado atual do banco (ex: 'SP')
+                        $estado_selecionado = $cliente['uf'] ?? ''; // Troque $cliente['uf'] pela sua variável real
+                        
+                        foreach ($estados as $uf => $nome) {
+                            $selected = ($uf === $estado_selecionado) ? 'selected' : '';
+                            echo "<option value='{$uf}' {$selected}>{$nome}</option>";
+                        }
+                        ?>
+                    </select>
                 </div>
+                <div class="col-md-4">
+                    <label for="rua" class="form-label">Rua</label>
+                    <input type="text" id="rua" name="rua" class="form-control form-control-sm"> </div>
                 
                 <div class="col-md-3">
-                    <label for="numero" class="form-label">Número *</label>
-                    <input type="text" id="numero" name="numero" class="form-control form-control-sm input-numbers-only" required>
-                </div>
+                    <label for="numero" class="form-label">Número</label>
+                    <input type="text" id="numero" name="numero" class="form-control form-control-sm input-numbers-only"> </div>
                 
                 <div class="col-md-6">
                     <label for="bairro" class="form-label">Bairro</label>
@@ -193,12 +188,13 @@
         cpfInput.addEventListener('change', checkCpfValidity);
 
 
-        // --- 2. API de Busca de CEP (ViaCEP) ---
+        // --- 2. API de Busca de CEP (ViaCEP) - AJUSTADA PARA SER OPCIONAL ---
 
         function clearAddressFields() {
             ruaInput.value = "";
             bairroInput.value = "";
             ufInput.value = "";
+            // Não limpa o número, pois o usuário pode ter preenchido manualmente antes.
         }
 
         function fillAddressFields(data) {
@@ -211,8 +207,15 @@
         function searchCep() {
             const cepValue = cepInput.value.replace(/\D/g, ''); // Remove formatação
 
+            // Se o campo CEP estiver vazio, sai da função sem erro, pois é opcional.
+            if (cepValue.length === 0) {
+                 clearAddressFields(); // Limpa os campos de endereço se o CEP for apagado
+                 cepInput.classList.remove('is-valid', 'is-invalid');
+                 return;
+            }
+
             if (cepValue.length !== 8) {
-                clearAddressFields();
+                // Se não tiver 8 dígitos, não tenta buscar, mas também não dá erro, pois é opcional.
                 cepInput.classList.remove('is-valid', 'is-invalid');
                 return;
             }
@@ -221,10 +224,10 @@
             cepInput.classList.remove('is-valid', 'is-invalid');
             cepInput.disabled = true;
 
-            // Limpa campos para evitar dados antigos
+            // Limpa campos para evitar dados antigos, mas mantém o número digitado
             clearAddressFields();
 
-            fetch(https://viacep.com.br/ws/${cepValue}/json/)
+            fetch(`https://viacep.com.br/ws/${cepValue}/json/`)
                 .then(response => response.json())
                 .then(data => {
                     if (!data.erro) {
@@ -253,6 +256,7 @@
         // --- 3. Prevenção de envio se o CPF for inválido ---
         
         form.addEventListener('submit', function(e) {
+            // A validação do CPF permanece obrigatória.
             if (!validarCPF(cpfInput.value)) {
                 e.preventDefault();
                 cpfInput.classList.add('is-invalid');
@@ -268,8 +272,7 @@
         }
     });
 
-    // Função de máscara (pressupõe que você já tenha implementado ou vai usar uma biblioteca externa)
-    // Exemplo simplificado (você pode precisar de um arquivo de script de máscara mais robusto):
+    // --- Funções de Máscara (Mantidas) ---
     document.querySelectorAll('.mask-cpf').forEach(input => {
         input.addEventListener('input', function(e) {
             let value = e.target.value.replace(/\D/g, '');
@@ -295,5 +298,4 @@
             e.target.value = value;
         });
     });
-
 </script>

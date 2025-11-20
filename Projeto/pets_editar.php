@@ -11,10 +11,13 @@ $racas = [];
 $nome_cliente = 'Cliente Não Encontrado';
 
 // ==================================================================================
-// CONFIGURAÇÃO DE CAMINHOS WEB: AJUSTADO PARA '/PHP_PI/'
+// CONFIGURAÇÃO DE CAMINHOS WEB: AJUSTADO PARA GARANTIR CAMINHO RELATIVO NO FRONT-END
 // ==================================================================================
-$BASE_PATH = '/PHP_PI/'; 
-$URL_UPLOADS = $BASE_PATH .'uploads/fotos_pets/'; 
+// REMOVIDO: $BASE_PATH = 'PHP_PI'; 
+// Acessa o diretório de uploads a partir da raiz do projeto ou caminho relativo
+$URL_UPLOADS = 'uploads/fotos_pets/'; 
+// Se o seu servidor exige o prefixo, use: $URL_UPLOADS = '/PHP_PI/uploads/fotos_pets/'; 
+// Mas para o PHP encontrar o arquivo no disco, geralmente um caminho relativo basta.
 // ==================================================================================
 
 if (!$pet_id) {
@@ -93,8 +96,7 @@ try {
             <div class="row">
                 <div class="col-md-4 mb-3">
                     <label for="especie_id" class="form-label">Espécie <span class="text-danger">*</span></label>
-                    <select id="especie_id" name="especie_id" class="form-select"> 
-                        <option value="">Selecione a Espécie...</option>
+                    <select id="especie_id" name="especie_id" class="form-select" required> <option value="">Selecione a Espécie...</option>
                         <?php foreach ($especies as $e): ?>
                             <option value="<?= $e['id'] ?>" <?= ($e['id'] == $pet['especie_id']) ? 'selected' : '' ?>>
                                 <?= htmlspecialchars($e['nome']) ?>
@@ -185,16 +187,16 @@ try {
 $(document).ready(function() {
     // Lógica para controle de visibilidade e obrigatoriedade do campo 'Porte'
     function togglePorteField() {
-        // ASSUNÇÃO: O ID da Espécie "Cachorro" é 1.
+        // ASSUNÇÃO: O ID da Espécie "Cachorro" é 1. (Mantenha este ID consistente com seu BD!)
         const especieId = $('#especie_id').val();
         const porteRow = $('#pet-porte-row');
         const porteSelect = $('#porte');
 
+        // Note: Se o ID da sua espécie "Cachorro" for outro (ex: '2'), mude o '1' abaixo.
         if (especieId === '1') { 
             // Se for Cachorro, torna o campo visível e habilitado.
             porteRow.show();
             porteSelect.prop('disabled', false);
-            // O required foi removido da edição, permitindo salvar sem preencher o porte se não desejar
         } else {
             // Para outras espécies, esconde e desabilita.
             porteRow.hide();

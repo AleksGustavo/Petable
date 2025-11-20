@@ -1,127 +1,345 @@
 <?php
-// Arquivo: pets_vacinas.php
+// Arquivo: pets_vacinas.php (Nome corrigido)
 require_once 'conexao.php'; 
 
-$pet_id = $_GET['pet_id'] ?? null;
-$pet = null;
-$vacinas_cadastradas = [];
+// Pega o ID da URL (ex: ?pet_id=1)
+$pet_id = filter_input(INPUT_GET, 'pet_id', FILTER_VALIDATE_INT);
 
 if (!$pet_id) {
-    echo '<div class="alert alert-danger">ID do Pet não fornecido para gerenciar vacinas.</div>';
+    echo '<div class="alert alert-danger m-4">ID do Pet inválido.</div>';
     exit();
 }
 
-try {
-    // 1. Carrega dados básicos do Pet
-    $stmt_pet = $pdo->prepare("SELECT p.nome AS nome_pet, c.nome AS nome_cliente FROM pet p JOIN cliente c ON p.cliente_id = c.id WHERE p.id = ?");
-    $stmt_pet->execute([$pet_id]);
-    $pet = $stmt_pet->fetch(PDO::FETCH_ASSOC);
+// Variáveis iniciais
+$pet = null;
+$vacinas = [];
 
-    if (!$pet) {
-        echo '<div class="alert alert-danger">Pet não encontrado.</div>';
-        exit();
+if (isset($conexao)) {
+    // 1. Busca dados do Pet + Dono + Espécie (para o ícone)
+    $sql_pet = "SELECT 
+                    p.id, p.nome, p.foto, p.data_nascimento, 
+                    c.id AS cliente_id, c.nome AS dono_nome,
+                    e.nome AS especie_nome
+                FROM pet p 
+                LEFT JOIN cliente c ON p.cliente_id = c.id 
+                LEFT JOIN especie e ON p.especie_id = e.id
+                WHERE p.id = ?";
+    
+    $stmt = mysqli_prepare($conexao, $sql_pet);
+    mysqli_stmt_bind_param($stmt, "i", $pet_id);
+    mysqli_stmt_execute($stmt);
+    $res_pet = mysqli_stmt_get_result($stmt);
+    $pet = mysqli_fetch_assoc($res_pet);
+    mysqli_stmt_close($stmt);
+
+    if ($pet) {
+        // 2. Busca as vacinas da tabela 'carteira_vacina' ordenadas da mais recente para a antiga
+        $sql_vacinas = "SELECT id, nome_vacina, data_aplicacao, data_proxima, veterinario, observacoes 
+                        FROM carteira_vacina 
+                        WHERE pet_id = ? 
+                        ORDER BY data_aplicacao DESC";
+        
+        $stmt_v = mysqli_prepare($conexao, $sql_vacinas);
+        mysqli_stmt_bind_param($stmt_v, "i", $pet_id);
+        mysqli_stmt_execute($stmt_v);
+        $res_vacinas = mysqli_stmt_get_result($stmt_v);
+        $vacinas = mysqli_fetch_all($res_vacinas, MYSQLI_ASSOC);
+        mysqli_stmt_close($stmt_v);
     }
+}
 
-    // 2. Carrega as vacinas registradas para este pet (se você tiver uma tabela de vacinas_pet)
-    // EXEMBRO: Se você tiver uma tabela 'vacinas_pet' com id, pet_id, nome_vacina, data_aplicacao, proximo_reforco
-    // $stmt_vacinas = $pdo->prepare("SELECT * FROM vacinas_pet WHERE pet_id = ? ORDER BY data_aplicacao DESC");
-    // $stmt_vacinas->execute([$pet_id]);
-    // $vacinas_cadastradas = $stmt_vacinas->fetchAll(PDO::FETCH_ASSOC);
+// Inicializa variáveis de resumo
+$total_doses = count($vacinas);
+$proxima_dose_data = null;
+$proxima_dose_nome = 'N/D';
+$proxima_dose_cor = 'secondary';
+$proxima_dose_texto = 'Sem Reforços Pendentes';
 
-} catch (PDOException $e) {
-    error_log("Erro ao carregar dados de vacinas do pet: " . $e->getMessage());
-    echo '<div class="alert alert-danger">Erro ao carregar informações de vacinas: ' . htmlspecialchars($e->getMessage()) . '</div>';
-    exit();
+// Encontra a próxima dose mais urgente (a que vence primeiro)
+$hoje = date('Y-m-d');
+$proxima_vencimento = '9999-12-31';
+
+foreach ($vacinas as $vacina) {
+    if (!empty($vacina['data_proxima'])) {
+        // Se a dose ainda não venceu e está mais próxima do que a atual 'próxima_vencimento'
+        if ($vacina['data_proxima'] >= $hoje && $vacina['data_proxima'] < $proxima_vencimento) {
+            $proxima_vencimento = $vacina['data_proxima'];
+            $proxima_dose_data = $vacina['data_proxima'];
+            $proxima_dose_nome = $vacina['nome_vacina'];
+        }
+        // Verifica se existe alguma vencida (prioridade máxima)
+        if ($vacina['data_proxima'] < $hoje) {
+             // Se houver qualquer vacina vencida, sobrescreve o status de "próxima" para "Vencida"
+             $proxima_dose_data = $vacina['data_proxima'];
+             $proxima_dose_nome = $vacina['nome_vacina'];
+             $proxima_dose_cor = 'danger';
+             $proxima_dose_texto = '⚠️ HÁ VACINA(S) VENCIDA(S)';
+             break; // Parar e mostrar alerta vermelho
+        }
+    }
+}
+
+if ($proxima_dose_data && $proxima_dose_cor != 'danger') {
+    $status_data = get_status_vacina($proxima_dose_data);
+    $proxima_dose_cor = $status_data['cor'];
+    $proxima_dose_texto = 'Vence em ' . date('d/m/Y', strtotime($proxima_dose_data));
+}
+
+
+// Função para ícone (igual à página anterior)
+function get_pet_icon($especie_nome) {
+    $nome = mb_strtolower($especie_nome ?? '');
+    if (strpos($nome, 'cão') !== false || strpos($nome, 'cachorro') !== false) return '<i class="fas fa-dog"></i>';
+    if (strpos($nome, 'gato') !== false) return '<i class="fas fa-cat"></i>';
+    if (strpos($nome, 'ave') !== false) return '<i class="fas fa-dove"></i>';
+    return '<i class="fas fa-paw"></i>';
+}
+
+// Função para calcular status da vacina
+function get_status_vacina($data_proxima) {
+    if (empty($data_proxima)) return ['cor' => 'secondary', 'texto' => 'Dose Única/Sem Reforço', 'icon' => 'fa-check-circle'];
+    
+    $hoje = date('Y-m-d');
+    $data_limite = date('Y-m-d', strtotime('+30 days')); // 30 dias a partir de hoje
+
+    if ($data_proxima < $hoje) {
+        return ['cor' => 'danger', 'texto' => 'Vencida', 'icon' => 'fa-exclamation-triangle'];
+    } elseif ($data_proxima <= $data_limite) {
+        return ['cor' => 'warning', 'texto' => 'Vence em breve', 'icon' => 'fa-clock'];
+    } else {
+        return ['cor' => 'success', 'texto' => 'Em dia', 'icon' => 'fa-shield-alt'];
+    }
+}
+
+// Define ícone e cabeçalho com base no pet carregado
+if ($pet) {
+    $iconPet = get_pet_icon($pet['especie_nome']);
+} else {
+    echo '<div class="alert alert-danger m-4">Pet não encontrado no banco de dados.</div>';
+    exit;
 }
 ?>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="fas fa-syringe me-2"></i> Carteira de Vacinas de <?= htmlspecialchars($pet['nome_pet']) ?></h2>
-    <a href="#" class="btn btn-secondary item-menu-ajax" data-pagina="clientes_listar.php">
-        <i class="fas fa-arrow-left me-2"></i> Voltar para Busca
-    </a>
-</div>
+<style>
+    /* Estilo da Linha Vertical */
+    .timeline-section { position: relative; padding-left: 20px; }
+    .timeline-section::before {
+        content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+        width: 4px; background: #e9ecef; border-radius: 2px;
+    }
+    
+    /* Estilo do Cartão */
+    .vacina-card { 
+        border-left: 5px solid #6c757d; 
+        transition: all 0.3s ease; 
+        position: relative; /* Para posicionar o ponto */
+        margin-left: 20px !important; /* Afasta o card da linha */
+    }
+    .vacina-card:hover { transform: translateX(5px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+    
+    /* Ponto de Referência na Linha do Tempo */
+    .timeline-dot {
+        position: absolute;
+        left: -32px; /* Ajusta a posição para o lado de fora do card */
+        top: 25px; /* Alinha verticalmente com o conteúdo */
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        border: 3px solid white;
+        z-index: 10;
+        box-shadow: 0 0 0 2px #e9ecef; /* Simula a linha do tempo */
+    }
 
-<div id="status-message-area"></div>
+    /* Cores de Status */
+    .status-danger { border-left-color: #dc3545 !important; background-color: #fff5f5; }
+    .status-warning { border-left-color: #ffc107 !important; background-color: #fffdf5; }
+    .status-success { border-left-color: #198754 !important; background-color: #f0fff4; }
+    .status-secondary { border-left-color: #6c757d !important; }
 
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
-        <h5 class="card-title">Informações do Pet</h5>
-        <p class="mb-1"><strong>Nome:</strong> <?= htmlspecialchars($pet['nome_pet']) ?></p>
-        <p class="mb-0"><strong>Dono:</strong> <?= htmlspecialchars($pet['nome_cliente']) ?></p>
+    /* Cores do Ponto */
+    .dot-danger { background-color: #dc3545; }
+    .dot-warning { background-color: #ffc107; }
+    .dot-success { background-color: #198754; }
+    .dot-secondary { background-color: #6c757d; }
+
+    .bg-gradient-pet { background: linear-gradient(45deg, #4e73df, #224abe); color: white; }
+    .border-dashed { border-style: dashed !important; }
+</style>
+
+<div class="container mt-4 mb-5">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-secondary">
+            <i class="fas fa-notes-medical me-2"></i> Carteira Digital
+        </h2>
+        <a href="#" class="btn btn-outline-secondary item-menu-ajax" data-pagina="clientes_detalhes.php?id=<?php echo $pet['cliente_id']; ?>">
+            <i class="fas fa-arrow-left me-2"></i> Voltar ao Cliente
+        </a>
     </div>
-</div>
 
-<div class="card shadow-sm">
-    <div class="card-header bg-primary text-white">
-        <i class="fas fa-plus-circle me-2"></i> Registrar Nova Vacina
-    </div>
-    <div class="card-body">
-        <form id="form-registrar-vacina" action="vacinas_processar.php" method="POST">
-            <input type="hidden" name="pet_id" value="<?= htmlspecialchars($pet_id) ?>">
+    <div class="row">
+        <div class="col-lg-4 mb-4">
             
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label for="nome_vacina" class="form-label">Nome da Vacina <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="nome_vacina" name="nome_vacina" required>
+            <div class="card shadow-sm mb-4 border-0">
+                <div class="card-header bg-gradient-pet text-center py-4">
+                    <div class="bg-white rounded-circle d-inline-flex justify-content-center align-items-center shadow-sm" style="width: 80px; height: 80px; font-size: 40px;">
+                        <?php echo $iconPet; ?>
+                    </div>
+                    <h3 class="mt-3 mb-0 fw-bold"><?php echo htmlspecialchars($pet['nome']); ?></h3>
+                    <small class="opacity-75">Proprietário: <?php echo htmlspecialchars($pet['dono_nome']); ?></small>
                 </div>
-                <div class="col-md-3">
-                    <label for="data_aplicacao" class="form-label">Data de Aplicação <span class="text-danger">*</span></label>
-                    <input type="date" class="form-control" id="data_aplicacao" name="data_aplicacao" required>
-                </div>
-                <div class="col-md-3">
-                    <label for="proximo_reforco" class="form-label">Próximo Reforço</label>
-                    <input type="date" class="form-control" id="proximo_reforco" name="proximo_reforco">
-                </div>
-                <div class="col-12 mt-4">
-                    <button type="submit" class="btn btn-success">
-                        <i class="fas fa-save me-2"></i> Registrar Vacina
-                    </button>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
+                        <span class="text-muted">Espécie:</span>
+                        <span class="fw-bold"><?php echo htmlspecialchars($pet['especie_nome'] ?? 'N/A'); ?></span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Nascimento:</span>
+                        <span class="fw-bold"><?php echo !empty($pet['data_nascimento']) ? date('d/m/Y', strtotime($pet['data_nascimento'])) : '--/--/----'; ?></span>
+                    </div>
                 </div>
             </div>
-        </form>
-    </div>
-</div>
 
-<div class="card shadow-sm mt-4">
-    <div class="card-header bg-info text-white">
-        <i class="fas fa-list-alt me-2"></i> Histórico de Vacinas
-    </div>
-    <div class="card-body">
-        <?php if (empty($vacinas_cadastradas)): ?>
-            <p class="text-muted">Nenhuma vacina registrada para este pet.</p>
-        <?php else: ?>
-            <div class="table-responsive">
-                <table class="table table-striped table-hover table-sm">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Vacina</th>
-                            <th>Data Aplicação</th>
-                            <th>Próximo Reforço</th>
-                            <th style="width: 120px;">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($vacinas_cadastradas as $vacina): ?>
-                            <tr>
-                                <td><?= htmlspecialchars($vacina['nome_vacina']) ?></td>
-                                <td><?= date('d/m/Y', strtotime($vacina['data_aplicacao'])) ?></td>
-                                <td>
-                                    <?php if ($vacina['proximo_reforco']): ?>
-                                        <?= date('d/m/Y', strtotime($vacina['proximo_reforco'])) ?>
-                                    <?php else: ?>
-                                        N/D
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-primary me-1" title="Editar Vacina"><i class="fas fa-edit"></i></button>
-                                    <button class="btn btn-sm btn-outline-danger" title="Excluir Vacina"><i class="fas fa-trash-alt"></i></button>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white border-bottom fw-bold text-primary">
+                    <i class="fas fa-plus-circle me-2"></i> Aplicar Nova Vacina
+                </div>
+                <div class="card-body bg-light">
+                    <form action="vacinas_processar.php" method="POST" class="needs-validation">
+                        <input type="hidden" name="pet_id" value="<?php echo $pet_id; ?>">
+                        <input type="hidden" name="acao" value="inserir"> 
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-uppercase">Vacina / Medicamento</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white"><i class="fas fa-syringe text-primary"></i></span>
+                                <input type="text" class="form-control" name="nome_vacina" placeholder="Ex: V10, Antirrábica" required>
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-uppercase">Data Aplicação</label>
+                                <input type="date" class="form-control" name="data_aplicacao" value="<?php echo date('Y-m-d'); ?>" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-uppercase">Próx. Dose</label>
+                                <input type="date" class="form-control" name="proximo_reforco">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-uppercase">Veterinário</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white"><i class="fas fa-user-md text-info"></i></span>
+                                <input type="text" class="form-control" name="veterinario" placeholder="Nome do Vet">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-uppercase">Observações</label>
+                            <textarea class="form-control" name="observacoes" rows="2" placeholder="Lote, reação, etc."></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm">
+                            <i class="fas fa-save me-2"></i> Registrar Aplicação
+                        </button>
+                    </form>
+                </div>
             </div>
-        <?php endif; ?>
+        </div>
+
+        <div class="col-lg-8">
+            <h5 class="mb-3 ms-2 text-muted">Histórico de Imunização</h5>
+            
+            <div class="card shadow-sm mb-4">
+                <div class="card-body p-3">
+                    <div class="row text-center">
+                        <div class="col-6 border-end">
+                            <h6 class="text-primary mb-0">TOTAL DE DOSES</h6>
+                            <p class="fs-4 fw-bold mb-0 text-dark"><?php echo $total_doses; ?></p>
+                        </div>
+                        <div class="col-6">
+                            <h6 class="text-primary mb-1">PRÓXIMO VENCIMENTO</h6>
+                            <span class="badge bg-<?php echo $proxima_dose_cor; ?> p-2 fw-bold d-block">
+                                <?php if ($proxima_dose_cor == 'danger'): ?>
+                                    <?php echo $proxima_dose_texto; ?>
+                                <?php elseif ($proxima_dose_data): ?>
+                                    <?php echo htmlspecialchars($proxima_dose_nome); ?> | <?php echo date('d/m/Y', strtotime($proxima_dose_data)); ?>
+                                <?php else: ?>
+                                    <?php echo $proxima_dose_texto; ?>
+                                <?php endif; ?>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php if (empty($vacinas)): ?>
+                <div class="alert alert-light border border-dashed text-center p-5 rounded-3">
+                    <i class="fas fa-file-medical fa-3x text-muted mb-3 opacity-50"></i>
+                    <h5 class="text-muted">Carteira em branco</h5>
+                    <p class="mb-0">Nenhuma vacina registrada para este pet ainda.</p>
+                </div>
+            <?php else: ?>
+                <div class="timeline-section">
+                    <?php foreach ($vacinas as $vacina): 
+                        $status = get_status_vacina($vacina['data_proxima']);
+                    ?>
+                    <div class="card vacina-card shadow-sm mb-3 status-<?php echo $status['cor']; ?>">
+                        <div class="timeline-dot dot-<?php echo $status['cor']; ?>"></div>
+                        
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h5 class="card-title fw-bold text-dark mb-1">
+                                        <?php echo htmlspecialchars($vacina['nome_vacina']); ?>
+                                    </h5>
+                                    
+                                    <div class="mb-2">
+                                        <span class="badge bg-<?php echo $status['cor']; ?> text-uppercase" style="font-size: 0.7rem;">
+                                            <i class="fas <?php echo $status['icon']; ?> me-1"></i> <?php echo $status['texto']; ?>
+                                        </span>
+                                    </div>
+
+                                    <div class="text-muted small">
+                                        <i class="fas fa-calendar-check me-1 text-primary"></i> Aplicado em: 
+                                        <strong><?php echo date('d/m/Y', strtotime($vacina['data_aplicacao'])); ?></strong>
+                                    </div>
+
+                                    <?php if (!empty($vacina['data_proxima'])): ?>
+                                        <div class="text-muted small mt-1">
+                                            <i class="fas fa-calendar-plus me-1 <?php echo ($status['cor'] == 'danger' ? 'text-danger' : 'text-warning'); ?>"></i> 
+                                            Reforço: <strong><?php echo date('d/m/Y', strtotime($vacina['data_proxima'])); ?></strong>
+                                        </div>
+                                    <?php endif; ?>
+
+                                    <?php if (!empty($vacina['veterinario'])): ?>
+                                        <div class="text-muted small mt-1 fst-italic">
+                                            <i class="fas fa-user-md me-1"></i> Vet: <?php echo htmlspecialchars($vacina['veterinario']); ?>
+                                        </div>
+                                    <?php endif; ?>
+                                    
+                                    <?php if (!empty($vacina['observacoes'])): ?>
+                                        <div class="mt-2 p-2 bg-white rounded border small text-secondary">
+                                            <?php echo htmlspecialchars($vacina['observacoes']); ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+
+                                <div class="d-flex flex-column gap-2">
+                                    <a href="#" class="btn btn-sm btn-outline-secondary border-0 text-success" title="Editar registro">
+                                        <i class="fas fa-pencil-alt"></i>
+                                    </a>
+                                    <a href="#" onclick="if(confirm('Tem certeza que deseja excluir?')) { /* logica de exclusão */ }" class="btn btn-sm btn-outline-danger border-0" title="Excluir registro">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
 </div>
