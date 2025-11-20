@@ -32,3 +32,4 @@ Aleksander:
     Criamos durante esses dias, nossos diagramas de sequência, o banco de dados lógico e dicionário de dados, tanto o de tabelas
 quanto o de atributos das tabelas.
     Criamos também algumas telas, o logotipo
+    
