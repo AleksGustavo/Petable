@@ -1,11 +1,12 @@
 Diário de Bordo
 
 09-09-25
-Wanderson Jaime de Almeida Santos
+Wanderson Jaime de Almeida Santos:
     Hoje criei logotipo da empresa, com a visão de de negócios da empresa.
 
 15-09-25
-    Wanderson:  Diagrama de Caso de Uso;
+Wanderson:  
+    Diagrama de Caso de Uso;
 
 22-09-25    
 Wanderson:
