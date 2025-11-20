@@ -1,30 +1,11 @@
 Diário de Bordo
 
 09-09-25
-Aleksander:
-    Hoje dei início à documentação do nosso projeto integrador, apresentando a empresa, visão, missão e os nossos valores
-que serão implementados de acordo com o projeto.
-
-Marcos firmino:
-    Hoje fiz a tela de login, mais somente o esqueleto em html, e juntamente criei a tela de cadastro de usuário.
-
 Wanderson Jaime de Almeida Santos
     Hoje criei logotipo da empresa, com a visão de de negócios da empresa.
 
-Everton Rodrigues da Silva
-    Hoje eu comecei a fazer a base do layout da tela inicial, criando um breve rascunho a ser terminado no canva com base nas informações geradas   
-
-
-10-09-25
-Aleksander:
-    Hoje, no meu horário de almoço, dei continuidade à documentação do projeto e início à criação do banco de dados.
-
 15-09-25
-Marcos:
-    Hoje eu criei a tela de login com html e css além de termos definido qual diagrama cada integrante vai ficar responsável.
-    Marcos:     Diagrama de Classe;
     Wanderson:  Diagrama de Caso de Uso;
-    Aleksander: Diagrama de Sequência.
 
 22-09-25    
 Wanderson:
@@ -56,4 +37,20 @@ Wanderson:
 
 07-11-25    
 Wanderson:
-    Hoje subi outra versão do  projeto.
+    Hoje subi outra versão do projeto.
+
+10-11-25    
+Wanderson:
+    Hoje subi outra versão mais novado projeto, testar funcionalidades.
+
+14-11-25    
+Wanderson:
+    Hoje subi outra versão mais novado projeto, testar funcionalidades.
+
+15-11-25    
+Wanderson:
+    Hoje subi outra versão mais novado projeto, testar funcionalidades.
+
+20-11-25    
+Wanderson:
+    Hoje atualizar projeto fazer testes do software.
