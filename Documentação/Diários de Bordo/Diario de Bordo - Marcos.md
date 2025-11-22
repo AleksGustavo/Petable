@@ -44,5 +44,8 @@ Marcos:
  Hoje estava ajustado alguns erros do pet, ficha, editar e tals, conseguir arrumar com tranquilidade 
  alem de ajusatar o front-end do mesmo.
  
+22/11/2025
+ Hoje estava ajustando alguns erros no nossos cruds, como deletar pets e clientes 
+ Não estavam funcionando, Agora estão em ordem.
   
 
