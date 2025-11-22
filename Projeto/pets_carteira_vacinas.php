@@ -3,7 +3,7 @@
 require_once 'conexao.php'; // Garante a conexão com o banco de dados
 
 $pet_id = filter_input(INPUT_GET, 'pet_id', FILTER_VALIDATE_INT);
-$pet_info = ['nome' => 'Pet Desconhecido', 'cliente_nome' => ''];
+$pet_info = ['nome' => 'Pet Desconhecido', 'cliente_nome' => '', 'cliente_id' => 0]; // Inicializando cliente_id
 $vacinas = [];
 
 if (isset($conexao) && $conexao && $pet_id) {
@@ -17,10 +17,12 @@ if (isset($conexao) && $conexao && $pet_id) {
         mysqli_stmt_bind_param($stmt_info, "i", $pet_id);
         mysqli_stmt_execute($stmt_info);
         $result_info = mysqli_stmt_get_result($stmt_info);
-        $pet_info = mysqli_fetch_assoc($result_info);
+        $pet_info_temp = mysqli_fetch_assoc($result_info); // Use uma variável temporária
         mysqli_stmt_close($stmt_info);
 
-        if (!$pet_info) {
+        if ($pet_info_temp) {
+            $pet_info = $pet_info_temp;
+        } else {
              echo '<div class="alert alert-danger">Pet não encontrado.</div>';
              exit();
         }
@@ -117,7 +119,7 @@ if (isset($conexao) && $conexao && $pet_id) {
                 <h5 class="modal-title" id="modalLabelVacina">Registrar Vacina para <?php echo htmlspecialchars($pet_info['nome']); ?></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="pets_processar_vacina_manual.php" method="POST"> 
+            <form id="form-add-vacina" action="pets_processar_vacina_manual.php" method="POST"> 
                 <div class="modal-body">
                     <input type="hidden" name="pet_id" value="<?php echo $pet_id; ?>">
                     
@@ -144,9 +146,66 @@ if (isset($conexao) && $conexao && $pet_id) {
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Salvar Registro</button>
+                    <button type="submit" class="btn btn-primary" id="btn-salvar-vacina"><i class="fas fa-save me-1"></i> Salvar Registro</button> 
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+$(document).ready(function() {
+    // 1. Interceptar o envio do formulário do modal
+    $('#form-add-vacina').on('submit', function(e) {
+        e.preventDefault(); // <-- Impede o envio tradicional (que causaria a tela preta de JSON)
+
+        var form = $(this);
+        var url = form.attr('action');
+        var data = form.serialize(); 
+
+        // Captura e desabilita o botão, mostrando um loader
+        var btn = $('#btn-salvar-vacina');
+        var original_text = btn.html();
+
+        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Salvando...');
+
+        // 2. Envio AJAX
+        $.ajax({
+            type: 'POST', // O método POST deve ser explícito
+            url: url,
+            data: data,
+            dataType: 'json', // Espera uma resposta JSON
+            success: function(response) {
+                // 3. Tratamento da Resposta
+                if (response.success) {
+                    
+                    // Notificação de Sucesso (usando alert simples ou SweetAlert se tiver)
+                    alert('SUCESSO! ' + response.message); 
+                    
+                    // Oculta o modal do Bootstrap
+                    $('#modalAdicionarVacina').modal('hide');
+                    
+                    // Recarrega a página para exibir o novo registro na tabela
+                    // Se você usa a função `carregarConteudo` (como sugerido em pets_detalhes.php), 
+                    // substitua a linha abaixo por:
+                    // carregarConteudo('pets_carteira_vacinas.php?pet_id=<?php echo $pet_id; ?>'); 
+                    window.location.reload(); 
+
+                } else {
+                    // Notificação de Erro
+                    alert('ERRO! ' + response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                // Erro na requisição AJAX
+                alert('Erro de comunicação com o servidor. Status: ' + status + '. Tente novamente.');
+            },
+            complete: function() {
+                // 4. Finalização
+                // Reabilita o botão
+                btn.prop('disabled', false).html(original_text);
+            }
+        });
+    });
+});
+</script>

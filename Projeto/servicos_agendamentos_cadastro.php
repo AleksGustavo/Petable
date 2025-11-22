@@ -340,7 +340,8 @@ mysqli_close($conexao);
             if (meses <= 0) return '';
 
             const hoje = new Date();
-            const dataRetorno = new Date(hoje.getTime());
+            // CORREÇÃO: Usa 'hoje.getTime()' para preservar a data original antes de somar meses
+            const dataRetorno = new Date(hoje.getTime()); 
             dataRetorno.setMonth(dataRetorno.getMonth() + meses);
 
             const ano = dataRetorno.getFullYear();
@@ -658,25 +659,85 @@ mysqli_close($conexao);
             validateForm();
         });
 
-        // 1.2 Lógica Vacina
-        $('#vacina_catalogo_id').on('change', function() {
-            const selectedOption = $(this).find('option:selected');
-            const validadeMeses = parseInt(selectedOption.data('validade-meses')) || 0;
-            const retornoInput = $('#vacina_retorno_previsto');
+        // 1.2 Lógica Vacina (UNIFICADA: Busca e Seleção)
+        
+        /**
+         * Busca dinâmica de vacinas - Disparada ao digitar no campo.
+         */
+        $('#vacina_catalogo_nome').on('input', function() {
+            const termo = $(this).val().trim();
+            const $datalist = $('#lista_vacinas');
+            $datalist.empty(); 
+            
+            // Requisito: Só busca se tiver pelo menos 2 caracteres
+            if (termo.length < 2) return; 
 
-            if (validadeMeses > 0) {
-                const dataRetorno = calcularDataRetorno(validadeMeses);
-                retornoInput.val(dataRetorno);
-            } else {
-                retornoInput.val('');
-            }
+            $.ajax({
+                url: 'servicos_buscar_vacinas.php',
+                method: 'GET',
+                data: {
+                    q: termo
+                },
+                dataType: 'json',
+                success: function(vacinas) {
+                    if (vacinas.error) {
+                        console.error("Erro do servidor (PHP):", vacinas.error);
+                        return;
+                    }
 
-            calcularTotal();
-            validateForm();
+                    let options = '';
+                    vacinas.forEach(function(v) {
+                        // v.validade é o alias retornado pelo PHP
+                        const validadeMeses = parseInt(v.validade) || 0;
+                        
+                        options += `<option value="${v.nome}" 
+                                           data-id="${v.id}" 
+                                           data-validade="${validadeMeses}" 
+                                           title="Proteção: ${v.doenca_protecao} | Validade: ${validadeMeses} meses">
+                                    </option>`;
+                    });
+                    $('#lista_vacinas').html(options);
+                },
+                error: function(xhr, status, error) {
+                    console.error("Falha na chamada AJAX para buscar vacinas. Verifique o Network (F12).", error);
+                }
+            });
         });
+
+        /**
+         * Atualiza hidden ID e calcula data de retorno ao selecionar/mudar o campo (Evento 'change').
+         */
+        $('#vacina_catalogo_nome').on('change', function() {
+            const nomeSelecionado = $(this).val();
+            // Busca a tag <option> com o nome que foi selecionado
+            const selectedOption = $('#lista_vacinas option[value="' + nomeSelecionado + '"]');
+            
+            if (selectedOption.length > 0) {
+                // Se encontrou no catálogo:
+                $('#vacina_catalogo_id').val(selectedOption.data('id'));
+                const validadeMeses = parseInt(selectedOption.data('validade')) || 0;
+                
+                if (validadeMeses > 0) {
+                    // Calcula a data de retorno e preenche o campo
+                    $('#vacina_retorno_previsto').val(calcularDataRetorno(validadeMeses));
+                } else {
+                    $('#vacina_retorno_previsto').val('');
+                }
+            } else {
+                // Se digitou uma vacina nova (não está no catálogo) ou limpou o campo:
+                $('#vacina_catalogo_id').val(''); 
+                $('#vacina_retorno_previsto').val('');
+            }
+            
+            calcularTotal();
+            validateForm(); 
+        });
+        
         // O retorno da vacina é a única data calculada, mas o usuário pode ajustá-la
         $('#vacina_retorno_previsto').on('change', validateForm);
-
+        
+        // Fim da Lógica Vacina
+        
         // 1.3 Lógica Consulta
         $('#consulta_servico_id').on('change', function() {
             calcularTotal();
@@ -729,6 +790,7 @@ mysqli_close($conexao);
 
 
         // 2. Seleção de Cliente (CHAMA AJAX)
+        // Este bloco é mantido, mas é menos utilizado devido ao novo campo de busca
         $('#cliente_id').on('change', function() {
             selectedClienteId = $(this).val() !== '' ? parseInt($(this).val()) : null;
             selectedPetId = null;
@@ -785,46 +847,5 @@ mysqli_close($conexao);
 
         // Inicialização: Garante que os passos e o botão de submit estejam no estado inicial correto.
         resetSteps(1); // Inicia com o reset completo para garantir o estado inicial.
-
-
-        /**
-         * Busca dinâmica de vacinas
-         */
-        $('#vacina_catalogo_nome').on('input', function() {
-            const termo = $(this).val().trim();
-            if (termo.length < 1) return;
-
-            $.ajax({
-                url: 'servicos_buscar_vacinas.php',
-                method: 'GET',
-                data: {
-                    q: termo
-                },
-                dataType: 'json',
-                success: function(vacinas) {
-                    let options = '';
-                    vacinas.forEach(function(v) {
-                        options += `<option value="${v.nome}" data-id="${v.id}" data-validade="${v.validade_meses}" title="Proteção: ${v.doenca_protecao}">${v.nome}</option>`;
-                    });
-                    $('#lista_vacinas').html(options);
-                }
-            });
-        });
-
-        // Atualiza hidden e data-retorno ao selecionar
-        $('#vacina_catalogo_nome').on('change', function() {
-            const selectedOption = $('#lista_vacinas option[value="' + $(this).val() + '"]');
-            if (selectedOption.length > 0) {
-                $('#vacina_catalogo_id').val(selectedOption.data('id'));
-                const validadeMeses = parseInt(selectedOption.data('validade')) || 0;
-                if (validadeMeses > 0) {
-                    $('#vacina_retorno_previsto').val(calcularDataRetorno(validadeMeses));
-                }
-            } else {
-                $('#vacina_catalogo_id').val(''); // Nova vacina (digitada)
-                $('#vacina_retorno_previsto').val('');
-            }
-            validateForm();
-        });
     });
 </script>

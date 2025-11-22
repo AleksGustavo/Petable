@@ -127,14 +127,14 @@ if ($idade->y > 0) {
             
             <a href="#" class="btn btn-outline-warning item-menu-ajax" 
                 data-pagina="pets_vacinas.php?pet_id=<?php echo $pet_id; ?>" 
-                title="Ver Histórico de Vacinas (Nome Corrigido)">
+                title="Ver Histórico de Vacinas">
                 <i class="fas fa-syringe me-1"></i> Carteira
             </a>
 
-            <a href="#" class="btn btn-outline-danger item-menu-ajax" 
-                data-pagina="pets_processar.php?acao=excluir&id=<?php echo $pet_id; ?>" 
-                data-confirmacao="Tem certeza que deseja EXCLUIR este pet e todos os seus registros? Esta ação é irreversível." 
-                title="Excluir o Pet permanentemente">
+            <a href="#" class="btn btn-outline-danger btn-excluir-pet" 
+                data-id="<?php echo $pet_id; ?>" 
+                data-url="pets_processar.php?acao=excluir"
+                title="Excluir o Pet permanentemente (Ação Imediata)">
                 <i class="fas fa-trash-alt"></i>
             </a>
             
@@ -233,15 +233,11 @@ if ($idade->y > 0) {
 </div>
 
 <script>
-// ESTE BLOCO DE CÓDIGO É NECESSÁRIO PARA GARANTIR QUE OS BOTÕES DENTRO DESTE CONTEÚDO 
-// CARREGADO VIA AJAX FUNCIONEM CORRETAMENTE.
-
 $(document).ready(function() {
-    // 1. Replicar a função de carregamento AJAX, se ela não estiver no escopo global
+    // 1. Função de carregamento AJAX para links normais (Editar, Carteira, Ver Dono)
     if (typeof carregarConteudo === 'undefined') {
         window.carregarConteudo = function(paginaUrl) {
             // Esta é uma SIMULAÇÃO de como seu sistema principal deve carregar o conteúdo.
-            // VOCÊ PODE PRECISAR AJUSTAR O SELETOR DA DIV PRINCIPAL (ex: '#conteudo-principal')
             $('#conteudo-principal').html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-2x"></i> Carregando...</div>');
             $('#conteudo-principal').load(paginaUrl, function(response, status, xhr) {
                 if (status == "error") {
@@ -252,42 +248,63 @@ $(document).ready(function() {
         };
     }
 
-    // 2. Aplicar a DELEGAÇÃO DE EVENTOS para os links AJAX
-    // Isso garante que mesmo os elementos carregados dinamicamente (como esta página) 
-    // tenham a funcionalidade de clique AJAX.
+    // 2. Aplicar a DELEGAÇÃO DE EVENTOS para os links AJAX (normais)
     $('body').off('click', '.item-menu-ajax').on('click', '.item-menu-ajax', function(e) {
         e.preventDefault();
         var pagina = $(this).data('pagina');
-        var confirmacao = $(this).data('confirmacao'); // Pega a mensagem de confirmação
-
-        if (confirmacao) {
-            // Se houver mensagem de confirmação (para o botão Excluir)
-            if (confirm(confirmacao)) {
-                carregarConteudo(pagina);
-            }
-        } else {
-            // Para botões normais (Atualizar, Ver Carteira)
-            if (pagina) {
-                carregarConteudo(pagina);
-            }
+        // A confirmação para estes links não é mais necessária, pois o botão de Excluir é tratado separadamente
+        if (pagina) {
+            carregarConteudo(pagina);
         }
     });
 
-    // Chama o evento de clique uma vez para garantir que o script esteja no escopo
-    // (Mesmo que o código acima já use delegação de evento, é uma boa prática
-    // garantir que o DOM esteja pronto para o script ser executado.)
+    // 3. NOVO: Manipulador de Exclusão Dedicado (POST/JSON)
+    // ESTE BLOCO AGORA REALIZA A EXCLUSÃO IMEDIATAMENTE (SEM CONFIRMAÇÃO EXTRA)
+    $('body').off('click', '.btn-excluir-pet').on('click', '.btn-excluir-pet', function(e) {
+        e.preventDefault();
+
+        const petId = $(this).data('id');
+        const deleteUrl = $(this).data('url'); // pets_processar.php?acao=excluir
+
+        if (!petId) {
+             alert('❌ Erro: ID do Pet não encontrado no botão. Não é possível excluir.');
+             return; 
+        }
+
+        // --- MUDANÇA: REMOÇÃO DA CONFIRMAÇÃO EXPLÍCITA PARA ATENDER AO SEU PEDIDO ---
+        // Se você quiser voltar atrás, basta adicionar: if (!confirm("Tem certeza que deseja EXCLUIR...?")) { return; }
+        
+        // Feedback visual
+        const $btn = $(this);
+        const htmlOriginal = $btn.html();
+        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Excluindo...');
+
+        // Requisição AJAX POST para a exclusão
+        $.ajax({
+            url: deleteUrl, 
+            method: 'POST', 
+            data: { id: petId }, // Enviamos o ID do pet
+            dataType: 'json', 
+            success: function(response) {
+                if (response.success) {
+                    // Exclusão bem-sucedida
+                    alert('✅ Sucesso: ' + response.message);
+                    // Redireciona para a lista de clientes (ou pets_listar.php)
+                    carregarConteudo('clientes_listar.php'); 
+                } else {
+                    // Erro retornado pelo PHP
+                    alert('❌ Erro ao excluir: ' + (response.message || 'Erro desconhecido.'));
+                    $btn.prop('disabled', false).html(htmlOriginal);
+                }
+            },
+            error: function(xhr, status, error) {
+                // Erro de conexão ou parse do JSON
+                alert('❌ Erro de comunicação com o servidor. Status: ' + status + ' (' + error + ')');
+                $btn.prop('disabled', false).html(htmlOriginal);
+            }
+        });
+    });
+
+    // Garante que o DOM esteja pronto
 });
 </script>
-
----
-
-## 🔎 Análise do Problema da Foto
-
-O problema da foto **não estar sendo adicionada/exibida** (que você mencionou: *"e veja pq a foto nao ta sendo add"*) é, na maioria das vezes, um erro de caminho ou permissão, e não um erro no PHP de exibição.
-
-O código de exibição que eu gerei **está correto** na forma como ele verifica o arquivo:
-
-```php
-$foto_url = (!empty($foto_path) && file_exists($URL_UPLOADS . $foto_path)) 
-             ? $URL_UPLOADS . $foto_path
-             : $URL_PLACEHOLDER;

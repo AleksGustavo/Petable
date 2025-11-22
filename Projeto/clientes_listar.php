@@ -23,7 +23,6 @@ $conteudo_inicial = '';
     </div>
     <div class="card-body">
         <form id="form-busca-cliente-rapida"> 
-            <!-- Layout consistente com produtos_listar.php: 3 colunas de 4/12 -->
             <div class="row g-3">
                 <div class="col-md-4">
                     <label for="busca_id" class="form-label">Buscar por ID</label>
@@ -45,7 +44,6 @@ $conteudo_inicial = '';
                 </button>
                 
                 <div class="d-flex flex-grow-1 justify-content-end">
-                    <!-- Botão Mostrar/Esconder. Começa verde (Mostrar) -->
                     <button type="button" id="btn-toggle-clientes" class="btn btn-success flex-fill">
                         <i class="fas fa-eye me-1"></i> Mostrar Clientes
                     </button>
@@ -61,7 +59,6 @@ $conteudo_inicial = '';
         Preencha um ou mais campos. A busca retornará clientes que correspondam a pelo menos uma das informações fornecidas (ID, CPF ou Nome).
     </div>
     
-    <!-- O container começa escondido (style="display: none;") -->
     <div id="tabela-clientes-container" style="display: none;">
         <?php echo $conteudo_inicial; ?>
     </div>
@@ -189,7 +186,7 @@ $(document).ready(function() {
         }
     });
     
-    // 4. Paginação (Delegação de Eventos) - Inalterada
+    // 4. Paginação (Delegação de Eventos)
     $container.on('click', '.btn-pagina-cliente', function(e) {
         e.preventDefault();
         
@@ -197,6 +194,58 @@ $(document).ready(function() {
         const listar_todos_flag = $(this).data('listar-todos') === true; 
         
         realizarBusca(pagina, listar_todos_flag);
+    });
+    
+    // 5. NOVO CÓDIGO: Ação de Exclusão (Delegação de Eventos)
+    $container.on('click', '.btn-excluir-cliente', function(e) {
+        e.preventDefault(); 
+        
+        // O ID do cliente é recuperado do HTML gerado por clientes_buscar_rapido.php
+        const clienteId = $(this).data('id');
+        const $linha = $(this).closest('tr');
+        
+        // Confirmação do Usuário antes de prosseguir
+        if (!confirm('Tem certeza que deseja EXCLUIR o Cliente ID ' + clienteId + '? Esta ação irá inativar o cliente (Soft Delete)!')) {
+            return; 
+        }
+
+        // Feedback visual de carregamento
+        const $btn = $(this);
+        const htmlOriginal = $btn.html();
+        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+        // Requisição AJAX (POST) para clientes_excluir.php
+        $.ajax({
+            url: 'clientes_excluir.php', 
+            method: 'POST',
+            // CORREÇÃO: Envia o ID como 'id_cliente' para corresponder ao que clientes_excluir.php espera
+            data: { id_cliente: clienteId }, 
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    // Sucesso: Remove a linha da tabela e mostra a mensagem
+                    $linha.fadeOut(500, function() {
+                        $(this).remove();
+                        alert('✅ Sucesso: ' + response.message);
+                        
+                        // Recarrega a lista para atualizar a paginação e contagem
+                        const paginaAtual = $('.btn-pagina-cliente.active').data('pagina') || 1;
+                        const listarTodos = $('.btn-pagina-cliente.active').data('listar-todos') || false;
+
+                        realizarBusca(paginaAtual, listarTodos); 
+                    });
+                } else {
+                    // Erro: Reabilita o botão e mostra a mensagem do PHP
+                    alert('❌ Erro: ' + (response.message || 'Erro desconhecido ao excluir.'));
+                    $btn.prop('disabled', false).html(htmlOriginal);
+                }
+            },
+            error: function(xhr, status, error) {
+                // Erro de Conexão
+                alert('❌ Erro de conexão com o servidor ao tentar excluir. Tente novamente.');
+                $btn.prop('disabled', false).html(htmlOriginal);
+            }
+        });
     });
 });
 </script>
