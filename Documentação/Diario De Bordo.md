@@ -55,3 +55,7 @@ Wanderson:
 20-11-25    
 Wanderson:
     Hoje atualizar projeto fazer testes do software.
+
+21-11-25    
+Wanderson:
+    Hoje foi feitos vários testes do software.
