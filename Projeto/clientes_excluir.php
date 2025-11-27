@@ -24,17 +24,20 @@ if (empty($conexao)) {
     exit();
 }
 
+// O nome da variável de POST está correto: 'id_cliente'
 $id_cliente = $_POST['id_cliente'] ?? null;
 
 if (empty($id_cliente) || !is_numeric($id_cliente)) {
     $response['message'] = 'ID do cliente inválido ou não fornecido.';
+    // Fecha a conexão antes de sair
+    if (isset($conexao)) mysqli_close($conexao);
     echo json_encode($response);
     exit();
 }
 
 // 3. Execução do Soft Delete (UPDATE)
-// O soft delete é o método mais seguro: UPDATE cliente SET ativo = 0...
-$sql = "UPDATE cliente SET ativo = 0 WHERE id = ?";
+// CORREÇÃO: Adicionamos 'AND ativo = 1' (opcional, mas recomendado)
+$sql = "UPDATE cliente SET ativo = 0 WHERE id = ? AND ativo = 1"; 
 
 try {
     $stmt = mysqli_prepare($conexao, $sql);
@@ -50,13 +53,14 @@ try {
     $resultado = mysqli_stmt_execute($stmt);
     
     if ($resultado) {
-        // Verifica se alguma linha foi realmente afetada
+        // Verifica se alguma linha foi realmente afetada (significa que o cliente foi inativado agora)
         if (mysqli_stmt_affected_rows($stmt) > 0) {
             $response['success'] = true;
             $response['message'] = 'Cliente ID ' . $id_cliente . ' inativado (excluído) com sucesso!';
         } else {
-            // Se nenhuma linha foi afetada, o ID pode não existir ou já estar inativo
-            $response['message'] = 'Nenhum cliente encontrado com o ID ' . $id_cliente . ' ou o cliente já estava inativo.';
+            // Se nenhuma linha foi afetada, pode significar que o cliente já estava ativo=0
+            $response['message'] = 'Nenhum cliente ativo encontrado com o ID ' . $id_cliente . ' para inativar. Cliente pode já ter sido excluído.';
+             $response['success'] = true; // Considere sucesso se o objetivo for garantir que está inativo
         }
     } else {
         throw new Exception("Falha na execução do UPDATE: " . mysqli_stmt_error($stmt));
@@ -70,9 +74,10 @@ try {
     error_log("ERRO DE EXCLUSÃO (clientes_excluir.php): " . $e->getMessage());
 }
 
-// 4. Retorno da Resposta JSON
+// 4. Fechamento e Retorno da Resposta JSON
+if (isset($conexao)) {
+    mysqli_close($conexao);
+}
 echo json_encode($response);
-
-// Finaliza o script para garantir que nada mais seja impresso
 exit();
 ?>

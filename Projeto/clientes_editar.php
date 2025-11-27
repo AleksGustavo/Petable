@@ -1,12 +1,10 @@
 <?php
 // Arquivo: clientes_editar.php
-// Apenas o conteúdo HTML que será injetado pelo AJAX.
 
 // 1. INCLUIR CONEXÃO
-require_once 'conexao.php'; // Certifique-se de que este caminho está correto
+require_once 'conexao.php';
 
 // 2. OBTER O ID DO CLIENTE
-// Assume que o ID é passado como ?id=... na URL.
 $cliente_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT); 
 $cliente_db_data = null;
 $cliente = [];
@@ -14,7 +12,6 @@ $cliente = [];
 if ($cliente_id && isset($conexao)) {
     // 3. BUSCAR DADOS DO CLIENTE NO BANCO DE DADOS
     try {
-        // CORREÇÃO AQUI: Usando 'nome' (real) em vez de 'nome_completo'
         $sql = "SELECT id, nome, cpf, telefone, data_nascimento, cep, rua, numero, bairro, complemento
                 FROM cliente
                 WHERE id = ?";
@@ -29,7 +26,6 @@ if ($cliente_id && isset($conexao)) {
         // Se o cliente foi encontrado, processa os dados
         if ($cliente_db_data) {
             
-            // CORREÇÃO AQUI: Usando $cliente_db_data['nome']
             // Lógica para dividir o 'nome' (real) em 'nome' e 'sobrenome'
             $nome_partes = explode(' ', $cliente_db_data['nome'], 2);
             $nome = $nome_partes[0] ?? '';
@@ -40,7 +36,7 @@ if ($cliente_id && isset($conexao)) {
                 'nome' => $nome, 
                 'sobrenome' => $sobrenome, 
                 'celular' => $cliente_db_data['telefone'],
-                'sexo' => 'N/A' // Simulação de campo 'sexo' se ele não estiver na DB
+                'sexo' => 'N/A' 
             ]);
         }
     } catch (Exception $e) {
@@ -51,7 +47,15 @@ if ($cliente_id && isset($conexao)) {
 // Verifica se o cliente foi carregado.
 if (!$cliente_db_data) {
     echo '<div class="alert alert-danger">Erro: Cliente não encontrado ou ID inválido. ID tentado: ' . htmlspecialchars($cliente_id) . '</div>';
-    exit(); // Sai para não renderizar o formulário vazio
+    if (isset($conexao)) {
+        mysqli_close($conexao);
+    }
+    exit(); 
+}
+
+// Fecha a conexão após buscar os dados
+if (isset($conexao)) {
+    mysqli_close($conexao);
 }
 ?>
 
@@ -148,5 +152,60 @@ if (!$cliente_db_data) {
                 </div>
             </div>
         </form>
+        
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    $(document).ready(function() {
+        const $form = $('#form-atualizacao-cliente'); 
+
+        $form.on('submit', function(e) {
+            
+            e.preventDefault(); 
+            
+            const $submitButton = $(this).find('button[type="submit"]');
+            $submitButton.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i> Processando...');
+
+            $.ajax({
+                url: 'clientes_processar_atualizacao.php',
+                type: 'POST',
+                data: $form.serialize(), 
+                dataType: 'json',
+                
+                success: function(response) {
+                    
+                    let iconType = (response.status === 'success') ? 'success' : 
+                                   (response.status === 'info') ? 'info' : 'error';
+                    
+                    let titleText = (response.status === 'success') ? 'Sucesso!' : (response.status === 'info') ? 'Atenção!' : 'Erro!';
+
+                    Swal.fire({
+                        icon: iconType, 
+                        title: titleText,
+                        text: response.message, 
+                        timer: 3000, 
+                        showConfirmButton: false,
+                        toast: true,
+                        position: 'top-end'
+                    });
+                },
+                
+                error: function(jqXHR, textStatus, errorThrown) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Erro de Comunicação',
+                        text: 'Não foi possível completar a ação. Verifique a resposta do servidor no console (F12).',
+                    });
+                },
+                
+                complete: function() {
+                    // Restaura o botão
+                    $submitButton.prop('disabled', false).html('<i class="fas fa-sync-alt me-2"></i> Salvar Alterações');
+                }
+            });
+        });
+    });
+</script>

@@ -93,7 +93,7 @@ if (isset($conexao) && $conexao) {
                 <i class="fas fa-calendar-plus fa-3x text-info mb-3"></i>
                 <h5 class="card-title">Novo Agendamento</h5>
                 <p class="card-text text-muted">Marque horários para serviços como banho e tosa.</p>
-                <a href="#" class="btn btn-info btn-sm item-menu-ajax" data-pagina="servicos_agendar.php">
+                <a href="#" class="btn btn-info btn-sm item-menu-ajax" data-pagina="servicos_agendamentos_cadastro.php">
                     <i class="fas fa-clock me-1"></i> Agendar Serviço
                 </a>
             </div>
