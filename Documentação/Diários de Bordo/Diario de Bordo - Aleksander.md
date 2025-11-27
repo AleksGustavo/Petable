@@ -134,3 +134,12 @@ Criação e complementação dos seguintes Diagramas de Sequência:
 **Atividades Principais:** Continuação de Documentação
 
 **Revisão da Documentação:** Edição da documentação, focando em algumas das etapas finais para realizar o envio.
+
+## 📅 25/11/2025
+
+**Responsável:** Aleksander
+
+**Atividade Principal:** Finalização da documentação
+
+**Entrega da Documentação:** Neste dia, foi entregue a documentação principal do PI, apresentando todas as informações necessárias para
+o entendimento do projeto como um todo.
