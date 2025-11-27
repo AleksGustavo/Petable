@@ -1,5 +1,6 @@
 <?php
 // Arquivo: clientes_processar_atualizacao.php
+// IMPORTANTE: NÃO HÁ NADA ANTES DA TAG <?php
 header('Content-Type: application/json');
 
 // 1. Inclui o arquivo de conexão
@@ -7,6 +8,7 @@ require_once 'conexao.php'; // Certifique-se de que este caminho está correto
 
 // Função de resposta JSON
 function json_response($status, $message, $data = []) {
+    // Retorna o status e a mensagem para o JavaScript/AJAX no frontend.
     echo json_encode(['status' => $status, 'message' => $message, 'data' => $data]);
     exit();
 }
@@ -27,7 +29,7 @@ try {
     $nome = trim(filter_input(INPUT_POST, 'nome', FILTER_SANITIZE_SPECIAL_CHARS));
     $sobrenome = trim(filter_input(INPUT_POST, 'sobrenome', FILTER_SANITIZE_SPECIAL_CHARS));
     
-    // Concatena nome e sobrenome para o campo 'nome' da tabela
+    // Concatena nome e sobrenome
     $nome_completo = trim($nome . ' ' . $sobrenome);
     
     // Remove a máscara do CPF e do Celular
@@ -41,8 +43,8 @@ try {
     $bairro = trim(filter_input(INPUT_POST, 'bairro', FILTER_SANITIZE_SPECIAL_CHARS));
     $complemento = trim(filter_input(INPUT_POST, 'complemento', FILTER_SANITIZE_SPECIAL_CHARS));
 
-    // O campo 'sexo' não está na sua tabela 'cliente', mas vamos incluí-lo para consistência
-    $sexo = filter_input(INPUT_POST, 'sexo', FILTER_SANITIZE_SPECIAL_CHARS); // Não usado na Query SQL final, mas bom para ter
+    // O campo 'sexo' não está na sua tabela 'cliente', mas pode ser útil para validação
+    $sexo = filter_input(INPUT_POST, 'sexo', FILTER_SANITIZE_SPECIAL_CHARS); 
 
     // 4. Validação básica
     if (!$id) {
@@ -126,10 +128,11 @@ try {
     // 7. Execução e Verificação
     if (mysqli_stmt_execute($stmt)) {
         if (mysqli_stmt_affected_rows($stmt) > 0) {
-            json_response('success', 'Cadastro do cliente atualizado com sucesso!', ['cliente_id' => $id]);
+            // ✅ MENSAGEM CORRIGIDA: Apenas a mensagem de sucesso simples.
+            json_response('success', 'Cliente atualizado com sucesso!');
         } else {
-            // Pode ser que os dados sejam os mesmos, então a query executa sem afetar linhas.
-            json_response('info', 'Nenhuma alteração detectada para o cliente.', ['cliente_id' => $id]);
+            // Caso os dados sejam os mesmos, e nenhuma linha seja afetada
+            json_response('info', 'Nenhuma alteração detectada para o cliente.');
         }
     } else {
         // Loga o erro de execução para debug (não expor ao usuário final)
@@ -142,11 +145,15 @@ try {
 } catch (Exception $e) {
     // Loga qualquer exceção
     error_log("Exceção ao processar atualização do cliente: " . $e->getMessage());
-    json_response('error', 'Ocorreu um erro inesperado no servidor: ' . $e->getMessage());
+    json_response('error', 'Ocorreu um erro inesperado no servidor.');
 } finally {
     // 8. Fecha a conexão
     if (isset($conexao)) {
+        // A conexão só deve ser fechada aqui, no final.
+        // Se ela foi fechada em 'conexao.php', isso causará erro.
         mysqli_close($conexao);
     }
 }
-?>
+
+// ❌ NÃO DEVE HAVER NADA AQUI (NENHUM ESPAÇO OU NOVA LINHA)
+// O FIM DO ARQUIVO DEVE SER AQUI.

@@ -186,6 +186,7 @@ try {
                         <input type="hidden" id="desconto_valor" name="desconto" value="0.00">
                         <small class="text-muted" id="desconto_valor_display" style="font-size: 0.7rem;">R$ 0,00 descontados</small>
                     </div>
+                    
                     <div class="mb-2">
                         <label for="forma_pagamento" class="form-label mb-1" style="font-size: 0.8rem;">Forma de Pagamento</label>
                         <select id="forma_pagamento" name="forma_pagamento" class="form-select form-select-sm" required>
@@ -198,6 +199,14 @@ try {
                         </select>
                     </div>
 
+                    <div id="area_parcelamento" class="mb-2" style="display: none;">
+                        <label for="numero_parcelas" class="form-label mb-1" style="font-size: 0.8rem;">Número de Parcelas</label>
+                        <select id="numero_parcelas" name="numero_parcelas" class="form-select form-select-sm">
+                            <?php for ($i = 1; $i <= 12; $i++): ?>
+                                <option value="<?php echo $i; ?>"><?php echo $i; ?>x</option>
+                            <?php endfor; ?>
+                        </select>
+                    </div>
                     <div class="mb-2">
                         <label for="observacoes" class="form-label mb-1" style="font-size: 0.8rem;">Obs.</label>
                         <textarea id="observacoes" name="observacoes" class="form-control form-control-sm" rows="1"></textarea>
@@ -243,15 +252,20 @@ try {
         const quantidadeItemInput = document.getElementById('quantidade_item');
         const itensVendaJson = document.getElementById('itens_venda_json');
         
-        // NOVAS VARIÁVEIS PARA O EFEITO BLUR E OVERLAY
+        // Variáveis para o EFEITO BLUR e OVERLAY
         const sucessoCard = $('#sucesso-venda-card');
         const overlay = $('#modal-overlay');
         const mainContent = $('#main-content-wrapper');
 
-        // NOVAS VARIÁVEIS PARA O DESCONTO (%)
+        // Variáveis para o DESCONTO (%)
         const descontoPercentualInput = document.getElementById('desconto_percentual');
         const descontoValorInput = document.getElementById('desconto_valor'); // Campo HIDDEN name="desconto"
         const descontoValorDisplay = document.getElementById('desconto_valor_display'); // Display R$ descontado
+
+        // NOVAS VARIÁVEIS PARA O PARCELAMENTO
+        const formaPagamentoSelect = document.getElementById('forma_pagamento');
+        const areaParcelamento = document.getElementById('area_parcelamento');
+        const numeroParcelasSelect = document.getElementById('numero_parcelas');
 
 
         // Variável local para armazenar os dados do item da venda
@@ -272,9 +286,7 @@ try {
                 subtotalGeral += item.quantidade * item.preco;
             });
 
-            // ----------------------------------------------------
-            // NOVO: CALCULA O DESCONTO EM R$ BASEADO NA PORCENTAGEM
-            // ----------------------------------------------------
+            // CALCULA O DESCONTO EM R$ BASEADO NA PORCENTAGEM
             let percentual = parseFloat(descontoPercentualInput.value) || 0;
             
             // Garante que o percentual esteja entre 0 e 100
@@ -285,8 +297,7 @@ try {
             // Armazena o valor do desconto (R$) no campo oculto (name="desconto")
             descontoValorInput.value = descontoValor.toFixed(2);
             descontoValorDisplay.textContent = 'R$ ' + descontoValor.toFixed(2).replace('.', ',') + ' descontados';
-            // ----------------------------------------------------
-
+            
             let totalFinal = Math.max(0, subtotalGeral - descontoValor);
 
             valorTotalInput.value = totalFinal.toFixed(2);
@@ -316,11 +327,11 @@ try {
                 itemExistente.quantidade += quantidade;
             } else {
                 const novoItem = {
-                    id: item.id,       // ID do produto ou serviço (do banco)
-                    nome: item.nome,   // Nome completo
+                    id: item.id,      // ID do produto ou serviço (do banco)
+                    nome: item.nome,  // Nome completo
                     preco: item.preco, // Preço unitário (do banco)
                     quantidade: quantidade,
-                    tipo: item.tipo,   // 'produto' ou 'servico'
+                    tipo: item.tipo,  // 'produto' ou 'servico'
                     codigo_barras: item.codigo_barras || null 
                 };
                 itensVenda.push(novoItem);
@@ -371,12 +382,12 @@ try {
                             <td>${tipoLabel} ${item.nome}</td>
                             <td>
                                 <input type="number" 
-                                       data-item-id="${item.id}" 
-                                       data-item-tipo="${item.tipo}" 
-                                       value="${item.quantidade}" 
-                                       min="1" 
-                                       class="form-control form-control-sm text-center input-quantidade-pdv" 
-                                       style="width: 60px;">
+                                            data-item-id="${item.id}" 
+                                            data-item-tipo="${item.tipo}" 
+                                            value="${item.quantidade}" 
+                                            min="1" 
+                                            class="form-control form-control-sm text-center input-quantidade-pdv" 
+                                            style="width: 60px;">
                             </td>
                             <td>R$ ${item.preco.toFixed(2).replace('.', ',')}</td>
                             <td>R$ ${subtotal.toFixed(2).replace('.', ',')}</td>
@@ -409,10 +420,30 @@ try {
             }
         });
 
-        // NOVO EVENT LISTENER: OUVINDO O CAMPO DE PORCENTAGEM
+        // EVENT LISTENER: OUVINDO O CAMPO DE PORCENTAGEM
         descontoPercentualInput.addEventListener('input', calcularTotal); 
         calcularTotal();
         
+        /* --------------------------------------------------
+         * NOVO: LÓGICA DE PARCELAMENTO
+         * -------------------------------------------------- */
+        
+        function verificarParcelamento() {
+            if (formaPagamentoSelect.value === 'cartao_credito') {
+                // Exibe a área de parcelamento
+                $(areaParcelamento).slideDown(200); 
+            } else {
+                // Oculta a área de parcelamento e reseta o valor para 1x
+                $(areaParcelamento).slideUp(200);
+                numeroParcelasSelect.value = 1;
+            }
+        }
+
+        // Adiciona evento de mudança à forma de pagamento
+        formaPagamentoSelect.addEventListener('change', verificarParcelamento);
+        // Garante que o estado inicial esteja correto
+        verificarParcelamento(); 
+
         /* --------------------------------------------------
          * LÓGICA DO AUTOCOMPLETE AJAX
          * -------------------------------------------------- */
@@ -482,7 +513,7 @@ try {
             $.ajax({
                 url: form.attr('action'), // vendas_processar.php
                 type: 'POST',
-                data: form.serialize(), // Envia todos os dados do formulário, incluindo o JSON e o desconto em R$
+                data: form.serialize(), // Envia todos os dados do formulário, incluindo o JSON, o desconto e o número de parcelas
                 dataType: 'json',
                 success: function(response) {
                     // Limpa e oculta a área de mensagens simples (erros)
@@ -500,8 +531,11 @@ try {
                         // 3. Limpar a interface após a venda bem-sucedida
                         itensVenda = [];
                         renderizarItens(); // Zera a tabela e recalcula o total
-                        // Reset do formulário, limpando também o campo de desconto %
+                        // Reset do formulário, limpando também o campo de desconto % e forma de pagamento
                         form[0].reset(); 
+                        descontoPercentualInput.value = 0;
+                        verificarParcelamento(); // Oculta o parcelamento
+                        calcularTotal(); // Recalcula o total para 0,00
                         
                     } else {
                         // Se falhar, exibe a mensagem de erro normal e reabilita o botão
