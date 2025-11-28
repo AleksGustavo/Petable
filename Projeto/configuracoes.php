@@ -1,11 +1,10 @@
 <?php
 session_start();
 // Inicia a sessão para garantir que as variáveis de sessão estejam acessíveis
-require_once 'conexao.php'; // Inclui a conexão
+require_once 'conexao.php'; 
 
-// Verifica se o usuário está logado.
 if (!isset($_SESSION['logado']) || $_SESSION['logado'] !== true || !isset($_SESSION['id_usuario'])) {
-    // Se não estiver logado ou sem o ID na sessão, exibe erro
+    
     echo '<div class="alert alert-danger">Erro: Usuário não logado ou sessão incompleta. Por favor, faça login novamente.</div>';
     exit();
 }
@@ -15,7 +14,7 @@ $usuario_id = $_SESSION['id_usuario'];
 $usuario_logado = htmlspecialchars($_SESSION['usuario']);
 
 $usuario_detalhes = [];
-$funcionario_detalhes = []; // NOVO: Para guardar os dados do funcionário
+$funcionario_detalhes = []; 
 $mensagem_conexao = '';
 
 // 1. Busca Detalhes da Conta (Tabela: usuario)
@@ -23,7 +22,7 @@ if (isset($conexao)) {
     
     $sql_detalhes = "SELECT * FROM usuario WHERE id = ?";
     
-    // É necessário usar Prepared Statements para segurança
+    
     if ($stmt = mysqli_prepare($conexao, $sql_detalhes)) {
         mysqli_stmt_bind_param($stmt, "i", $usuario_id);
         mysqli_stmt_execute($stmt);
@@ -40,7 +39,7 @@ if (isset($conexao)) {
     }
 
     // 2. NOVO BLOCO: Busca Detalhes do Funcionário (Tabela: funcionario)
-    // A coluna 'data_nascimento' DEVE existir na tabela funcionario
+    
     $sql_funcionario = "SELECT nome, data_nascimento FROM funcionario WHERE usuario_id = ?";
     
     if ($stmt_func = mysqli_prepare($conexao, $sql_funcionario)) {
@@ -51,7 +50,7 @@ if (isset($conexao)) {
         if ($result_func && $row_func = mysqli_fetch_assoc($result_func)) {
             $funcionario_detalhes = $row_func;
         }
-        // Nota: Se não encontrar, mantemos $funcionario_detalhes vazio e usamos 'Não informado' como fallback.
+        
         mysqli_stmt_close($stmt_func);
     } else {
         $mensagem_conexao = '<div class="alert alert-danger">Erro ao preparar a consulta do perfil (funcionário): ' . mysqli_error($conexao) . '</div>';
@@ -160,10 +159,10 @@ if (isset($conexao)) {
 ?>
 
 <script>
-    // Lógica para carregar formulário de Alteração de Senha/Dados
+    
     $(document).ready(function() {
         
-        // Carrega o formulário de alteração de senha/dados
+        
         $(document).on('click', '.btn-mudar-senha, .btn-editar-dados', function() {
             var idUsuario = $(this).data('id');
             var tipoAcao = $(this).hasClass('btn-mudar-senha') ? 'senha' : 'dados';
@@ -176,7 +175,7 @@ if (isset($conexao)) {
                 '</div>'
             );
 
-            // A chamada AJAX real para carregar o formulário
+            
             $.ajax({
                 url: arquivo, 
                 type: 'GET',

@@ -1,18 +1,12 @@
 <?php
-// Arquivo: pets_detalhes.php - Ficha Detalhada do Pet
-require_once 'conexao.php'; // Garante a conexão com o banco de dados ($conexao - mysqli)
+require_once 'conexao.php';
 
 $pet_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 $pet = null;
 
-// ==================================================================================
-// CAMINHOS WEB: AJUSTE ESTES CAMINHOS PARA ONDE ESTÃO SUAS PASTAS
-// ==================================================================================
 $URL_UPLOADS = 'uploads/fotos_pets/'; 
-$URL_PLACEHOLDER = 'assets/img/pet_placeholder.png'; // Caminho para uma imagem padrão
-// ==================================================================================
+$URL_PLACEHOLDER = 'assets/img/pet_placeholder.png'; 
 
-// Verifica se a conexão mysqli está ativa.
 if (empty($conexao)) {
     echo '<div class="alert alert-danger">Erro crítico: Conexão mysqli indisponível.</div>';
     exit();
@@ -20,7 +14,6 @@ if (empty($conexao)) {
 
 if ($pet_id) {
     try {
-        // 1. Busca os detalhes do Pet (INCLUINDO JOIN COM RACAS E ESPECIE) e do Dono
         $sql_pet = "SELECT 
                         p.id, p.nome, p.data_nascimento, p.foto AS foto_path, p.castrado,
                         r.nome AS raca_nome, 
@@ -37,7 +30,6 @@ if ($pet_id) {
                     WHERE 
                         p.id = ?";
                         
-        // Usa prepared statement mysqli
         $stmt_pet = mysqli_prepare($conexao, $sql_pet);
         mysqli_stmt_bind_param($stmt_pet, "i", $pet_id);
         mysqli_stmt_execute($stmt_pet);
@@ -45,7 +37,6 @@ if ($pet_id) {
         $pet = mysqli_fetch_assoc($result_pet);
         mysqli_stmt_close($stmt_pet);
 
-        // 2. Verifica se o Pet tem vacinas na carteira (para o status rápido)
         $sql_vacina = "SELECT COUNT(id) AS total_vacinas FROM carteira_vacina WHERE pet_id = ?";
         $stmt_vacina = mysqli_prepare($conexao, $sql_vacina);
         mysqli_stmt_bind_param($stmt_vacina, "i", $pet_id);
@@ -68,7 +59,6 @@ if (!$pet) {
     exit();
 }
 
-// Configurações de Status
 $is_castrado = (bool)$pet['castrado'];
 $status_castracao = $is_castrado ? 'Castrado' : 'Não Castrado';
 $castracao_class = $is_castrado ? 'success' : 'warning text-dark';
@@ -79,13 +69,11 @@ $status_vacina = $is_vacinado ? 'Histórico Ativo' : 'Sem Histórico';
 $vacina_class = $is_vacinado ? 'primary' : 'secondary';
 $vacina_icon = $is_vacinado ? 'fas fa-file-medical' : 'fas fa-syringe';
 
-// Determina o caminho da foto
 $foto_path = $pet['foto_path'] ?? '';
 $foto_url = (!empty($foto_path) && file_exists($URL_UPLOADS . $foto_path)) 
              ? $URL_UPLOADS . $foto_path
              : $URL_PLACEHOLDER;
 
-// Função para ícone (usada nas páginas anteriores)
 function get_pet_icon($especie_nome) {
     $nome = mb_strtolower($especie_nome ?? '');
     if (strpos($nome, 'cão') !== false || strpos($nome, 'cachorro') !== false) return '<i class="fas fa-dog"></i>';
@@ -96,7 +84,6 @@ function get_pet_icon($especie_nome) {
 
 $iconPet = get_pet_icon($pet['especie_nome']);
 
-// Calcula a idade
 $data_nascimento = new DateTime($pet['data_nascimento'] ?? 'now');
 $hoje = new DateTime('now');
 $idade = $data_nascimento->diff($hoje);
@@ -234,10 +221,8 @@ if ($idade->y > 0) {
 
 <script>
 $(document).ready(function() {
-    // 1. Função de carregamento AJAX para links normais (Editar, Carteira, Ver Dono)
     if (typeof carregarConteudo === 'undefined') {
         window.carregarConteudo = function(paginaUrl) {
-            // Esta é uma SIMULAÇÃO de como seu sistema principal deve carregar o conteúdo.
             $('#conteudo-principal').html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-2x"></i> Carregando...</div>');
             $('#conteudo-principal').load(paginaUrl, function(response, status, xhr) {
                 if (status == "error") {
@@ -248,63 +233,48 @@ $(document).ready(function() {
         };
     }
 
-    // 2. Aplicar a DELEGAÇÃO DE EVENTOS para os links AJAX (normais)
     $('body').off('click', '.item-menu-ajax').on('click', '.item-menu-ajax', function(e) {
         e.preventDefault();
         var pagina = $(this).data('pagina');
-        // A confirmação para estes links não é mais necessária, pois o botão de Excluir é tratado separadamente
         if (pagina) {
             carregarConteudo(pagina);
         }
     });
 
-    // 3. NOVO: Manipulador de Exclusão Dedicado (POST/JSON)
-    // ESTE BLOCO AGORA REALIZA A EXCLUSÃO IMEDIATAMENTE (SEM CONFIRMAÇÃO EXTRA)
     $('body').off('click', '.btn-excluir-pet').on('click', '.btn-excluir-pet', function(e) {
         e.preventDefault();
 
         const petId = $(this).data('id');
-        const deleteUrl = $(this).data('url'); // pets_processar.php?acao=excluir
+        const deleteUrl = $(this).data('url');
 
         if (!petId) {
              alert('❌ Erro: ID do Pet não encontrado no botão. Não é possível excluir.');
              return; 
         }
 
-        // --- MUDANÇA: REMOÇÃO DA CONFIRMAÇÃO EXPLÍCITA PARA ATENDER AO SEU PEDIDO ---
-        // Se você quiser voltar atrás, basta adicionar: if (!confirm("Tem certeza que deseja EXCLUIR...?")) { return; }
-        
-        // Feedback visual
         const $btn = $(this);
         const htmlOriginal = $btn.html();
         $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Excluindo...');
 
-        // Requisição AJAX POST para a exclusão
         $.ajax({
             url: deleteUrl, 
             method: 'POST', 
-            data: { id: petId }, // Enviamos o ID do pet
+            data: { id: petId },
             dataType: 'json', 
             success: function(response) {
                 if (response.success) {
-                    // Exclusão bem-sucedida
                     alert('✅ Sucesso: ' + response.message);
-                    // Redireciona para a lista de clientes (ou pets_listar.php)
                     carregarConteudo('clientes_listar.php'); 
                 } else {
-                    // Erro retornado pelo PHP
                     alert('❌ Erro ao excluir: ' + (response.message || 'Erro desconhecido.'));
                     $btn.prop('disabled', false).html(htmlOriginal);
                 }
             },
             error: function(xhr, status, error) {
-                // Erro de conexão ou parse do JSON
                 alert('❌ Erro de comunicação com o servidor. Status: ' + status + ' (' + error + ')');
                 $btn.prop('disabled', false).html(htmlOriginal);
             }
         });
     });
-
-    // Garante que o DOM esteja pronto
 });
 </script>

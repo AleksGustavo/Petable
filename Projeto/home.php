@@ -1,14 +1,11 @@
 <?php
 // Arquivo: home.php (Visão geral do Painel de Controle)
-// Requer o arquivo de conexão. Assumimos que $conexao é uma variável MySQLi válida.
 require_once 'conexao.php';
 
-// Inicialização das variáveis para contadores do Dashboard
 $total_clientes = 0;
 $total_produtos = 0;
 $produtos_baixo_estoque = 0;
 
-// Garantimos que $conexao é um objeto de conexão válido antes de tentar usá-lo
 if (isset($conexao) && $conexao) {
     try {
         // --- 1. Busca total de Clientes Ativos ---
@@ -36,14 +33,12 @@ if (isset($conexao) && $conexao) {
         }
 
     } catch (Exception $e) {
-        // Em caso de erro de conexão ou query, registra o erro e mantém os contadores em 0
         error_log("Erro ao buscar contadores na home: " . $e->getMessage());
     }
 } else {
     error_log("Variável \$conexao não está definida ou é inválida na home.php.");
 }
 
-// O restante do código é a estrutura HTML/Bootstrap para exibir os cards de atalho
 ?>
 
 <div class="row mb-4">
@@ -55,11 +50,9 @@ if (isset($conexao) && $conexao) {
 
 <div class="row">
     
-    <!-- CARD 1: Ponto de Venda (PDV) - Verde: Transação e Finalização -->
     <div class="col-lg-4 col-md-6 mb-4">
         <div class="card h-100 shadow-sm border-success">
             <div class="card-body text-center">
-                <!-- Ícone de caixa registradora ou carrinho de compras -->
                 <i class="fas fa-cash-register fa-3x text-success mb-3"></i>
                 <h5 class="card-title">Ponto de Venda (PDV)</h5>
                 <p class="card-text text-muted">Inicie uma nova venda de produtos ou serviços agora.</p>
@@ -70,11 +63,9 @@ if (isset($conexao) && $conexao) {
         </div>
     </div>
     
-    <!-- CARD 2: Cadastro de Cliente - Azul: Informação e Cadastro Essencial -->
     <div class="col-lg-4 col-md-6 mb-4">
         <div class="card h-100 shadow-sm border-primary">
             <div class="card-body text-center">
-                <!-- Ícone de adicionar usuário -->
                 <i class="fas fa-user-plus fa-3x text-primary mb-3"></i>
                 <h5 class="card-title">Cadastro de Cliente</h5>
                 <p class="card-text text-muted">Adicione novos clientes e seus dados no sistema.</p>
@@ -85,11 +76,9 @@ if (isset($conexao) && $conexao) {
         </div>
     </div>
 
-    <!-- CARD 3: Agendamento - Ciano: Planejamento e Tempo -->
     <div class="col-lg-4 col-md-6 mb-4">
         <div class="card h-100 shadow-sm border-info">
             <div class="card-body text-center">
-                <!-- Ícone de adicionar ao calendário -->
                 <i class="fas fa-calendar-plus fa-3x text-info mb-3"></i>
                 <h5 class="card-title">Novo Agendamento</h5>
                 <p class="card-text text-muted">Marque horários para serviços como banho e tosa.</p>
@@ -100,11 +89,9 @@ if (isset($conexao) && $conexao) {
         </div>
     </div>
     
-    <!-- CARD 4: Cadastro de Produto - Roxo/Secundário: Inventário e Itens -->
     <div class="col-lg-4 col-md-6 mb-4">
         <div class="card h-100 shadow-sm border-secondary">
             <div class="card-body text-center">
-                <!-- Ícone de etiqueta de preço ou caixa -->
                 <i class="fas fa-tags fa-3x text-secondary mb-3"></i>
                 <h5 class="card-title">Cadastro de Produto</h5>
                 <p class="card-text text-muted">Registre novos itens, preços e informações de estoque.</p>
@@ -115,7 +102,6 @@ if (isset($conexao) && $conexao) {
         </div>
     </div>
 
-    <!-- CARD 5: Relatórios e Estatísticas - Amarelo: Análise e Insight -->
     <div class="col-lg-4 col-md-6 mb-4">
         <div class="card h-100 shadow-sm border-warning">
             <div class="card-body text-center">
@@ -129,11 +115,9 @@ if (isset($conexao) && $conexao) {
         </div>
     </div>
     
-    <!-- CARD 6: Estoque Crítico (Alerta) - Vermelho: Urgência e Atenção -->
     <div class="col-lg-4 col-md-6 mb-4">
         <div class="card h-100 shadow-sm border-danger">
             <div class="card-body text-center">
-                <!-- Ícone de alerta de perigo -->
                 <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
                 <h5 class="card-title">Estoque Crítico</h5>
                 <p class="card-text">

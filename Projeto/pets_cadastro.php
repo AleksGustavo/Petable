@@ -1,7 +1,4 @@
 <?php
-// Arquivo: pets_cadastro.php
-// Objetivo: Formulário para cadastrar um novo Pet, pré-selecionando o dono (cliente).
-
 require_once 'conexao.php'; 
 
 $cliente_id_preselecionado = $_GET['cliente_id'] ?? null;
@@ -9,43 +6,33 @@ $nome_cliente = 'Cliente Não Encontrado';
 $especies = [];
 $racas = [];
 
-// ==================================================================================
-// CONFIGURAÇÃO DE CAMINHOS WEB: AJUSTADO PARA O SEU PATH
-// ==================================================================================
 $BASE_PATH = '/PHP_PI/'; 
 $URL_UPLOADS = $BASE_PATH . 'uploads/fotos_pets/'; 
 $URL_PLACEHOLDER = $BASE_PATH . 'assets/img/pet_placeholder.png'; 
-// ==================================================================================
 
 try {
     
     if ($cliente_id_preselecionado) {
-        // CORREÇÃO: Removido 'sobrenome' da seleção. A coluna 'nome' agora é usada sozinha.
         $stmt_cliente = $pdo->prepare("SELECT nome FROM cliente WHERE id = ? AND ativo = 1");
         $stmt_cliente->execute([$cliente_id_preselecionado]);
         $cliente = $stmt_cliente->fetch(PDO::FETCH_ASSOC);
         
         if ($cliente) {
-            // CORREÇÃO: Usando apenas $cliente['nome']
             $nome_cliente = htmlspecialchars($cliente['nome']);
         } else {
             $cliente_id_preselecionado = null; 
         }
     }
 
-    // Busca de espécies
     $stmt_especies = $pdo->query("SELECT id, nome FROM especie ORDER BY nome ASC");
     $especies = $stmt_especies->fetchAll(PDO::FETCH_ASSOC);
 
-    // Busca de raças
     $stmt_racas = $pdo->query("SELECT id, nome FROM raca ORDER BY nome ASC");
     $racas = $stmt_racas->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (PDOException $e) {
     error_log("Erro ao carregar dados essenciais para cadastro de pet: " . $e->getMessage());
     $nome_cliente = 'ERRO DE DB';
-    // Adicione esta linha temporariamente para ver o erro se ele persistir:
-    // echo '<div class="alert alert-danger">Erro de Banco de Dados: ' . htmlspecialchars($e->getMessage()) . '</div>';
     $especies = [];
     $racas = [];
 }
@@ -161,29 +148,23 @@ try {
 
 <script>
 $(document).ready(function() {
-    // Lógica para controle de visibilidade do campo 'Porte'
     $('#especie_id').on('change', function() {
         // ASSUNÇÃO: O ID da Espécie "Cachorro" é 1.
         const especieId = $(this).val();
         const porteRow = $('#pet-porte-row');
         const porteSelect = $('#porte');
 
-        // Verifica se a espécie selecionada é Cachorro (ID 1)
         if (especieId === '1') { 
-            // Se for Cachorro, torna o campo visível e obrigatório.
             porteRow.show();
             porteSelect.prop('disabled', false);
             porteSelect.prop('required', true); 
         } else {
-            // Para outras espécies (Gato, etc.), esconde e desabilita.
             porteRow.hide();
-            porteSelect.val(''); // Limpa a seleção
+            porteSelect.val(''); 
             porteSelect.prop('disabled', true);
             porteSelect.prop('required', false);
         }
-    }).trigger('change'); // Dispara uma vez na inicialização, caso o campo já venha preenchido (embora aqui não seja o caso)
-
-    // Lógica de processamento de formulário AJAX (se houver, deve ser mantida aqui)
+    }).trigger('change'); 
 
 });
 </script>

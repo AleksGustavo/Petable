@@ -2,7 +2,7 @@
 // Arquivo: clientes_historico_completo.php - Visão Completa, Pets e Histórico de Atendimentos
 
 // 1. Configuração e Conexão
-require_once 'conexao.php'; // Garante a conexão com o banco de dados
+require_once 'conexao.php'; 
 
 // Define o ID do cliente a partir da URL
 $cliente_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
@@ -17,10 +17,10 @@ if (!$cliente_id) {
 
 if (isset($conexao) && $conexao) {
     try {
-        // --- 1. Busca os detalhes do Cliente ---
+        
         $sql_cliente = "SELECT id, nome, cpf, telefone, email, rua, numero, bairro, cep, complemento, data_nascimento 
-                        FROM cliente
-                        WHERE id = ? AND ativo = 1";
+                         FROM cliente
+                         WHERE id = ? AND ativo = 1";
         $stmt_cliente = mysqli_prepare($conexao, $sql_cliente);
         mysqli_stmt_bind_param($stmt_cliente, "i", $cliente_id);
         mysqli_stmt_execute($stmt_cliente);
@@ -29,18 +29,18 @@ if (isset($conexao) && $conexao) {
         mysqli_stmt_close($stmt_cliente);
 
         if ($cliente) {
-            // --- 2. Busca os Pets deste Cliente ---
-            // Usamos JOIN para pegar o NOME DA RAÇA
+            
+            
             $sql_pets = "SELECT 
                             p.id, p.nome, p.data_nascimento, p.foto AS foto_path, 
                             r.nome AS raca_nome 
-                         FROM 
+                          FROM 
                             pet p
-                         LEFT JOIN 
+                          LEFT JOIN 
                             raca r ON p.raca_id = r.id
-                         WHERE 
+                          WHERE 
                             p.cliente_id = ? 
-                         ORDER BY 
+                          ORDER BY 
                             p.nome ASC";
             $stmt_pets = mysqli_prepare($conexao, $sql_pets);
             mysqli_stmt_bind_param($stmt_pets, "i", $cliente_id);
@@ -49,21 +49,20 @@ if (isset($conexao) && $conexao) {
             $pets = mysqli_fetch_all($result_pets, MYSQLI_ASSOC);
             mysqli_stmt_close($stmt_pets);
 
-            // --- 3. Busca o Histórico Geral de Compras/Serviços (Atendimentos) ---
-            // ASSUMINDO: A tabela 'atendimento' contém registros de serviços ou vendas
-            // É feito um JOIN com a tabela 'pet' para mostrar qual pet estava envolvido, se houver.
+            
+            
             $sql_historico = "SELECT 
-                                a.data_atendimento, a.tipo_servico, a.valor_total, a.observacoes,
-                                p.nome AS pet_nome
-                              FROM 
-                                atendimento a
-                              LEFT JOIN
-                                pet p ON a.pet_id = p.id
-                              WHERE 
-                                a.cliente_id = ?
-                              ORDER BY
-                                a.data_atendimento DESC, a.id DESC
-                              LIMIT 50"; // Limita para não sobrecarregar a tela
+                                 a.data_atendimento, a.tipo_servico, a.valor_total, a.observacoes,
+                                 p.nome AS pet_nome
+                               FROM 
+                                 atendimento a
+                               LEFT JOIN
+                                 pet p ON a.pet_id = p.id
+                               WHERE 
+                                 a.cliente_id = ?
+                               ORDER BY
+                                 a.data_atendimento DESC, a.id DESC
+                               LIMIT 50"; 
             
             $stmt_historico = mysqli_prepare($conexao, $sql_historico);
             mysqli_stmt_bind_param($stmt_historico, "i", $cliente_id);
@@ -78,7 +77,7 @@ if (isset($conexao) && $conexao) {
         echo '<div class="container mt-4"><div class="alert alert-danger">Erro ao carregar detalhes: ' . htmlspecialchars($e->getMessage()) . '</div></div>';
         exit();
     } finally {
-        // Fecha a conexão após todas as operações
+        
         if (isset($conexao)) {
             mysqli_close($conexao);
         }
@@ -132,7 +131,6 @@ function formatar_telefone($tel) {
         </a>
     </div>
 
-    <!-- Seção 1: Detalhes do Cliente -->
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-dark text-white">
             <h5 class="mb-0">Dados Pessoais</h5>
@@ -150,7 +148,6 @@ function formatar_telefone($tel) {
         </div>
     </div>
     
-    <!-- Seção 2: Pets do Cliente -->
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-info text-white">
             <h5 class="mb-0"><i class="fas fa-paw me-2"></i> Pets Cadastrados (<?php echo count($pets); ?>)</h5>
@@ -172,7 +169,6 @@ function formatar_telefone($tel) {
         </div>
     </div>
     
-    <!-- Seção 3: Histórico Geral de Atendimentos/Compras -->
     <div class="card shadow-lg">
         <div class="card-header bg-success text-white">
             <h5 class="mb-0"><i class="fas fa-shopping-cart me-2"></i> Histórico de Atendimentos e Compras (<?php echo count($historico_atendimentos); ?> últimos)</h5>
@@ -215,6 +211,3 @@ function formatar_telefone($tel) {
     </div>
 
 </div>
-
-<!-- OBS: Este arquivo exige que a tabela 'atendimento' exista no seu banco de dados, com as colunas: 
-     id, cliente_id, pet_id (opcional), data_atendimento, tipo_servico, valor_total, observacoes. -->

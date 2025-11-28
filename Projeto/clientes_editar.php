@@ -1,16 +1,16 @@
 <?php
 // Arquivo: clientes_editar.php
 
-// 1. INCLUIR CONEXÃO
+
 require_once 'conexao.php';
 
-// 2. OBTER O ID DO CLIENTE
+
 $cliente_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT); 
 $cliente_db_data = null;
 $cliente = [];
 
 if ($cliente_id && isset($conexao)) {
-    // 3. BUSCAR DADOS DO CLIENTE NO BANCO DE DADOS
+    
     try {
         $sql = "SELECT id, nome, cpf, telefone, data_nascimento, cep, rua, numero, bairro, complemento
                 FROM cliente
@@ -23,15 +23,15 @@ if ($cliente_id && isset($conexao)) {
         $cliente_db_data = mysqli_fetch_assoc($result);
         mysqli_stmt_close($stmt);
 
-        // Se o cliente foi encontrado, processa os dados
+        
         if ($cliente_db_data) {
             
-            // Lógica para dividir o 'nome' (real) em 'nome' e 'sobrenome'
+            
             $nome_partes = explode(' ', $cliente_db_data['nome'], 2);
             $nome = $nome_partes[0] ?? '';
             $sobrenome = $nome_partes[1] ?? '';
 
-            // Monta o array $cliente com a estrutura esperada pelo formulário
+            
             $cliente = array_merge($cliente_db_data, [
                 'nome' => $nome, 
                 'sobrenome' => $sobrenome, 

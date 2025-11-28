@@ -8,10 +8,10 @@ $pets = [];
 
 if (isset($conexao) && $conexao && $cliente_id) {
     try {
-        // 1. Busca os detalhes do Cliente
+        
         $sql_cliente = "SELECT id, nome, cpf, telefone, email, rua, numero, bairro, cep, complemento, data_nascimento 
-                        FROM cliente
-                        WHERE id = ? AND ativo = 1";
+                         FROM cliente
+                         WHERE id = ? AND ativo = 1";
         $stmt_cliente = mysqli_prepare($conexao, $sql_cliente);
         mysqli_stmt_bind_param($stmt_cliente, "i", $cliente_id);
         mysqli_stmt_execute($stmt_cliente);
@@ -20,8 +20,8 @@ if (isset($conexao) && $conexao && $cliente_id) {
         mysqli_stmt_close($stmt_cliente);
 
         if ($cliente) {
-            // 2. Busca os Pets + Nome da Raça + Nome da Espécie (Cão, Gato, etc)
-            // AGORA ESTÁ CORRETO: Fazendo JOIN com a tabela 'especie'
+            
+            
             $sql_pets = "SELECT 
                             p.id, p.nome, p.data_nascimento, p.foto AS foto_path, 
                             r.nome AS raca_nome,
@@ -45,7 +45,7 @@ if (isset($conexao) && $conexao && $cliente_id) {
             mysqli_stmt_close($stmt_pets);
         }
     } catch (Exception $e) {
-        // Mostra o erro real se acontecer
+        
         error_log("Erro: " . $e->getMessage());
         echo '<div class="alert alert-danger">Erro técnico: ' . $e->getMessage() . '</div>';
     }
@@ -58,7 +58,6 @@ if (!$cliente) {
     exit();
 }
 
-// --- Funções Auxiliares ---
 
 function formatar_cpf($cpf) {
     $cpf = preg_replace('/[^0-9]/', '', $cpf ?? '');
@@ -73,9 +72,9 @@ function formatar_telefone($tel) {
     return $tel;
 }
 
-// Função para escolher o ícone baseado no nome da espécie que vem do banco (Cão, Gato, etc)
+
 function get_pet_icon($especie_nome) {
-    $nome = mb_strtolower($especie_nome ?? ''); // Converte para minúsculo para comparar
+    $nome = mb_strtolower($especie_nome ?? ''); 
     
     if (strpos($nome, 'cão') !== false || strpos($nome, 'cao') !== false || strpos($nome, 'cachorro') !== false) {
         return '<i class="fas fa-dog"></i>';
@@ -84,12 +83,12 @@ function get_pet_icon($especie_nome) {
         return '<i class="fas fa-cat"></i>';
     }
     if (strpos($nome, 'ave') !== false || strpos($nome, 'pássaro') !== false) {
-        return '<i class="fas fa-dove"></i>'; // Ícone de pássaro
+        return '<i class="fas fa-dove"></i>'; 
     }
     if (strpos($nome, 'peixe') !== false) {
         return '<i class="fas fa-fish"></i>';
     }
-    return '<i class="fas fa-paw"></i>'; // Ícone genérico
+    return '<i class="fas fa-paw"></i>'; 
 }
 ?>
 
@@ -107,10 +106,10 @@ function get_pet_icon($especie_nome) {
         box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; 
     }
     
-    /* Cores específicas por tipo de animal */
-    .border-cao { border-color: #0dcaf0 !important; } /* Azul Ciano para Cães */
-    .border-gato { border-color: #d63384 !important; } /* Rosa/Roxo para Gatos */
-    .border-ave { border-color: #ffc107 !important; } /* Amarelo para Aves */
+    
+    .border-cao { border-color: #0dcaf0 !important; } 
+    .border-gato { border-color: #d63384 !important; } 
+    .border-ave { border-color: #ffc107 !important; } 
     .border-default { border-color: #6c757d !important; }
 
     .avatar-circle {
@@ -193,18 +192,18 @@ function get_pet_icon($especie_nome) {
     <?php else: ?>
         <div class="row g-4">
             <?php foreach ($pets as $pet): 
-                // Lógica Visual
+                
                 $especie = $pet['especie_nome'] ?? 'Desconhecido';
                 $raca = $pet['raca_nome'] ?? 'SRD (Sem Raça Definida)';
                 $icon = get_pet_icon($especie);
                 
-                // Define a cor da borda baseada na espécie (Cão ou Gato)
+                
                 $borderColor = 'border-default';
                 if (stripos($especie, 'cão') !== false) $borderColor = 'border-cao';
                 elseif (stripos($especie, 'gato') !== false) $borderColor = 'border-gato';
                 elseif (stripos($especie, 'ave') !== false) $borderColor = 'border-ave';
                 
-                // Tratamento de foto
+                
                 $temFoto = !empty($pet['foto_path']) && file_exists($pet['foto_path']);
             ?>
             <div class="col-md-6 col-lg-4">
@@ -245,20 +244,20 @@ function get_pet_icon($especie_nome) {
                         <div class="d-grid gap-2">
                             <a href="#" class="btn btn-sm btn-warning text-dark fw-bold item-menu-ajax" 
                                data-pagina="pets_carteira_vacinas.php?pet_id=<?php echo $pet['id']; ?>">
-                                <i class="fas fa-syringe me-1"></i> Vacinas
+                                 <i class="fas fa-syringe me-1"></i> Vacinas
                             </a>
                             
                             <div class="row g-2">
                                 <div class="col-6">
                                     <a href="#" class="btn btn-sm btn-outline-secondary w-100 item-menu-ajax" 
                                        data-pagina="pets_detalhes.php?id=<?php echo $pet['id']; ?>">
-                                        <i class="fas fa-eye"></i> Detalhes
+                                         <i class="fas fa-eye"></i> Detalhes
                                     </a>
                                 </div>
                                 <div class="col-6">
                                     <a href="#" class="btn btn-sm btn-outline-primary w-100 item-menu-ajax" 
                                        data-pagina="pets_editar.php?id=<?php echo $pet['id']; ?>">
-                                        <i class="fas fa-pencil-alt"></i> Editar
+                                         <i class="fas fa-pencil-alt"></i> Editar
                                     </a>
                                 </div>
                             </div>

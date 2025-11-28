@@ -2,35 +2,46 @@
 // Arquivo: servicos_agendar_banhotosa.php
 
 // Inclui o arquivo de conexão e verifica a sessão, se necessário (boa prática)
-require_once 'conexao.php'; 
+require_once 'conexao.php';
 
 // --- 1. Mapeamento de IDs e Busca de Dados Necessários ---
 
 // IDs Fictícios/Assumidos para categorização. AJUSTE ESTES IDs conforme seu DB.
 const BANHO_TOSA_IDS = [1, 2, 3]; // Banho, Tosa Higiênica, Tosa Completa
-const VACINAS_IDS = [10, 11]; // Ex: Vacina Raiva, Vacina V8
 const CONSULTAS_IDS = [20, 21]; // Ex: Consulta Geral, Retorno
 
-$all_servico_ids = array_merge(BANHO_TOSA_IDS, VACINAS_IDS, CONSULTAS_IDS);
+// ====================================================================
+// ✅ CORREÇÃO AQUI: Alterado de 10 para 4 (ID de 'Consulta Veterinária' na tabela `servico`)
+const VACINACAO_ID = 4;
+// ====================================================================
+
+// Mapeia TODOS os serviços (Banho/Tosa e Consultas) para o mapa principal
+// Adiciona o ID genérico de Vacinação para que o nome e preço (se houver) sejam carregados
+$all_servico_ids = array_merge(BANHO_TOSA_IDS, CONSULTAS_IDS, [VACINACAO_ID]);
 $servicos_map = []; // Contém todos os serviços (nomes e preços por porte)
 
-// A. Buscar TODOS os Serviços Ativos (Nomes e IDs)
-// CORREÇÃO APLICADA: Removido o campo 'ativo' e a condição "AND ativo = 1"
+// A. Buscar Serviços (Banho/Tosa e Consultas)
 // Assumindo que você tem uma tabela chamada 'servico' com as colunas 'id' e 'nome'.
-$sql_servicos = "SELECT id, nome FROM servico WHERE id IN (" . implode(', ', $all_servico_ids) . ")"; 
-$result_servicos = mysqli_query($conexao, $sql_servicos);
-$servicos_lista = mysqli_fetch_all($result_servicos, MYSQLI_ASSOC);
-
-// Mapeia serviços para uso no JS
-foreach ($servicos_lista as $s) {
-    $servicos_map[$s['id']] = ['nome' => $s['nome'], 'id' => $s['id']];
+if (!empty($all_servico_ids)) {
+    $sql_servicos = "SELECT id, nome FROM servico WHERE id IN (" . implode(', ', $all_servico_ids) . ")";
+    $result_servicos = mysqli_query($conexao, $sql_servicos);
+    $servicos_lista = mysqli_fetch_all($result_servicos, MYSQLI_ASSOC);
+    
+    // Mapeia serviços para uso no JS
+    foreach ($servicos_lista as $s) {
+        $servicos_map[$s['id']] = ['nome' => $s['nome'], 'id' => $s['id']];
+    }
+} else {
+    $servicos_lista = [];
 }
+
 
 // B. Buscar Preços por Porte (Apenas para Banho e Tosa)
 $banho_tosa_ids_str = implode(', ', BANHO_TOSA_IDS);
 // A tabela deve ser `preco_servico_porte`
-$sql_precos_porte = "SELECT servico_id, porte, preco 
-                     FROM preco_servico_porte 
+// LINHA CORRIGIDA (26)
+$sql_precos_porte = "SELECT servico_id, porte, preco
+                     FROM preco_servico_porte
                      WHERE servico_id IN ({$banho_tosa_ids_str})";
 $result_precos_porte = mysqli_query($conexao, $sql_precos_porte);
 
@@ -48,22 +59,24 @@ if ($result_precos_porte) {
 $sql_funcionarios = "SELECT f.id, f.nome
                      FROM funcionario f
                      JOIN usuario u ON f.usuario_id = u.id
-                     WHERE u.ativo = 1 
+                     WHERE u.ativo = 1
                      ORDER BY f.nome ASC";
 $result_funcionarios = mysqli_query($conexao, $sql_funcionarios);
 $funcionarios = mysqli_fetch_all($result_funcionarios, MYSQLI_ASSOC);
 
-mysqli_close($conexao);
-
 // --- Separação da Lista de Serviços para os Selects (HTML) ---
-// Filtra a lista principal de serviços pelos IDs definidos
-$vacinas_select = array_filter($servicos_lista, function($s) {
-    return in_array($s['id'], VACINAS_IDS);
-});
 
+// Filtra a lista principal de serviços para consultas
 $consultas_select = array_filter($servicos_lista, function($s) {
     return in_array($s['id'], CONSULTAS_IDS);
 });
+
+// Busca a lista de vacinas ativas (IDs da tabela `vacina`)
+$sql_vacinas = "SELECT id, nome FROM vacina WHERE ativo = 1 ORDER BY nome ASC";
+$result_vacinas = mysqli_query($conexao, $sql_vacinas);
+$vacinas_select = mysqli_fetch_all($result_vacinas, MYSQLI_ASSOC);
+
+mysqli_close($conexao);
 
 // A lista de funcionários para o Select do Veterinário
 $veterinarios_select = $funcionarios;
@@ -79,11 +92,10 @@ $veterinarios_select = $funcionarios;
 
             <input type="hidden" id="cliente_id_hidden" name="cliente_id" value="">
             <input type="hidden" id="pet_id_hidden" name="pet_id" value="">
-            <input type="hidden" id="pet_porte_hidden" name="pet_porte" value=""> 
-            <input type="hidden" id="tipo_servico_principal" name="tipo_servico_principal" value=""> 
-            <input type="hidden" id="servicos_agendados_json" name="servicos_agendados_json" value=""> 
-            
-            <div id="step-cliente" class="mb-3">
+            <input type="hidden" id="pet_porte_hidden" name="pet_porte" value="">
+            <input type="hidden" id="tipo_servico_principal" name="tipo_servico_principal" value="">
+            <input type="hidden" id="servicos_agendados_json" name="servicos_agendados_json" value="">
+            <input type="hidden" id="vacina_real_id_hidden" name="vacina_real_id" value=""> <div id="step-cliente" class="mb-3">
                 <label for="search_cliente" class="form-label">Buscar Cliente *</label>
                 <input type="text" class="form-control form-control-sm" id="search_cliente" placeholder="Digite o nome ou CPF do Cliente">
                 <div id="search-cliente-results" class="list-group mt-1">
@@ -235,7 +247,7 @@ $veterinarios_select = $funcionarios;
                         </div>
                     </div>
 
-                </div> 
+                </div>
                 <div id="total-estimado-area" class="alert alert-info py-1 mb-3" role="alert" style="display: none;">
                     Total Estimado: <strong id="total-estimado">R$ 0,00</strong>
                 </div>
@@ -248,6 +260,9 @@ $veterinarios_select = $funcionarios;
 
 <script>
 $(document).ready(function() {
+    // IMPORTANTE: O ID de serviço genérico de vacinação (DEVE existir na tabela `servico`)
+    const VACINACAO_ID = <?php echo VACINACAO_ID; ?>; // Agora será 4 (Consulta Veterinária)
+    
     // Mapeamento de serviços do PHP para JS - APENAS BANHO/TOSA TÊM PREÇO AQUI
     const SERVICOS_MAP = <?php echo json_encode($servicos_map); ?>;
     
@@ -280,6 +295,7 @@ $(document).ready(function() {
     function calcularTotal() {
         let total = 0;
         servicosAgendados = []; // Reseta a lista de serviços
+        $('#vacina_real_id_hidden').val(''); // Reseta o ID real da vacina
 
         const servicoTipo = $('#servico_tipo_banho_tosa').val();
         const tosaTipo = $('#tosa_tipo').val();
@@ -318,15 +334,23 @@ $(document).ready(function() {
             $('#total-estimado').text('R$ ' + total.toFixed(2).replace('.', ','));
             
         } else if (selectedServiceCategory === 'vacina') {
-             // Lógica para Vacina: Apenas preenche o ID do serviço
+             // Lógica para Vacina:
             const vacinaId = $('#vacina_servico_id').val();
-            if (vacinaId) servicosAgendados.push(parseInt(vacinaId));
+            
+            if (vacinaId && !isNaN(parseInt(vacinaId))) {
+                 // **CORREÇÃO CRÍTICA APLICADA**: Envia o ID Genérico do Serviço de Vacinação (4) para agendamento.
+                servicosAgendados.push(VACINACAO_ID); 
+                
+                // Armazena o ID da vacina específica para uso do backend em uma tabela auxiliar.
+                $('#vacina_real_id_hidden').val(vacinaId); 
+            }
+            
             $('#total-estimado-area').hide();
 
         } else if (selectedServiceCategory === 'consulta') {
             // Lógica para Consulta: Apenas preenche o ID do serviço
             const consultaId = $('#consulta_servico_id').val();
-            if (consultaId) servicosAgendados.push(parseInt(consultaId));
+            if (consultaId && !isNaN(parseInt(consultaId))) servicosAgendados.push(parseInt(consultaId));
             $('#total-estimado-area').hide();
             
         } else {
@@ -339,7 +363,7 @@ $(document).ready(function() {
         validateForm();
     }
 
-    // --- Lógica de Validação e Habilitação do Botão ---
+    // --- Lógica de Validação e Habilitação do Botão (Sem alterações) ---
     function validateForm() {
         let isValid = selectedClienteId && selectedPetId && selectedServiceCategory;
         const submitButton = $('#submit-button');
@@ -383,7 +407,7 @@ $(document).ready(function() {
         submitButton.prop('disabled', !isValid);
     }
     
-    // --- Lógica de Exibição Progressiva e Eventos ---
+    // --- Lógica de Exibição Progressiva e Eventos (Sem alterações relevantes) ---
 
     // 1. Busca de Cliente
     $('#search_cliente').on('input', function() {
@@ -401,7 +425,9 @@ $(document).ready(function() {
         $('#pet_id_hidden').val('');
         $('#pet_porte_hidden').val('');
         $('#tipo_servico_principal').val('');
-        $('#servico_categoria').val(''); 
+        $('#servico_categoria').val('');
+        $('#vacina_real_id_hidden').val(''); // Reseta
+
         
         $('#step-pet').hide();
         $('#step-agendamento').hide();
@@ -425,9 +451,9 @@ $(document).ready(function() {
                 if (data.length > 0) {
                     data.forEach(function(cliente) {
                         const item = `<a href="#" class="list-group-item list-group-item-action list-group-item-sm" 
-                                     data-id="${cliente.id}" data-nome="${cliente.nome}">
-                                     ${cliente.nome} (${cliente.cpf || 'Não Informado'})
-                                   </a>`;
+                                            data-id="${cliente.id}" data-nome="${cliente.nome}">
+                                            ${cliente.nome} (${cliente.cpf || 'Não Informado'})
+                                        </a>`;
                         resultsDiv.append(item);
                     });
                 } else {
@@ -537,6 +563,7 @@ $(document).ready(function() {
         // Importante: limpa os dois campos de data da vacina
         $('#vacina_retorno_previsto').val('');
         $('#vacina_retorno_previsto_hidden').val(''); 
+        $('#vacina_real_id_hidden').val(''); // Reseta ID real da vacina
 
         servicosAgendados = [];
 
@@ -583,7 +610,7 @@ $(document).ready(function() {
     // Recalcula o total ao selecionar o tipo de tosa
     $('#tosa_tipo').on('change', calcularTotal);
     
-    // 🎯 SINCRONIZAÇÃO CRÍTICA (Linha 169 -> Linha 204)
+    // SINCRONIZAÇÃO CRÍTICA
     // Copia o valor do campo de data visível (sem required) para o campo hidden (com name)
     $('#vacina_retorno_previsto').on('change', function() {
         const dataRetorno = $(this).val();

@@ -1,9 +1,7 @@
 <?php
 // Arquivo: clientes_listar.php
-// Objetivo: Exibir a interface de busca e gerenciar as requisições AJAX para clientes_buscar_rapido.php.
 
-// --- Lógica Inicial PHP ---
-// A lista de clientes deve começar vazia e oculta, portanto, removemos a lógica de carregamento inicial.
+
 $conteudo_inicial = ''; 
 ?>
 
@@ -74,11 +72,7 @@ $(document).ready(function() {
     const $camposBusca = $('#busca_id, #busca_cpf, #busca_nome');
     let timerBusca = null; 
 
-    /**
-     * Função principal para realizar a requisição AJAX para clientes_buscar_rapido.php.
-     * @param {number} pagina_atual A página a ser carregada.
-     * @param {boolean} listar_todos Se deve listar todos (true) ou usar os filtros (false).
-     */
+    
     function realizarBusca(pagina_atual = 1, listar_todos = false) {
         
         $msgInformativa.hide(); 
@@ -92,22 +86,22 @@ $(document).ready(function() {
         if (listar_todos) {
             url += '&listar_todos=true';
         } else {
-            // Adiciona os filtros de busca apenas se não for para listar todos
+            
             if (busca_id.length > 0) url += '&busca_id=' + encodeURIComponent(busca_id);
             if (busca_cpf.length > 0) url += '&busca_cpf=' + encodeURIComponent(busca_cpf);
             if (busca_nome.length > 0) url += '&busca_nome=' + encodeURIComponent(busca_nome);
             
-            // Se nenhum filtro estiver ativo, volta para "Listar Todos" (comportamento mantido para o botão de Pesquisar)
+            
             if (busca_id.length === 0 && busca_cpf.length === 0 && busca_nome.length === 0) {
                  url = 'clientes_buscar_rapido.php?listar_todos=true&limite=10&pagina_atual=1';
                  $msgInformativa.show(); 
             }
         }
 
-        // Adiciona um efeito de carregamento
+        
         $container.html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i><p class="mt-2">Buscando clientes...</p></div>');
         
-        // Requisição AJAX (GET)
+        
         $.ajax({
             url: url,
             method: 'GET',
@@ -128,12 +122,12 @@ $(document).ready(function() {
             const busca_id = $('#busca_id').val();
             const busca_cpf = $('#busca_cpf').val();
             
-            // Lógica de busca em tempo real: exige 3 caracteres para busca por NOME, mas busca imediatamente se ID ou CPF forem preenchidos.
+            
             if (busca_nome.length > 0 && busca_id.length === 0 && busca_cpf.length === 0 && busca_nome.length < 3) {
                  return; 
             }
             realizarBusca(1, false);
-            // Garante que o container esteja visível após uma busca em tempo real
+            
             if ($container.is(':hidden')) {
                 $container.show();
                 const $btn = $('#btn-toggle-clientes');
@@ -148,7 +142,7 @@ $(document).ready(function() {
         e.preventDefault(); 
         clearTimeout(timerBusca); 
         realizarBusca(1, false); 
-        // Garante que o container esteja visível após uma busca explícita
+        
         if ($container.is(':hidden')) {
             $container.show();
             const $btn = $('#btn-toggle-clientes');
@@ -164,23 +158,23 @@ $(document).ready(function() {
         const isHidden = $container.is(':hidden');
 
         if (isHidden) {
-            // Lógica de MOSTRAR
+            
             $container.show();
             
-            // Troca para vermelho/Esconder
+            
             $btn.removeClass('btn-success').addClass('btn-danger');
             $btn.html('<i class="fas fa-eye-slash me-1"></i> Esconder Clientes');
             
-            // Se o conteúdo ainda estiver vazio, carrega a lista completa no primeiro clique
+            
             if ($container.is(':empty') || $container.text().trim() === '') {
                 realizarBusca(1, true); 
             }
             
         } else {
-            // Lógica de ESCONDER
+            
             $container.hide();
             
-            // Troca para verde/Mostrar
+            
             $btn.removeClass('btn-danger').addClass('btn-success');
             $btn.html('<i class="fas fa-eye me-1"></i> Mostrar Clientes');
         }
@@ -200,48 +194,48 @@ $(document).ready(function() {
     $container.on('click', '.btn-excluir-cliente', function(e) {
         e.preventDefault(); 
         
-        // O ID do cliente é recuperado do HTML gerado por clientes_buscar_rapido.php
+        
         const clienteId = $(this).data('id');
         const $linha = $(this).closest('tr');
         
-        // Confirmação do Usuário antes de prosseguir
+        
         if (!confirm('Tem certeza que deseja EXCLUIR o Cliente ID ' + clienteId + '? Esta ação irá inativar o cliente (Soft Delete)!')) {
             return; 
         }
 
-        // Feedback visual de carregamento
+        
         const $btn = $(this);
         const htmlOriginal = $btn.html();
         $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
 
-        // Requisição AJAX (POST) para clientes_excluir.php
+        
         $.ajax({
             url: 'clientes_excluir.php', 
             method: 'POST',
-            // CORREÇÃO: Envia o ID como 'id_cliente' para corresponder ao que clientes_excluir.php espera
+            
             data: { id_cliente: clienteId }, 
             dataType: 'json',
             success: function(response) {
                 if (response.success) {
-                    // Sucesso: Remove a linha da tabela e mostra a mensagem
+                    
                     $linha.fadeOut(500, function() {
                         $(this).remove();
                         alert('✅ Sucesso: ' + response.message);
                         
-                        // Recarrega a lista para atualizar a paginação e contagem
+                        
                         const paginaAtual = $('.btn-pagina-cliente.active').data('pagina') || 1;
                         const listarTodos = $('.btn-pagina-cliente.active').data('listar-todos') || false;
 
                         realizarBusca(paginaAtual, listarTodos); 
                     });
                 } else {
-                    // Erro: Reabilita o botão e mostra a mensagem do PHP
+                    
                     alert('❌ Erro: ' + (response.message || 'Erro desconhecido ao excluir.'));
                     $btn.prop('disabled', false).html(htmlOriginal);
                 }
             },
             error: function(xhr, status, error) {
-                // Erro de Conexão
+                
                 alert('❌ Erro de conexão com o servidor ao tentar excluir. Tente novamente.');
                 $btn.prop('disabled', false).html(htmlOriginal);
             }

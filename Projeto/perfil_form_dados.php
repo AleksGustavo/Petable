@@ -1,33 +1,26 @@
 <?php
-// Arquivo: perfil_form_dados.php
-
 session_start();
-require_once 'conexao.php'; // Inclui a conexão (que deve fornecer $conexao como objeto MySQLi)
+require_once 'conexao.php'; 
 
-// 1. Verifica login e ID
 if (!isset($_SESSION['logado']) || !isset($_SESSION['id_usuario']) || !isset($_GET['user_id'])) {
     echo '<div class="alert alert-danger">Erro de acesso: Usuário ou ID não identificados.</div>';
     exit();
 }
 
 $usuario_id = intval($_GET['user_id']);
-// Usando $conexao que deve ser o objeto mysqli da sua conexao.php
 
-// 2. Busca dados do funcionário para preencher o formulário
 $sql = "SELECT nome, data_nascimento, cpf, telefone, cep, rua, bairro, numero, complemento 
         FROM funcionario 
         WHERE usuario_id = ?";
 
 $funcionario = [];
 
-// Usando o padrão MySQLi (mysqli_prepare, mysqli_stmt_bind_param, mysqli_stmt_get_result)
 if ($stmt = mysqli_prepare($conexao, $sql)) {
     
     mysqli_stmt_bind_param($stmt, "i", $usuario_id);
     mysqli_stmt_execute($stmt);
     
-    // Obtém o resultado
-    $result = mysqli_stmt_get_result($stmt); // <--- CORREÇÃO AQUI
+    $result = mysqli_stmt_get_result($stmt); 
     
     if ($result && $row = mysqli_fetch_assoc($result)) {
         $funcionario = $row;
@@ -43,7 +36,6 @@ if ($stmt = mysqli_prepare($conexao, $sql)) {
     exit();
 }
 
-// Desmembra o nome completo para preenchimento (se necessário)
 $nome_completo = $funcionario['nome'] ?? '';
 $partes_nome = explode(' ', trim($nome_completo), 2);
 $primeiro_nome = $partes_nome[0] ?? '';
@@ -135,10 +127,7 @@ $sobrenome = $partes_nome[1] ?? '';
 </div>
 
 <script>
-// Lógica de Submissão AJAX para evitar recarregamento da página
-
 $(document).ready(function() {
-    // Aplica máscaras após o carregamento do conteúdo AJAX
     if (typeof inicializarMascarasEValidacoes === 'function') {
         inicializarMascarasEValidacoes(); 
     }
@@ -158,10 +147,9 @@ $(document).ready(function() {
             dataType: 'json',
             success: function(response) {
                 if(response.sucesso) {
-                    // Se sucesso, exibe a mensagem e recarrega a página principal de configurações (para atualizar os dados exibidos)
                     statusArea.html('<div class="alert alert-success">' + response.mensagem + '</div>');
                     setTimeout(function() {
-                        window.location.reload(); // Recarrega a página-mãe
+                        window.location.reload(); 
                     }, 1000);
                 } else {
                     statusArea.html('<div class="alert alert-danger">' + response.mensagem + '</div>');
