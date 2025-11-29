@@ -1,8 +1,6 @@
 <?php
-// Arquivo: pets_vacinas.php (Nome corrigido)
 require_once 'conexao.php'; 
 
-// Pega o ID da URL (ex: ?pet_id=1)
 $pet_id = filter_input(INPUT_GET, 'pet_id', FILTER_VALIDATE_INT);
 
 if (!$pet_id) {
@@ -10,12 +8,10 @@ if (!$pet_id) {
     exit();
 }
 
-// Variáveis iniciais
 $pet = null;
 $vacinas = [];
 
 if (isset($conexao)) {
-    // 1. Busca dados do Pet + Dono + Espécie (para o ícone)
     $sql_pet = "SELECT 
                     p.id, p.nome, p.foto, p.data_nascimento, 
                     c.id AS cliente_id, c.nome AS dono_nome,
@@ -33,7 +29,6 @@ if (isset($conexao)) {
     mysqli_stmt_close($stmt);
 
     if ($pet) {
-        // 2. Busca as vacinas da tabela 'carteira_vacina' ordenadas da mais recente para a antiga
         $sql_vacinas = "SELECT id, nome_vacina, data_aplicacao, data_proxima, veterinario, observacoes 
                         FROM carteira_vacina 
                         WHERE pet_id = ? 
@@ -48,33 +43,28 @@ if (isset($conexao)) {
     }
 }
 
-// Inicializa variáveis de resumo
 $total_doses = count($vacinas);
 $proxima_dose_data = null;
 $proxima_dose_nome = 'N/D';
 $proxima_dose_cor = 'secondary';
 $proxima_dose_texto = 'Sem Reforços Pendentes';
 
-// Encontra a próxima dose mais urgente (a que vence primeiro)
 $hoje = date('Y-m-d');
 $proxima_vencimento = '9999-12-31';
 
 foreach ($vacinas as $vacina) {
     if (!empty($vacina['data_proxima'])) {
-        // Se a dose ainda não venceu e está mais próxima do que a atual 'próxima_vencimento'
         if ($vacina['data_proxima'] >= $hoje && $vacina['data_proxima'] < $proxima_vencimento) {
             $proxima_vencimento = $vacina['data_proxima'];
             $proxima_dose_data = $vacina['data_proxima'];
             $proxima_dose_nome = $vacina['nome_vacina'];
         }
-        // Verifica se existe alguma vencida (prioridade máxima)
         if ($vacina['data_proxima'] < $hoje) {
-             // Se houver qualquer vacina vencida, sobrescreve o status de "próxima" para "Vencida"
              $proxima_dose_data = $vacina['data_proxima'];
              $proxima_dose_nome = $vacina['nome_vacina'];
              $proxima_dose_cor = 'danger';
              $proxima_dose_texto = '⚠️ HÁ VACINA(S) VENCIDA(S)';
-             break; // Parar e mostrar alerta vermelho
+             break;
         }
     }
 }
@@ -86,7 +76,6 @@ if ($proxima_dose_data && $proxima_dose_cor != 'danger') {
 }
 
 
-// Função para ícone (igual à página anterior)
 function get_pet_icon($especie_nome) {
     $nome = mb_strtolower($especie_nome ?? '');
     if (strpos($nome, 'cão') !== false || strpos($nome, 'cachorro') !== false) return '<i class="fas fa-dog"></i>';
@@ -95,12 +84,11 @@ function get_pet_icon($especie_nome) {
     return '<i class="fas fa-paw"></i>';
 }
 
-// Função para calcular status da vacina
 function get_status_vacina($data_proxima) {
     if (empty($data_proxima)) return ['cor' => 'secondary', 'texto' => 'Dose Única/Sem Reforço', 'icon' => 'fa-check-circle'];
     
     $hoje = date('Y-m-d');
-    $data_limite = date('Y-m-d', strtotime('+30 days')); // 30 dias a partir de hoje
+    $data_limite = date('Y-m-d', strtotime('+30 days'));
 
     if ($data_proxima < $hoje) {
         return ['cor' => 'danger', 'texto' => 'Vencida', 'icon' => 'fa-exclamation-triangle'];
@@ -111,7 +99,6 @@ function get_status_vacina($data_proxima) {
     }
 }
 
-// Define ícone e cabeçalho com base no pet carregado
 if ($pet) {
     $iconPet = get_pet_icon($pet['especie_nome']);
 } else {
@@ -121,42 +108,37 @@ if ($pet) {
 ?>
 
 <style>
-    /* Estilo da Linha Vertical */
     .timeline-section { position: relative; padding-left: 20px; }
     .timeline-section::before {
         content: ''; position: absolute; left: 0; top: 0; bottom: 0;
         width: 4px; background: #e9ecef; border-radius: 2px;
     }
     
-    /* Estilo do Cartão */
     .vacina-card { 
         border-left: 5px solid #6c757d; 
         transition: all 0.3s ease; 
-        position: relative; /* Para posicionar o ponto */
-        margin-left: 20px !important; /* Afasta o card da linha */
+        position: relative; 
+        margin-left: 20px !important; 
     }
     .vacina-card:hover { transform: translateX(5px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
     
-    /* Ponto de Referência na Linha do Tempo */
     .timeline-dot {
         position: absolute;
-        left: -32px; /* Ajusta a posição para o lado de fora do card */
-        top: 25px; /* Alinha verticalmente com o conteúdo */
+        left: -32px; 
+        top: 25px; 
         width: 15px;
         height: 15px;
         border-radius: 50%;
         border: 3px solid white;
         z-index: 10;
-        box-shadow: 0 0 0 2px #e9ecef; /* Simula a linha do tempo */
+        box-shadow: 0 0 0 2px #e9ecef;
     }
 
-    /* Cores de Status */
     .status-danger { border-left-color: #dc3545 !important; background-color: #fff5f5; }
     .status-warning { border-left-color: #ffc107 !important; background-color: #fffdf5; }
     .status-success { border-left-color: #198754 !important; background-color: #f0fff4; }
     .status-secondary { border-left-color: #6c757d !important; }
 
-    /* Cores do Ponto */
     .dot-danger { background-color: #dc3545; }
     .dot-warning { background-color: #ffc107; }
     .dot-success { background-color: #198754; }

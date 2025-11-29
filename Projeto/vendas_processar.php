@@ -1,9 +1,6 @@
 <?php
-// Arquivo: vendas_processar.php
-// Processa a venda, insere dados e dá baixa no estoque
 
 ob_start(); 
-// Certifique-se de que 'conexao.php' está correto e fornece a variável $pdo (PDO)
 require_once 'conexao.php'; 
 
 header('Content-Type: application/json');
@@ -27,14 +24,12 @@ if (empty($itens_venda)) {
     exit;
 }
 
-// Coleta dados do formulário
 $cliente_id = (int)($_POST['cliente_id'] ?? 0);
 $desconto = (float)str_replace(',', '.', $_POST['desconto'] ?? 0.00);
 $forma_pagamento = $_POST['forma_pagamento'] ?? 'dinheiro';
 $observacoes = trim($_POST['observacoes'] ?? '');
 $valor_total = (float)str_replace(',', '.', $_POST['valor_total'] ?? 0.00);
-// Assumindo que você tem uma variável de sessão ou ID do usuário logado
-$funcionario_id = 1; // SUBSTITUA PELA VARIÁVEL REAL DO FUNCIONÁRIO LOGADO
+$funcionario_id = 1;
 
 if ($valor_total < 0) {
     $response['message'] = 'O valor total da venda não pode ser negativo.';
@@ -42,11 +37,10 @@ if ($valor_total < 0) {
     exit;
 }
 
-// *****************************************************************
+// ------------------------------------------
 // 2. CORREÇÃO CRÍTICA CONTRA DEADLOCK: ORDENAÇÃO DOS PRODUTOS
-// *****************************************************************
+// ------------------------------------------
 if (!empty($itens_venda)) {
-    // Filtra e separa produtos e serviços
     $itens_produtos = array_filter($itens_venda, function($item) {
         return $item['tipo'] === 'produto';
     });
@@ -54,22 +48,17 @@ if (!empty($itens_venda)) {
         return $item['tipo'] === 'servico';
     });
     
-    // Classifica os PRODUTOS pelo ID em ordem crescente
-    // Isso garante que o UPDATE de estoque (bloqueio) ocorrerá na mesma ordem
     usort($itens_produtos, function($a, $b) {
         return $a['id'] <=> $b['id']; 
     });
 
-    // Recompõe o array, com os produtos ordenados primeiro
     $itens_venda = array_merge($itens_produtos, $itens_servicos);
 }
-// *****************************************************************
 
 // ------------------------------------------
 // 3. Transação e Inserção no Banco de Dados
 // ------------------------------------------
 try {
-    // Inicia a transação (CRUCIAL para estoque)
     $pdo->beginTransaction();
 
     // 3a. Insere a Venda na tabela 'venda'
@@ -80,7 +69,7 @@ try {
     
     $stmt_venda = $pdo->prepare($sql_venda);
     $stmt_venda->execute([
-        $cliente_id > 0 ? $cliente_id : null, // Usa NULL se for venda anônima
+        $cliente_id > 0 ? $cliente_id : null,
         $funcionario_id,
         $valor_total,
         $desconto,
@@ -93,7 +82,7 @@ try {
     // 3b. Insere os Itens na tabela 'item_venda' e Dá Baixa no Estoque
     $sql_item_venda = "INSERT INTO item_venda 
                         (venda_id, produto_id, servico_id, quantidade, preco_unitario) 
-                       VALUES 
+                        VALUES 
                         (?, ?, ?, ?, ?)";
     
     $sql_baixa_estoque = "UPDATE produto SET quantidade_estoque = quantidade_estoque - ? WHERE id = ?";
@@ -103,7 +92,6 @@ try {
         $preco_unitario = (float)$item['preco'];
         $item_id = (int)$item['id'];
 
-        // Define o ID do produto ou do serviço (um será NULL)
         $produto_id = ($item['tipo'] === 'produto') ? $item_id : null;
         $servico_id = ($item['tipo'] === 'servico') ? $item_id : null;
 
@@ -111,32 +99,28 @@ try {
         $stmt_item = $pdo->prepare($sql_item_venda);
         $stmt_item->execute([
             $venda_id,
-            $produto_id, // Insere NULL se for serviço
-            $servico_id, // Insere NULL se for produto
+            $produto_id,
+            $servico_id,
             $quantidade,
             $preco_unitario
         ]);
 
         // Se for um PRODUTO, dá baixa no estoque
         if ($item['tipo'] === 'produto') {
-            // Este update agora acontece em uma ordem consistente
             $stmt_estoque = $pdo->prepare($sql_baixa_estoque);
             $stmt_estoque->execute([$quantidade, $item_id]);
         }
     }
 
-    // Se tudo correu bem, confirma as mudanças
     $pdo->commit();
 
     $response['success'] = true;
     $response['message'] = "Venda #{$venda_id} finalizada com sucesso! Itens vendidos: " . count($itens_venda);
     
 } catch (\PDOException $e) {
-    // Se ocorrer qualquer erro, desfaz todas as operações
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    // Mensagem mais informativa, mantendo o aviso de Deadlock
     $deadlock_message = (strpos($e->getMessage(), 'Deadlock found') !== false) 
                         ? 'Deadlock detectado. Tente finalizar a venda novamente.' 
                         : 'Erro fatal ao processar a venda. Verifique a conexão com o BD.';
@@ -155,4 +139,3 @@ try {
 ob_clean();
 echo json_encode($response);
 exit;
-?>

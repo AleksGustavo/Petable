@@ -1,33 +1,23 @@
 <?php
-// Arquivo: servicos_agendamento_buscar_rapido.php
-// Responsável por receber parâmetros de busca, ordenação e paginação, e retornar a tabela HTML dos agendamentos.
 
-require_once 'conexao.php'; // Certifique-se de que este arquivo existe e conecta ao DB
+require_once 'conexao.php'; 
 
-// Constante utilizada para lógica específica, se necessário
 $ID_SERVICO_VACINA = 6;
 
-// =========================================================================
-// 1. COLETAR E SANITIZAR PARÂMETROS DE BUSCA E PAGINAÇÃO
-// =========================================================================
 $limite = isset($_GET['limite']) && is_numeric($_GET['limite']) ? (int)$_GET['limite'] : 10;
 $pagina_atual = isset($_GET['pagina_atual']) && is_numeric($_GET['pagina_atual']) ? (int)$_GET['pagina_atual'] : 1;
 $offset = ($pagina_atual - 1) * $limite;
 
-// Parâmetros de Filtro e Ordenação
-$termo_busca = $_GET['busca'] ?? ''; // Pet, Cliente ou Serviço
+$termo_busca = $_GET['busca'] ?? ''; 
 $filtro_status = $_GET['status_filtro'] ?? 'todos';
-$ordenacao_param = $_GET['ordenacao'] ?? 'data_crescente'; // Novo parâmetro de ordenação
+$ordenacao_param = $_GET['ordenacao'] ?? 'data_crescente'; 
 
-// Flags de controle
-// Note que 'listar_todos' é tratado como string 'true'/'false' devido à passagem via GET
 $listar_todos = $_GET['listar_todos'] ?? 'false';
 $total_registros = 0;
 $total_paginas = 1;
 $erro_sql = null;
 $agendamentos = [];
 
-// Mapeamento de Ordenação
 $mapa_ordenacao = [
     'data_crescente' => 'a.data_agendamento ASC',
     'data_decrescente' => 'a.data_agendamento DESC',
@@ -37,15 +27,10 @@ $mapa_ordenacao = [
 $order_by = $mapa_ordenacao[$ordenacao_param] ?? 'a.data_agendamento ASC';
 
 
-// =========================================================================
-// 2. CONSTRUÇÃO DA CLÁUSULA WHERE (CONTADOR E CONSULTA PRINCIPAL)
-// =========================================================================
-
 $condicoes = [];
 $params_tipos = '';
 $params_valores = [];
 
-// A base da consulta sempre inclui os JOINs
 $base_query = "
     FROM 
         agendamento a
@@ -57,45 +42,41 @@ $base_query = "
         servico s ON a.servico_id = s.id
 ";
 
-// Constrói as condições de busca se não for para listar todos
 if ($listar_todos !== 'true') {
     
-    // Filtro por termo de busca (Cliente, Pet ou Serviço)
     if (!empty($termo_busca)) {
         $condicoes[] = "(c.nome LIKE ? OR p.nome LIKE ? OR s.nome LIKE ?)";
         $like = '%' . $termo_busca . '%';
         $params_tipos .= 'sss';
-        // É crucial usar $params_valores[] = $like; para que o array seja populado corretamente
         $params_valores[] = $like;
         $params_valores[] = $like;
         $params_valores[] = $like;
     }
 
-    // Filtro por Status
-    if ($filtro_status !== 'todos' && in_array($filtro_status, ['agendado', 'confirmado', 'concluido', 'cancelado'])) {
-        $condicoes[] = "a.status = ?";
-        $params_tipos .= 's';
-        $params_valores[] = $filtro_status;
+    // LÓGICA DE FILTRO DE STATUS ATUALIZADA
+    if ($filtro_status !== 'todos') {
+        if ($filtro_status === 'atrasado') {
+            // Filtra por agendamentos que ainda estão com status 'agendado' ou 'confirmado'
+            // mas cuja data/hora já passou em relação ao momento atual (NOW())
+            $condicoes[] = "a.status IN ('agendado', 'confirmado') AND a.data_agendamento < NOW()";
+        } elseif (in_array($filtro_status, ['agendado', 'confirmado', 'concluido', 'cancelado'])) {
+            // Para os status fixos do banco, usa a coluna 'status'
+            $condicoes[] = "a.status = ?";
+            $params_tipos .= 's';
+            $params_valores[] = $filtro_status;
+        }
     }
 }
 
-// Adiciona as condições WHERE
 $where_clause = !empty($condicoes) ? " WHERE " . implode(' AND ', $condicoes) : "";
 
 
-// =========================================================================
-// 3. CONTAR TOTAL DE REGISTROS (Para Paginação)
-// =========================================================================
-
 try {
-    // Consulta de contagem
     $sql_count = "SELECT COUNT(DISTINCT a.id) " . $base_query . $where_clause;
     
     $stmt_count = mysqli_prepare($conexao, $sql_count);
     
-    // Vincula os parâmetros, se houver
     if (!empty($params_valores)) {
-        // Usa o operador ... para descompactar o array para mysqli_stmt_bind_param
         mysqli_stmt_bind_param($stmt_count, $params_tipos, ...$params_valores);
     }
     
@@ -103,19 +84,12 @@ try {
     $result_count = mysqli_stmt_get_result($stmt_count);
     $total_registros = mysqli_fetch_row($result_count)[0];
     
-    // Evita divisão por zero
     $total_paginas = $total_registros > 0 ? ceil($total_registros / $limite) : 1;
     
-    // Garante que a página atual seja válida
     $pagina_atual = max(1, min($pagina_atual, $total_paginas));
     $offset = ($pagina_atual - 1) * $limite;
 
-    // Se a busca não encontrou registros, não tenta buscar
     if ($total_registros > 0) {
-        
-        // =========================================================================
-        // 4. MONTAGEM DA CONSULTA SQL PRINCIPAL
-        // =========================================================================
         
         $sql = "
             SELECT DISTINCT
@@ -126,16 +100,26 @@ try {
                 a.pet_id,
                 c.nome AS cliente_nome,
                 p.nome AS pet_nome,
-                s.nome AS servico_nome
+                s.nome AS servico_nome,
+                
+                -- CAMPO DINÂMICO QUE CALCULA O STATUS DE EXIBIÇÃO
+                CASE
+                    -- 1. Se o status for concluído, cancelado ou confirmado, ele é o que vale.
+                    WHEN a.status IN ('concluido', 'cancelado') THEN a.status
+                    
+                    -- 2. Se a data já passou E o status ainda é agendado/confirmado, é 'atrasado'.
+                    WHEN a.data_agendamento < NOW() AND a.status IN ('agendado', 'confirmado') THEN 'atrasado'
+                    
+                    -- 3. Caso contrário, mantém o status real (agendado ou confirmado)
+                    ELSE a.status
+                END AS status_display
+                
         " . $base_query . $where_clause . " ORDER BY " . $order_by . " LIMIT ? OFFSET ?";
         
-        // Tipos e Valores para a consulta principal (adiciona limit e offset)
         $params_tipos_principal = $params_tipos . 'ii';
         $params_valores_principal = array_merge($params_valores, [$limite, $offset]);
 
-        // Execução da consulta
         $stmt = mysqli_prepare($conexao, $sql);
-        // Bind dos parâmetros com os novos valores (limit e offset)
         mysqli_stmt_bind_param($stmt, $params_tipos_principal, ...$params_valores_principal);
         mysqli_stmt_execute($stmt);
         $result = mysqli_stmt_get_result($stmt);
@@ -148,21 +132,17 @@ try {
     $erro_sql = 'Erro no Banco de Dados: ' . $e->getMessage() . '. SQL: ' . ($sql ?? 'N/A');
 }
 
-// Função para formatar o status com cor
 function formatar_status($status) {
     $classe = match ($status) {
         'agendado' => 'badge bg-primary',
         'confirmado' => 'badge bg-info',
+        'atrasado' => 'badge bg-warning text-dark', 
         'concluido' => 'badge bg-success',
         'cancelado' => 'badge bg-danger',
         default => 'badge bg-secondary',
     };
     return "<span class='{$classe}'>" . ucfirst($status) . "</span>";
 }
-
-// =========================================================================
-// 5. RETORNO DO BLOCO HTML COM OS RESULTADOS E PAGINAÇÃO
-// =========================================================================
 
 if (!empty($erro_sql)) {
     echo '<div class="alert alert-danger">' . $erro_sql . '</div>';
@@ -195,22 +175,33 @@ if ($total_registros > 0) {
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($agendamentos as $agendamento): ?>
+                        <?php foreach ($agendamentos as $agendamento): 
+                            // Usa o status dinâmico para exibição na célula e na linha
+                            $status_exibido = $agendamento['status_display']; 
+                            
+                            // Define a classe da linha
+                            $row_class = match ($status_exibido) {
+                                'concluido' => 'table-success',
+                                'cancelado' => 'table-danger',
+                                'atrasado' => 'table-warning', // Linha amarela para atrasados
+                                default => '',
+                            };
+                        ?>
                         <tr id="agendamento-<?php echo $agendamento['agendamento_id']; ?>" 
-                            class="<?php echo $agendamento['status'] === 'concluido' ? 'table-success' : ($agendamento['status'] === 'cancelado' ? 'table-danger' : ''); ?>">
+                            class="<?php echo $row_class; ?>">
                             <td><?php echo htmlspecialchars($agendamento['agendamento_id']); ?></td>
                             <td><?php echo date('d/m/Y H:i', strtotime($agendamento['data_agendamento'])); ?></td>
                             <td><?php echo htmlspecialchars($agendamento['pet_nome']); ?></td>
                             <td><?php echo htmlspecialchars($agendamento['cliente_nome']); ?></td>
                             <td><?php echo htmlspecialchars($agendamento['servico_nome']); ?></td>
                             <td class="status-cell">
-                                <?php echo formatar_status($agendamento['status']); ?>
+                                <?php echo formatar_status($status_exibido); ?>
                             </td>
                             <td>
                                 <a href="#"
-                                   class="btn btn-sm btn-warning me-1 item-menu-ajax"
-                                   data-pagina="servicos_agendar_banhotosa.php?id=<?php echo $agendamento['agendamento_id']; ?>"
-                                   title="Editar Agendamento">
+                                    class="btn btn-sm btn-warning me-1 item-menu-ajax"
+                                    data-pagina="servicos_agendar_banhotosa.php?id=<?php echo $agendamento['agendamento_id']; ?>"
+                                    title="Editar Agendamento">
                                     <i class="fas fa-edit"></i>
                                 </a>
 
@@ -244,7 +235,6 @@ if ($total_registros > 0) {
             </div>
 
             <?php
-            // Lógica de Paginação
             $flag_listar_todos = $listar_todos === 'true' ? 'true' : 'false';
             
             $max_botoes = 7;
@@ -258,7 +248,7 @@ if ($total_registros > 0) {
             if ($end_page == $total_paginas) {
                 $start_page = max(1, $total_paginas - $max_botoes + 1);
             }
-            $start_page = max(1, $start_page); // Garante que não comece abaixo de 1
+            $start_page = max(1, $start_page); 
             ?>
 
             <nav aria-label="Paginação de Agendamentos" class="mt-3">
@@ -269,7 +259,7 @@ if ($total_registros > 0) {
                     <?php endif; ?>
 
                     <?php if ($start_page > 1): ?>
-                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                        <li class="page-item disabled"><span class="page-link">...</span></span></li>
                     <?php endif; ?>
 
                     <?php for ($i = $start_page; $i <= $end_page; $i++): ?>

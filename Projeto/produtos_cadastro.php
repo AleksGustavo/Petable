@@ -1,11 +1,9 @@
 <?php
 // Arquivo: produtos_cadastro.php
-// Este arquivo carrega o HTML do formulário de cadastro de produtos.
 
-// Inclui o script auxiliar para buscar categorias e fornecedores
 require_once 'produtos_dados.php';
 
-// Obtém as listas para os campos <select>
+
 $categorias = get_categorias($pdo);
 $fornecedores = get_fornecedores($pdo);
 ?>

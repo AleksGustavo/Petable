@@ -1,11 +1,6 @@
 <?php
-// Arquivo: servicos_agendamentos_listar.php - Versão Modificada (Interface com JavaScript de Busca)
-// Objetivo: Exibir a interface de busca e gerenciar as requisições AJAX para servicos_agendamentos_buscar_rapido.php.
+// Arquivo de Listagem de Agendamentos (Ex: servicos_agendamentos_listar.php)
 
-// NOTA: Toda a lógica de CONSULTA PHP foi removida e movida para o arquivo
-// servicos_agendamentos_buscar_rapido.php, que será chamado via AJAX.
-
-// Variável para evitar erro de variável não definida no HTML
 $conteudo_inicial = ''; 
 ?>
 
@@ -38,7 +33,7 @@ $conteudo_inicial = '';
                         <select class="form-select" id="status_filtro" name="status_filtro">
                             <option value="todos">Todos</option>
                             <option value="agendado">Agendado</option>
-                            <option value="confirmado">Confirmado</option>
+                            <option value="atrasado">Atrasado</option> <option value="confirmado">Confirmado</option>
                             <option value="concluido">Concluído</option>
                             <option value="cancelado">Cancelado</option>
                         </select>
@@ -81,13 +76,12 @@ $conteudo_inicial = '';
         </div>
         
         <div id="tabela-agendamentos-container" style="display: none;">
-            <?php echo $conteudo_inicial; // Deve estar vazio ?>
+            <?php echo $conteudo_inicial; ?>
         </div>
     </div>
 </div>
 
 <script>
-// Arquivo: servicos_agendamentos_listar.php - Trecho <script> (Ajustado)
 
 $(document).ready(function() {
     
@@ -101,187 +95,191 @@ $(document).ready(function() {
     const $btnLimpar = $('#btn-limpar-agendamentos');
     
     let timerBusca = null; 
-    // NOVO ESTADO: Rastrea se o botão Mostrar/Esconder está ativo (mostrando todos)
     let isShowingAll = false; 
 
-    /**
-     * Função principal para realizar a requisição AJAX para servicos_agendamentos_buscar_rapido.php.
-     * @param {number} pagina_atual A página a ser carregada.
-     * @param {boolean} listar_todos Se deve listar todos (true) ou usar os filtros (false).
-     */
+    function toggleContainerVisibility(show) {
+        if (show) {
+            $container.show();
+            $btnToggle.removeClass('btn-success').addClass('btn-danger');
+            $btnToggle.html('<i class="fas fa-eye-slash me-1"></i> Esconder Agendamentos');
+            $msgInformativa.hide();
+        } else {
+            $container.hide();
+            $btnToggle.removeClass('btn-danger').addClass('btn-success');
+            $btnToggle.html('<i class="fas fa-eye me-1"></i> Mostrar Agendamentos');
+        }
+    }
+
     function realizarBusca(pagina_atual = 1, listar_todos = false) {
         
-        // Se estiver no modo listar_todos, apenas esconde a mensagem informativa.
-        if (listar_todos) {
-            $msgInformativa.hide(); 
-        } else {
-            // Se NÃO estiver em listar_todos, verifica se deve mostrar a mensagem informativa.
-            const busca_termo = $campoBusca.val().trim();
-            const status_filtro = $campoStatus.val();
-            
-            if (busca_termo.length === 0 && status_filtro === 'todos') {
-                $msgInformativa.show(); 
-                $container.html('<div class="alert alert-warning text-center">Nenhum termo de busca ou filtro de status aplicado.</div>').show();
-                // Oculta o container e ajusta o botão se for um filtro vazio
-                toggleContainerVisibility(false); 
-                return; 
-            } else {
-                 $msgInformativa.hide(); 
-            }
-        }
-        
-        // Atualiza o estado
         isShowingAll = listar_todos;
 
         const busca_termo = $campoBusca.val().trim();
         const status_filtro = $campoStatus.val();
         const ordenacao = $campoOrdenacao.val();
         
+        if (!listar_todos && busca_termo.length === 0 && status_filtro === 'todos') {
+            $msgInformativa.show(); 
+            $container.html('');
+            toggleContainerVisibility(false); 
+            return; 
+        } else {
+            $msgInformativa.hide(); 
+        }
+        
         let url = 'servicos_agendamentos_buscar_rapido.php?limite=10&pagina_atual=' + pagina_atual;
 
         if (listar_todos) {
             url += '&listar_todos=true';
-            // Quando listamos todos, podemos zerar os campos de filtro para coerência visual
-            // Opcional: manter os campos para que o usuário veja a última busca
         } else {
-            // Adiciona os filtros de busca apenas se não for para listar todos
             if (busca_termo.length > 0) url += '&busca=' + encodeURIComponent(busca_termo);
             if (status_filtro !== 'todos') url += '&status_filtro=' + encodeURIComponent(status_filtro);
         }
         
-        // Adiciona a ordenação em ambos os casos
         url += '&ordenacao=' + encodeURIComponent(ordenacao);
 
-        // Adiciona um efeito de carregamento
-        $container.html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i><p class="mt-2">Buscando agendamentos...</p></div>').show(); // Garante que mostre ao carregar
+        $container.html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i><p class="mt-2">Buscando agendamentos...</p></div>').show(); 
+        toggleContainerVisibility(true);
         
-        // Requisição AJAX (GET)
         $.ajax({
             url: url,
             method: 'GET',
             success: function(response) {
                 $container.html(response);
-                // Garante que o container esteja visível e o botão ajustado após uma busca bem-sucedida
-                toggleContainerVisibility(true); 
             },
             error: function() {
                 $container.html('<div class="alert alert-danger">Erro de conexão com o servidor. Tente novamente.</div>');
-                toggleContainerVisibility(true); // Manter visível para mostrar o erro
             }
         });
     }
     
-    // 1. Busca em Tempo Real (usando 'keyup' e 'change' com Debounce)
-    
-    // Handler que dispara a busca filtrada (listar_todos = false)
     function triggerFilteredSearch() {
-        // Assegura que o modo "Listar Todos" é desativado
         isShowingAll = false; 
         
         const busca_termo = $campoBusca.val().trim();
         
-        // Lógica de debounce para busca por texto
         clearTimeout(timerBusca);
         timerBusca = setTimeout(function() {
-            // Regra: exige 3 caracteres no termo de busca OU se o filtro de status/ordenação foi mudado.
             if (busca_termo.length > 0 && busca_termo.length < 3) {
                 return; 
             }
             realizarBusca(1, false);
-        }, 300); // 300ms de debounce
+        }, 300); 
     }
     
-    // Altera a busca quando o termo, status ou ordenação muda
+    // --- 1. Handlers de Filtro e Busca ---
+
     $campoBusca.on('keyup', triggerFilteredSearch);
 
     $campoStatus.on('change', function() {
-        // Dispara a busca imediatamente ao mudar o status (sem debounce de texto)
         clearTimeout(timerBusca);
-        realizarBusca(1, false);
+        realizarBusca(1, isShowingAll); 
     });
     
     $campoOrdenacao.on('change', function() {
-        // Dispara a busca imediatamente ao mudar a ordenação
         clearTimeout(timerBusca);
-        realizarBusca(1, false);
+        realizarBusca(1, isShowingAll); 
     });
 
 
-    // 2. Busca Explícita (Submit do Formulário) - O botão 'Buscar'
     $form.on('submit', function(e) {
         e.preventDefault(); 
         clearTimeout(timerBusca); 
         realizarBusca(1, false); 
     });
     
-    // 3. Botão "Limpar Filtros"
     $btnLimpar.on('click', function(e) {
         e.preventDefault();
         $campoBusca.val('');
         $campoStatus.val('todos');
         $campoOrdenacao.val('data_crescente');
         
-        // Volta ao estado inicial (Mensagem informativa, container escondido, botão verde)
         clearTimeout(timerBusca);
-        isShowingAll = false; // Garante que o estado seja de "filtro normal"
+        isShowingAll = false; 
         
         $container.html('');
         $msgInformativa.show();
         toggleContainerVisibility(false); 
     });
 
-    // 4. Botão "Mostrar/Esconder Agendamentos" (Toggle) - LOGICA PRINCIPAL AQUI
     $btnToggle.on('click', function() {
-        // Verifica o estado atual do botão através da classe (se está mostrando)
         const isCurrentlyShowing = $btnToggle.hasClass('btn-danger');
 
         if (isCurrentlyShowing) {
-            // Se está MOSTRANDO (vermelho), deve ESCONDER
             toggleContainerVisibility(false);
             $container.html('');
             $msgInformativa.show(); 
-            // Não é mais "listar todos", o estado volta a ser filtrado (que no caso é o vazio)
             isShowingAll = false; 
         } else {
-            // Se está ESCONDIDO (verde), deve MOSTRAR TODOS
-            toggleContainerVisibility(true);
-            isShowingAll = true; // Define o estado para listar todos
-            realizarBusca(1, true); // Carrega a lista completa
-            $msgInformativa.hide(); // Garante que a mensagem seja escondida
+            realizarBusca(1, true); 
         }
     });
     
-    /**
-     * Controla a visibilidade do container de resultados e a aparência do botão de toggle.
-     * @param {boolean} show Se deve mostrar (true) ou esconder (false).
-     */
-    function toggleContainerVisibility(show) {
-        if (show) {
-            $container.show();
-            // A cor é invertida: se está mostrando, o botão deve ser Vermelho (para esconder)
-            $btnToggle.removeClass('btn-success').addClass('btn-danger');
-            $btnToggle.html('<i class="fas fa-eye-slash me-1"></i> Esconder Agendamentos');
-        } else {
-            $container.hide();
-            // Se está escondido, o botão deve ser Verde (para mostrar)
-            $btnToggle.removeClass('btn-danger').addClass('btn-success');
-            $btnToggle.html('<i class="fas fa-eye me-1"></i> Mostrar Agendamentos');
-        }
-    }
-    
-    // 5. Paginação (Delegação de Eventos) 
+    // --- 2. Handler de Paginação (Delegado) ---
     $container.on('click', '.btn-pagina-agendamento', function(e) {
         e.preventDefault();
         
         const pagina = $(this).data('pagina');
-        // Agora, a flag listar_todos_flag deve vir do estado global `isShowingAll` ou do atributo data, se for o caso.
-        // É mais seguro usar o atributo data que é gerado dinamicamente pelo PHP (parte 2)
-        const listar_todos_flag = $(this).data('listar-todos') === true || $(this).data('listar-todos') === 'true'; 
-        
-        realizarBusca(pagina, listar_todos_flag);
+        realizarBusca(pagina, isShowingAll); 
     });
 
-    // Estado inicial: Garante que o container esteja escondido e o botão verde
-    toggleContainerVisibility(false);
+    // --- 3. Handler de Processamento de Ações ---
+    $container.on('click', '.btn-processar-agendamento', function(e) {
+        e.preventDefault();
+        
+        const id_agendamento = $(this).data('id');
+        const acao = $(this).data('acao');
+        const $linha = $(this).closest('tr');
+        
+        let confirm_msg = '';
+        let url_processamento = '';
 
+        if (acao === 'concluir_status') {
+            confirm_msg = "Tem certeza que deseja marcar este agendamento como CONCLUÍDO?";
+            // CORRIGIDO: Envia a ação completa no GET
+            url_processamento = 'servicos_agendamento_processar.php?acao=concluir_status'; 
+        } else if (acao === 'cancelar_status') {
+            confirm_msg = "Tem certeza que deseja CANCELAR este agendamento?";
+            // CORRIGIDO: Envia a ação completa no GET
+            url_processamento = 'servicos_agendamento_processar.php?acao=cancelar_status';
+        } else if (acao === 'deletar') {
+            confirm_msg = "ATENÇÃO: Deseja EXCLUIR permanentemente este agendamento?";
+            url_processamento = 'servicos_agendamento_processar.php?acao=deletar';
+        } else {
+             return; 
+        }
+
+        if (confirm(confirm_msg)) {
+            
+            $.ajax({
+                // A URL agora inclui a ação correta no GET
+                url: url_processamento,
+                method: 'POST', // O ID ainda é enviado via POST
+                data: { id: id_agendamento },
+                dataType: 'json', 
+                beforeSend: function() {
+                    $linha.css('opacity', '0.5'); 
+                },
+                success: function(response) {
+                    if (response.sucesso) {
+                        // Você pode mostrar a mensagem na tela principal (ex: div.alert)
+                        alert("Sucesso! " + id_agendamento);
+                        // Recarrega a lista para refletir a mudança no status
+                        realizarBusca(1, isShowingAll); 
+                    } else {
+                        alert('Erro ao processar agendamento: ' + response.mensagem.replace(/<[^>]*>?/gm, '')); // Remove tags HTML para alert
+                        $linha.css('opacity', '1');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    alert('Erro de comunicação com o servidor. Status: ' + status);
+                    console.error("Erro AJAX:", xhr.responseText);
+                    $linha.css('opacity', '1');
+                }
+            });
+        }
+    });
+
+    toggleContainerVisibility(false);
 });
+</script>

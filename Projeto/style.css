@@ -42,7 +42,6 @@ body {
     transform: translateY(-1px); 
 }
 
-/* --- Estilo das Mensagen de Status --- */
 .text-success {
     color: #198754 !important;
 }

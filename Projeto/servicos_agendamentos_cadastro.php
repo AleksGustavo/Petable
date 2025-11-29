@@ -20,7 +20,7 @@ $all_servico_ids = array_merge(ID_SERVICO_BANHO_TOSA, ID_SERVICO_CONSULTA, [ID_S
 $servicos_map = []; // Contém todos os serviços (nomes e preços por porte)
 
 // A. Buscar TODOS os Serviços Ativos (Nomes e IDs)
-// Usa prepared statement para IDs.
+// Usa prepared statement para IDs
 $in_placeholders = implode(',', array_fill(0, count($all_servico_ids), '?'));
 $sql_servicos = "SELECT id, nome, ativo FROM servico WHERE id IN ({$in_placeholders}) AND ativo = 1";
 
@@ -54,7 +54,7 @@ $types_precos = str_repeat('i', count($banho_tosa_ids));
 if (!mysqli_stmt_bind_param($stmt_precos, $types_precos, ...$banho_tosa_ids)) {
     die("Erro ao vincular parâmetros para a busca de preços: " . mysqli_stmt_error($stmt_precos));
 }
-mysqli_stmt_execute($stmt_precos); // CORREÇÃO: Execução garantida.
+mysqli_stmt_execute($stmt_precos); 
 $result_precos_porte = mysqli_stmt_get_result($stmt_precos);
 // O loop while segue, processando os resultados
 while ($row = mysqli_fetch_assoc($result_precos_porte)) {
@@ -93,7 +93,6 @@ foreach ($catalogo_vacinas as $vacina) {
 }
 
 // E. NOVA QUERY: Buscar Clientes (ALTERAÇÃO: removido CPF)
-// ALTERAÇÃO DE LGPD: Trazendo apenas o ID e o NOME do cliente
 $sql_clientes = "SELECT id, nome FROM cliente WHERE ativo = 1 ORDER BY nome ASC";
 $result_clientes = mysqli_query($conexao, $sql_clientes);
 $clientes_select = mysqli_fetch_all($result_clientes, MYSQLI_ASSOC);
