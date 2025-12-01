@@ -4,10 +4,7 @@
 // Inicia a sessão para gerenciamento do estado do usuário.
 session_start(); 
 
-<<<<<<< HEAD
 // Inclui o arquivo de conexão PDO ($pdo).
-=======
->>>>>>> 23e8a940afaddaa7bf552ddc3a93d92140b2b2d0
 require_once 'conexao.php'; 
 
 // Inicializa variáveis de controle de status e sucesso.
@@ -24,11 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         goto exibir_html; // Salta para a exibição do HTML se houver falha na conexão.
     }
     
-<<<<<<< HEAD
     // 2. Coletar e limpar dados: Coleta e remove espaços em branco do nome de usuário, e coleta a senha.
-=======
-    // 2. Coletar e limpar dados
->>>>>>> 23e8a940afaddaa7bf552ddc3a93d92140b2b2d0
     $usuario_digitado = trim($_POST['username'] ?? ''); 
     $senha_digitada = $_POST['password'] ?? '';
 
@@ -57,11 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['papel_id'] = $usuario['papel_id']; 
                 
                 // ------------------------------------------------------------------
-<<<<<<< HEAD
                 // 6. BUSCAR E DEFINIR O ID DO FUNCIONÁRIO (para módulos como PDV).
-=======
-                // 6. BUSCAR E DEFINIR O ID DO FUNCIONÁRIO PARA O PDV
->>>>>>> 23e8a940afaddaa7bf552ddc3a93d92140b2b2d0
                 // ------------------------------------------------------------------
                 
                 $sql_func = "SELECT id FROM funcionario WHERE usuario_id = ?";
@@ -111,15 +100,10 @@ exibir_html:
     <title>Login - PetShop</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<<<<<<< HEAD
      <style>
         /* CSS para estilização de layout, cores e tema Pet Shop */
         
         /* Fundo com Patinhas (Marca D'água) */
-=======
-       <style>
-         
->>>>>>> 23e8a940afaddaa7bf552ddc3a93d92140b2b2d0
         body {
             background-color: #FAFAF5; 
             display: flex;
