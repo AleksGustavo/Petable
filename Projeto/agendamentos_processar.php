@@ -1,8 +1,5 @@
 <?php
-// Arquivo: agendamento_processar.php
-// Lida com as operações de CRUD (Criar, Editar, Deletar) para Agendamentos.
 
-// Presume que conexao.php fornece a variável $pdo (PDO)
 require_once 'conexao.php'; 
 
 header('Content-Type: application/json');
@@ -23,8 +20,8 @@ try {
         
         $pet_id = (int)($_POST['pet_id'] ?? 0);
         $servico_id = (int)($_POST['servico_id'] ?? 0); 
-        $data_agendamento = $_POST['data_agendamento'] ?? ''; // YYYY-MM-DD
-        $hora_agendamento = $_POST['hora_agendamento'] ?? ''; // HH:MM
+        $data_agendamento = $_POST['data_agendamento'] ?? ''; 
+        $hora_agendamento = $_POST['hora_agendamento'] ?? ''; 
         $observacoes = $_POST['observacoes'] ?? '';
         
         if ($pet_id === 0 || $servico_id === 0 || empty($data_agendamento) || empty($hora_agendamento)) {

@@ -1,7 +1,4 @@
 <?php
-// Arquivo: perfil_processar_dados.php
-// CORRIGIDO PARA ATUALIZAR NOME, DATA DE NASCIMENTO E SEXO NA TABELA 'funcionario'
-
 session_start();
 require_once 'conexao.php';
 
@@ -15,10 +12,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit();
 }
 
-$id_usuario = $_POST['id_usuario'] ?? null; // ID da tabela usuario (FK em funcionario)
+$id_usuario = $_POST['id_usuario'] ?? null; 
 $nome = $_POST['nome'] ?? '';
 $sobrenome = $_POST['sobrenome'] ?? '';
-// Agora estes campos existem no banco de dados e serão processados
 $data_nascimento = $_POST['data_nascimento'] ?? null; 
 $sexo = $_POST['sexo'] ?? null; 
 
@@ -37,20 +33,18 @@ if (isset($conexao)) {
     $sql_update = "UPDATE funcionario SET nome = ?, data_nascimento = ?, sexo = ? WHERE usuario_id = ?";
     
     if ($stmt = mysqli_prepare($conexao, $sql_update)) {
-        // Tipos: s (nome), s (data_nascimento), s (sexo), i (usuario_id)
+        
         mysqli_stmt_bind_param($stmt, "sssi", $nome_completo_final, $data_nascimento, $sexo, $id_usuario);
         
         if (mysqli_stmt_execute($stmt)) {
             
-            // Verifica se alguma linha foi realmente afetada
             if (mysqli_stmt_affected_rows($stmt) > 0) {
                 $response['sucesso'] = true;
                 $response['mensagem'] = 'Seus dados (Nome, Nascimento e Sexo) foram atualizados com sucesso!';
                 
-                // Atualizar a sessão para refletir a mudança no nome completo
                 $_SESSION['nome_completo'] = $nome_completo_final;
             } else {
-                 $response['sucesso'] = true; // Considere sucesso se não houve alteração
+                 $response['sucesso'] = true; 
                  $response['mensagem'] = 'Nenhuma alteração de dados detectada ou usuário não encontrado.';
             }
             

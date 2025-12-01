@@ -19,8 +19,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // =========================================================================
     // 1. COLETAR E VALIDAR PARÂMETROS
     // =========================================================================
+    
+    // O ID do agendamento vem via POST
     $agendamento_id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
-    $acao = filter_input(INPUT_POST, 'acao', FILTER_SANITIZE_STRING);
+    
+    // A AÇÃO vem na URL (GET) e precisa ser lida daqui.
+    $acao = filter_input(INPUT_GET, 'acao', FILTER_SANITIZE_STRING); // <-- CORREÇÃO CRÍTICA AQUI!
 
     if (!$agendamento_id || !is_numeric($agendamento_id) || empty($acao)) {
         $response['mensagem'] = '<div class="alert alert-danger">Parâmetros inválidos. ID do agendamento ou Ação não fornecida.</div>';
@@ -85,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } else if ($stmt) {
              // Erro de execução
-            $response['mensagem'] = '<div class="alert alert-danger">Erro ao executar a operação: ' . mysqli_error($conexao) . '</div>';
+             $response['mensagem'] = '<div class="alert alert-danger">Erro ao executar a operação: ' . mysqli_error($conexao) . '</div>';
         }
         
         // Fecha o statement

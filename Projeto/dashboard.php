@@ -8,7 +8,6 @@ if (!isset($_SESSION['logado']) || $_SESSION['logado'] !== true) {
 
 $usuario_logado = htmlspecialchars($_SESSION['usuario']);
 
-// NOVO: Define a página atual para ser usada no PHP e JS
 $pagina_atual = $_GET['p'] ?? 'home.php'; 
 ?>
 
@@ -24,13 +23,11 @@ $pagina_atual = $_GET['p'] ?? 'home.php';
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     
 <style>
-/* GARANTE QUE O SCROLL FUNCIONE CORRETAMENTE NA JANELA */
 html, body {
     height: 100%;
     overflow-x: hidden;
     margin: 0;
     
-    /* Fundo Principal (body) com as patinhas */
     background-color: #FAFAF5; 
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="%23EFEFEA" d="M 50 20 L 70 30 L 60 50 L 80 60 L 60 70 L 40 60 L 50 80 L 30 70 L 40 50 L 20 60 L 30 30 Z M 50 20 C 45 15, 55 15, 50 20 Z M 35 35 C 30 30, 40 30, 35 35 Z M 65 35 C 60 30, 70 30, 65 35 Z M 35 65 C 30 60, 40 60, 35 65 Z M 65 65 C 60 60, 70 60, 65 65 Z"/></svg>');
     background-size: 80px; 
@@ -40,7 +37,7 @@ html, body {
 
 .sidebar {
     min-height: 100vh;
-    background-color: #3E2723; /* Marrom Profundo */
+    background-color: #3E2723; 
     color: white;
     padding-top: 20px;
     position: sticky; 
@@ -76,7 +73,6 @@ html, body {
     padding-top: 0 !important;
 }
 
-/* Estilo Compacto para Formulários Grandes (Mantido) */
 .main-compact-card {
     padding: 0.5rem !important;
     background-color: #fff;
@@ -99,7 +95,6 @@ html, body {
     margin-bottom: 0.75rem !important;
 }
 
-/* Garante que a coluna main se estenda */
 main {
     padding-bottom: 50px; 
 }
@@ -239,13 +234,12 @@ main {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
 <script>
-    // FUNÇÃO QUE APLICA AS MÁSCARAS E VALIDAÇÕES (Chamada após cada carregamento AJAX)
     function inicializarMascarasEValidacoes() {
         
-        // 1. Aplicação das Máscaras (jQuery Mask Plugin)
+        
         $('.mask-cpf').mask('000.000.000-00');
         
-        // Máscara de Telefone/Celular (Admite 8 ou 9 dígitos no meio)
+        
         var MaskBehavior = function (val) {
             return val.replace(/\D/g, '').length === 11 ? '(00) 00000-0000' : '(00) 0000-00009';
         },
@@ -259,28 +253,28 @@ main {
         $('.mask-cep').mask('00000-000');
 
 
-        // 2. Restrições de Input (Apenas Números ou Apenas Letras)
+        
         $(document).on('keydown', '.input-numbers-only', function (e) {
-            // Permitir backspace, delete, tab, escape, enter, ctrl/meta (Cmd) e setas
+            
             if ($.inArray(e.keyCode, [46, 8, 9, 27, 13, 65]) !== -1 ||
                 (e.ctrlKey === true || e.metaKey === true) || 
                 (e.keyCode >= 35 && e.keyCode <= 40)) {
                     return;
             }
-            // Garante que é um número (teclas 0-9 normais e do numpad)
+            
             if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
                 e.preventDefault();
             }
         });
 
-        // Apenas letras e espaço
+        
         $(document).on('keypress', '.input-letters-only', function (e) {
             var charCode = (e.which) ? e.which : e.keyCode;
-            // Validação mais estrita para letras, espaço e caracteres latinos (acentos comuns, ç)
+            
             var isValid = (charCode >= 65 && charCode <= 90) || 
-                          (charCode >= 97 && charCode <= 122) || 
-                          charCode === 32 || 
-                          (charCode > 192);
+                               (charCode >= 97 && charCode <= 122) || 
+                               charCode === 32 || 
+                               (charCode > 192);
             
             if (!isValid) {
                 e.preventDefault();
@@ -289,38 +283,37 @@ main {
     }
 
     
-    // FUNÇÃO DE NAVEGAÇÃO AJUSTADA PARA USAR O HISTÓRICO
     function carregarConteudo(pagina, pushHistory = true) {
-        // Oculta o conteúdo atual e mostra o loader
+        
         $('#conteudo-dinamico').html('<div class="text-center mt-5"><i class="fas fa-spinner fa-spin fa-3x text-primary"></i><p class="mt-2 text-muted">Carregando...</p></div>');
         
-        // Faz a requisição AJAX
+        
         $.ajax({
             url: pagina, 
             type: 'GET',
             success: function(data) {
-                // Insere o HTML retornado (o conteúdo da página)
+                
                 $('#conteudo-dinamico').html(data);
 
-                // Chama a função de inicialização APÓS o novo HTML ser injetado.
+                
                 inicializarMascarasEValidacoes(); 
                 
-                // ATUALIZA O HISTÓRICO DO NAVEGADOR
+                
                 if (pushHistory) {
-                    // Refinamento no título para ficar mais legível
+                    
                     let tituloBase = 'Gerenciamento';
                     let paginaFormatada = pagina.replace('.php', '').split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
                     let titulo = `${tituloBase} - ${paginaFormatada}`;
                     
                     history.pushState({pagina: pagina}, titulo, `?p=${pagina}`);
-                    document.title = titulo; // Atualiza o título
+                    document.title = titulo; 
                 }
                 
-                // Atualiza o estado "active" do menu lateral
+                
                 $('.nav-link[data-pagina]').removeClass('active');
                 $(`.nav-link[data-pagina="${pagina}"]`).addClass('active');
 
-                // Garante que o dropdown correto está expandido (se a página for um subitem)
+                
                 const $activeLink = $(`.nav-link[data-pagina="${pagina}"]`);
                 const $parentCollapse = $activeLink.closest('.collapse');
                 if ($parentCollapse.length) {
@@ -329,7 +322,7 @@ main {
                 }
             },
             error: function(xhr, status, error) {
-                // Em caso de erro
+                
                 $('#conteudo-dinamico').html('<div class="alert alert-danger">Erro ao carregar o conteúdo da página ' + pagina + '. Status: ' + xhr.status + ' (' + status + ')</div>');
                 console.error("Erro no AJAX de Navegação:", status, error, xhr.responseText);
             }
@@ -339,10 +332,10 @@ main {
     $(document).ready(function() {
         
         const urlParams = new URLSearchParams(window.location.search);
-        // Usa a variável PHP para consistência (embora o JS a redefina logo abaixo)
+        
         const paginaInicial = urlParams.get('p') || 'home.php'; 
 
-        // 1. LÓGICA DE NAVEGAÇÃO POR MENU (DELEGAÇÃO)
+        
         $(document).on('click', '.item-menu-ajax', function(e) {
             e.preventDefault(); 
             
@@ -354,7 +347,7 @@ main {
             }
         });
 
-        // 2. LÓGICA DE ENVIO DE FORMULÁRIOS DE CADASTRO/PROCESSAMENTO
+        
         $(document).on('submit', '#form-cadastro-cliente, #form-cadastro-produto, #form-cadastro-pet, #form-agendar-servico, #form-registrar-vacina, #form-pdv', function(e) {
             e.preventDefault(); 
             
@@ -405,13 +398,13 @@ main {
             });
         });
 
-        // 3. LÓGICA DE BUSCA RÁPIDA DE CLIENTES (Mantida)
+        
         $(document).on('submit', '#form-busca-cliente-rapida', function(e) {
             e.preventDefault(); 
-            // ... (restante do código de busca de clientes) ...
+            
         });
 
-        // 4. MONITORA O BOTÃO VOLTAR/AVANÇAR (API HISTORY)
+        
         window.onpopstate = function(event) {
             if (event.state && event.state.pagina) {
                 carregarConteudo(event.state.pagina, false); 
@@ -420,74 +413,75 @@ main {
             }
         };
 
-        // 5. LÓGICA DE LISTAR TODOS OS CLIENTES (Mantida)
+        
         $(document).on('click', '#btn-listar-todos-clientes', function(e) {
             e.preventDefault(); 
-            // ... (restante do código de listar todos os clientes) ...
+            
         });
         
-        // 6. LÓGICA DE ESCONDER CLIENTES (Mantida)
+        
         $(document).on('click', '#btn-esconder-clientes', function(e) {
             e.preventDefault(); 
-            // ... (restante do código de esconder clientes) ...
+            
         });
 
-        // 7. LÓGICA DE EXCLUSÃO DE CLIENTES (Mantida)
+        
         $(document).on('click', '.btn-excluir-cliente', function(e) {
             e.preventDefault(); 
-            // ... (restante do código de exclusão de clientes) ...
+            
         });
         
-        // LÓGICA DE BUSCA RÁPIDA DE PRODUTOS (Mantida)
+        
         $(document).on('submit', '#form-busca-produto-rapida', function(e) {
             e.preventDefault(); 
-            // ... (restante do código de busca de produtos) ...
+            
         });
         
-        // LÓGICA DE EXCLUSÃO DE PRODUTO VIA AJAX (Mantida)
+        
         $(document).on('click', '.btn-excluir-produto', function(e) {
             e.preventDefault(); 
             e.stopPropagation(); 
-            // ... (restante do código de exclusão de produtos) ...
+            
         });
 
-        // LÓGICA DE LISTAR TODOS OS PRODUTOS (Mantida)
+        
         $(document).on('click', '#btn-listar-todos-produtos', function(e) {
             e.preventDefault();
-            // ... (restante do código de listar todos os produtos) ...
+            
         });
 
-        // LÓGICA DE ESCONDER/MOSTRAR TODOS OS PRODUTOS (Mantida)
+        
         $(document).on('click', '#btn-esconder-produtos', function(e) {
             e.preventDefault();
-            // ... (restante do código de esconder produtos) ...
+            
         });
         
-        // =========================================================================
-        // 8. LÓGICA DE GERENCIAMENTO DE AGENDAMENTOS (Listagem)
-        //    CRÍTICO: Mova TODO O JAVASCRIPT DE servicos_agendamentos_listar.php 
-        //    para este bloco. Substitua 'window.location.reload()' por 
-        //    'carregarConteudo("servicos_agendamentos_listar.php")'.
-        // =========================================================================
-
-        // A. Lógica para Filtrar Agendamentos (Formulário)
+        
+        
+        
+        
+        
+        
+        
+        
+        
         $(document).on('submit', '#filter-form', function(e) {
             e.preventDefault(); 
             
             var form = $(this);
             var dados = form.serialize();
-            const agendamentosContentArea = $('#agendamentos-content'); // A área que contém a tabela
+            const agendamentosContentArea = $('#agendamentos-content'); 
 
             agendamentosContentArea.html('<div class="text-center mt-4"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i><p class="mt-2 text-muted">Aplicando filtro...</p></div>');
 
             $.ajax({
                 type: 'GET',
-                // O filtro deve enviar os dados de volta para o próprio arquivo de listagem
+                
                 url: 'servicos_agendamentos_listar.php', 
                 data: dados,
                 dataType: 'html', 
                 success: function(data) {
-                    // O data deve conter APENAS o HTML da tabela/lista filtrada
+                    
                     agendamentosContentArea.html(data);
                 },
                 error: function(xhr) {
@@ -497,17 +491,16 @@ main {
         });
 
 
-        // B. Lógica de Ações (Finalizar/Cancelar/Deletar)
-        // Use uma classe unificada para todos os botões de ação na tabela de agendamentos
+        
         $(document).on('click', '.btn-processar-agendamento', function(e) {
             e.preventDefault(); 
             
             var $this = $(this);
             var id = $this.data('id'); 
-            var acao = $this.data('acao'); // 'finalizar', 'cancelar', 'deletar'
+            var acao = $this.data('acao'); 
             var confirmMessage = '';
             
-            // ... (Lógica de Confirmação)
+            
             if (acao === 'deletar') {
                  confirmMessage = 'Tem certeza que deseja DELETAR (excluir permanentemente) o Agendamento ID ' + id + '?';
             } else if (acao === 'finalizar') {
@@ -515,22 +508,23 @@ main {
             } else if (acao === 'cancelar') {
                  confirmMessage = 'Tem certeza que deseja CANCELAR o Agendamento ID ' + id + '?';
             } else {
-                return; // Ação inválida
+                return; 
             }
-            // ------------------------------------
+            
 
             if (confirm(confirmMessage)) {
                 $('#status-message-area').html('<div class="alert alert-info text-center"><i class="fas fa-spinner fa-spin me-2"></i> Processando ' + acao + '...</div>');
 
                 $.ajax({
-                    url: 'agendamento_processar.php', // Seu script PHP que lida com as ações
+                    url: 'agendamento_processar.php', 
                     type: 'POST',
                     dataType: 'json',
                     data: { id: id, acao: acao }, 
                     success: function(response) {
                         if (response.success) {
                             $('#status-message-area').html('<div class="alert alert-success">' + response.message + '</div>');
-                            // CRÍTICO: Recarrega a página de listagem via AJAX, não o browser
+                            
+                            
                             setTimeout(function() { 
                                  carregarConteudo('servicos_agendamentos_listar.php'); 
                             }, 1000); 
@@ -545,9 +539,9 @@ main {
             }
         });
         
-        // C. Lógica para Ocultar/Mostrar Concluídos (Se existir no seu HTML)
+        
         $(document).on('click', '#toggle-concluidos', function() {
-            // Se você usar uma classe 'status-concluido' nas linhas da tabela (<tr>)
+            
             const $rowsConcluidas = $('#agendamentos-content').find('tr.status-concluido');
             const $button = $(this);
             
@@ -561,7 +555,7 @@ main {
         });
 
 
-        // CARREGA O CONTEÚDO INICIAL
+        
         carregarConteudo(paginaInicial, false); 
     });
 </script>

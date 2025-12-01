@@ -1,14 +1,12 @@
 <?php
-// Arquivo: pets_carteira_vacinas.php - Exibe e gerencia o histórico de vacinas
-require_once 'conexao.php'; // Garante a conexão com o banco de dados
+require_once 'conexao.php';
 
 $pet_id = filter_input(INPUT_GET, 'pet_id', FILTER_VALIDATE_INT);
-$pet_info = ['nome' => 'Pet Desconhecido', 'cliente_nome' => '', 'cliente_id' => 0]; // Inicializando cliente_id
+$pet_info = ['nome' => 'Pet Desconhecido', 'cliente_nome' => '', 'cliente_id' => 0];
 $vacinas = [];
 
 if (isset($conexao) && $conexao && $pet_id) {
     try {
-        // 1. Obter informações básicas do Pet e Cliente
         $sql_info = "SELECT p.nome, c.nome AS cliente_nome, c.id AS cliente_id
                      FROM pet p
                      JOIN cliente c ON p.cliente_id = c.id
@@ -17,7 +15,7 @@ if (isset($conexao) && $conexao && $pet_id) {
         mysqli_stmt_bind_param($stmt_info, "i", $pet_id);
         mysqli_stmt_execute($stmt_info);
         $result_info = mysqli_stmt_get_result($stmt_info);
-        $pet_info_temp = mysqli_fetch_assoc($result_info); // Use uma variável temporária
+        $pet_info_temp = mysqli_fetch_assoc($result_info);
         mysqli_stmt_close($stmt_info);
 
         if ($pet_info_temp) {
@@ -27,7 +25,6 @@ if (isset($conexao) && $conexao && $pet_id) {
              exit();
         }
 
-        // 2. Obter o histórico de vacinas
         $sql_vacinas = "SELECT * FROM carteira_vacina WHERE pet_id = ? ORDER BY data_aplicacao DESC";
         $stmt_vacinas = mysqli_prepare($conexao, $sql_vacinas);
         mysqli_stmt_bind_param($stmt_vacinas, "i", $pet_id);
@@ -89,7 +86,7 @@ if (isset($conexao) && $conexao && $pet_id) {
                             <?php 
                                 if (!empty($v['data_proxima']) && $v['data_proxima'] !== '0000-00-00') {
                                     $data_prox = date('d/m/Y', strtotime($v['data_proxima']));
-                                    // Destacar se a próxima dose estiver atrasada ou próxima
+                                    
                                     if (strtotime($v['data_proxima']) < time()) {
                                         echo '<span class="badge bg-danger">Vencida: ' . $data_prox . '</span>';
                                     } elseif (strtotime($v['data_proxima']) < strtotime('+30 days')) {
@@ -155,54 +152,40 @@ if (isset($conexao) && $conexao && $pet_id) {
 
 <script>
 $(document).ready(function() {
-    // 1. Interceptar o envio do formulário do modal
     $('#form-add-vacina').on('submit', function(e) {
-        e.preventDefault(); // <-- Impede o envio tradicional (que causaria a tela preta de JSON)
+        e.preventDefault();
 
         var form = $(this);
         var url = form.attr('action');
         var data = form.serialize(); 
 
-        // Captura e desabilita o botão, mostrando um loader
         var btn = $('#btn-salvar-vacina');
         var original_text = btn.html();
 
         btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Salvando...');
 
-        // 2. Envio AJAX
         $.ajax({
-            type: 'POST', // O método POST deve ser explícito
+            type: 'POST',
             url: url,
             data: data,
-            dataType: 'json', // Espera uma resposta JSON
+            dataType: 'json',
             success: function(response) {
-                // 3. Tratamento da Resposta
                 if (response.success) {
                     
-                    // Notificação de Sucesso (usando alert simples ou SweetAlert se tiver)
                     alert('SUCESSO! ' + response.message); 
                     
-                    // Oculta o modal do Bootstrap
                     $('#modalAdicionarVacina').modal('hide');
                     
-                    // Recarrega a página para exibir o novo registro na tabela
-                    // Se você usa a função `carregarConteudo` (como sugerido em pets_detalhes.php), 
-                    // substitua a linha abaixo por:
-                    // carregarConteudo('pets_carteira_vacinas.php?pet_id=<?php echo $pet_id; ?>'); 
                     window.location.reload(); 
 
                 } else {
-                    // Notificação de Erro
                     alert('ERRO! ' + response.message);
                 }
             },
             error: function(xhr, status, error) {
-                // Erro na requisição AJAX
                 alert('Erro de comunicação com o servidor. Status: ' + status + '. Tente novamente.');
             },
             complete: function() {
-                // 4. Finalização
-                // Reabilita o botão
                 btn.prop('disabled', false).html(original_text);
             }
         });

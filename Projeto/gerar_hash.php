@@ -1,7 +1,7 @@
 <?php
 // Arquivo temporário: gerar_hash.php
 
-$senha_texto_simples = '@ADMMARCOS'; // **ATENÇÃO: MUDE ESTA SENHA!**
+$senha_texto_simples = '@ADMMARCOS'; 
 
 // Gera o hash BCRYPT, o mesmo método usado no seu registrar.php
 $hash_seguro = password_hash($senha_texto_simples, PASSWORD_DEFAULT);

@@ -1,7 +1,5 @@
 <?php
 // Arquivo: clientes_cadastro.php
-// Objetivo: Formulário para cadastrar novo cliente.
-// Apenas o conteúdo HTML que será injetado pelo AJAX.
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -58,7 +56,6 @@
                     <select class="form-control" id="uf" name="uf"> <option value="">Selecione o Estado</option>
                         
                         <?php
-                        // Lista padrão dos estados brasileiros (Pode estar em um array no seu PHP)
                         $estados = [
                             'AC' => 'Acre', 'AL' => 'Alagoas', 'AP' => 'Amapá', 'AM' => 'Amazonas', 
                             'BA' => 'Bahia', 'CE' => 'Ceará', 'DF' => 'Distrito Federal', 'ES' => 'Espírito Santo', 
@@ -69,8 +66,7 @@
                             'SP' => 'São Paulo', 'SE' => 'Sergipe', 'TO' => 'Tocantins'
                         ];
                         
-                        // Assume-se que a variável $cliente_uf armazena o estado atual do banco (ex: 'SP')
-                        $estado_selecionado = $cliente['uf'] ?? ''; // Troque $cliente['uf'] pela sua variável real
+                        $estado_selecionado = $cliente['uf'] ?? ''; 
                         
                         foreach ($estados as $uf => $nome) {
                             $selected = ($uf === $estado_selecionado) ? 'selected' : '';
@@ -136,17 +132,13 @@
         const cepFeedback = document.getElementById('cep-feedback');
         const form = document.getElementById('form-cadastro-cliente');
 
-        // --- 1. Validação de CPF (Algoritmo de Luhn) ---
-        
-        // Função de Validação do CPF (Retorna true ou false)
         function validarCPF(cpf) {
-            cpf = cpf.replace(/[^\d]/g, ''); // Remove caracteres não numéricos
-            if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false; // 11 dígitos e evita sequências repetidas
+            cpf = cpf.replace(/[^\d]/g, '');
+            if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
 
             let soma = 0;
             let resto;
 
-            // Validação do 1º dígito verificador
             for (let i = 1; i <= 9; i++) {
                 soma += parseInt(cpf.substring(i - 1, i)) * (11 - i);
             }
@@ -155,7 +147,6 @@
             if (resto !== parseInt(cpf.substring(9, 10))) return false;
 
             soma = 0;
-            // Validação do 2º dígito verificador
             for (let i = 1; i <= 10; i++) {
                 soma += parseInt(cpf.substring(i - 1, i)) * (12 - i);
             }
@@ -170,7 +161,7 @@
             const cpfValue = cpfInput.value;
             const isCpfValid = validarCPF(cpfValue);
 
-            if (cpfValue.length === 14) { // Só valida se estiver completo (máscara)
+            if (cpfValue.length === 14) {
                 if (isCpfValid) {
                     cpfInput.classList.remove('is-invalid');
                     cpfInput.classList.add('is-valid');
@@ -188,43 +179,36 @@
         cpfInput.addEventListener('change', checkCpfValidity);
 
 
-        // --- 2. API de Busca de CEP (ViaCEP) - AJUSTADA PARA SER OPCIONAL ---
-
         function clearAddressFields() {
             ruaInput.value = "";
             bairroInput.value = "";
             ufInput.value = "";
-            // Não limpa o número, pois o usuário pode ter preenchido manualmente antes.
         }
 
         function fillAddressFields(data) {
             ruaInput.value = data.logradouro;
             bairroInput.value = data.bairro;
             ufInput.value = data.uf;
-            numeroInput.focus(); // Foca no campo de número após preencher
+            numeroInput.focus();
         }
 
         function searchCep() {
-            const cepValue = cepInput.value.replace(/\D/g, ''); // Remove formatação
+            const cepValue = cepInput.value.replace(/\D/g, '');
 
-            // Se o campo CEP estiver vazio, sai da função sem erro, pois é opcional.
             if (cepValue.length === 0) {
-                 clearAddressFields(); // Limpa os campos de endereço se o CEP for apagado
+                 clearAddressFields();
                  cepInput.classList.remove('is-valid', 'is-invalid');
                  return;
             }
 
             if (cepValue.length !== 8) {
-                // Se não tiver 8 dígitos, não tenta buscar, mas também não dá erro, pois é opcional.
                 cepInput.classList.remove('is-valid', 'is-invalid');
                 return;
             }
 
-            // Exibe indicador de carregamento (opcional, mas recomendado)
             cepInput.classList.remove('is-valid', 'is-invalid');
             cepInput.disabled = true;
 
-            // Limpa campos para evitar dados antigos, mas mantém o número digitado
             clearAddressFields();
 
             fetch(`https://viacep.com.br/ws/${cepValue}/json/`)
@@ -235,7 +219,6 @@
                         cepInput.classList.add('is-valid');
                         cepInput.classList.remove('is-invalid');
                     } else {
-                        // CEP não encontrado
                         cepInput.classList.add('is-invalid');
                         cepFeedback.textContent = "CEP não encontrado. Digite o endereço manualmente.";
                     }
@@ -250,29 +233,22 @@
                 });
         }
 
-        // Adiciona o evento de busca ao perder o foco (blur) no campo CEP
         cepInput.addEventListener('blur', searchCep);
         
-        // --- 3. Prevenção de envio se o CPF for inválido ---
-        
         form.addEventListener('submit', function(e) {
-            // A validação do CPF permanece obrigatória.
             if (!validarCPF(cpfInput.value)) {
                 e.preventDefault();
                 cpfInput.classList.add('is-invalid');
                 alert('Por favor, corrija o CPF. Ele é obrigatório e precisa ser válido.');
                 cpfInput.focus();
             }
-            // A validação do CEP é menos crítica, mas a API já ajuda a guiar o usuário
         });
         
-        // No caso de dados preenchidos previamente (ex: erro de server-side), verifica o CPF
         if(cpfInput.value) {
             checkCpfValidity();
         }
     });
 
-    // --- Funções de Máscara (Mantidas) ---
     document.querySelectorAll('.mask-cpf').forEach(input => {
         input.addEventListener('input', function(e) {
             let value = e.target.value.replace(/\D/g, '');

@@ -1,5 +1,4 @@
 <?php
-// Arquivo: relatorios_detalhe_venda.php
 
 require_once 'conexao.php'; 
 
@@ -10,9 +9,6 @@ $erro = null;
 
 if ($venda_id > 0) {
     try {
-        // ----------------------------------------------------
-        // 1. Busca os detalhes da Venda principal
-        // ----------------------------------------------------
         $sql_detalhe = "
             SELECT 
                 v.*,
@@ -32,10 +28,6 @@ if ($venda_id > 0) {
         $detalhes_venda = $stmt_detalhe->fetch(PDO::FETCH_ASSOC);
 
         if ($detalhes_venda) {
-            // ----------------------------------------------------
-            // 2. Busca os ITENS da Venda
-            // ----------------------------------------------------
-            // Junta item_venda com produto OU serviço (aproveitando as colunas corrigidas)
             $sql_itens = "
                 SELECT 
                     iv.quantidade,
@@ -70,7 +62,6 @@ if ($venda_id > 0) {
     $erro = "ID da venda inválido.";
 }
 
-// Funções de formatação (copiadas do listar)
 function formatarMoeda($valor) {
     return 'R$ ' . number_format($valor, 2, ',', '.');
 }

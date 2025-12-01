@@ -4,7 +4,10 @@
 // Inicia a sessão para gerenciamento do estado do usuário.
 session_start(); 
 
+<<<<<<< HEAD
 // Inclui o arquivo de conexão PDO ($pdo).
+=======
+>>>>>>> 23e8a940afaddaa7bf552ddc3a93d92140b2b2d0
 require_once 'conexao.php'; 
 
 // Inicializa variáveis de controle de status e sucesso.
@@ -21,7 +24,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         goto exibir_html; // Salta para a exibição do HTML se houver falha na conexão.
     }
     
+<<<<<<< HEAD
     // 2. Coletar e limpar dados: Coleta e remove espaços em branco do nome de usuário, e coleta a senha.
+=======
+    // 2. Coletar e limpar dados
+>>>>>>> 23e8a940afaddaa7bf552ddc3a93d92140b2b2d0
     $usuario_digitado = trim($_POST['username'] ?? ''); 
     $senha_digitada = $_POST['password'] ?? '';
 
@@ -50,7 +57,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['papel_id'] = $usuario['papel_id']; 
                 
                 // ------------------------------------------------------------------
+<<<<<<< HEAD
                 // 6. BUSCAR E DEFINIR O ID DO FUNCIONÁRIO (para módulos como PDV).
+=======
+                // 6. BUSCAR E DEFINIR O ID DO FUNCIONÁRIO PARA O PDV
+>>>>>>> 23e8a940afaddaa7bf552ddc3a93d92140b2b2d0
                 // ------------------------------------------------------------------
                 
                 $sql_func = "SELECT id FROM funcionario WHERE usuario_id = ?";
@@ -100,38 +111,39 @@ exibir_html:
     <title>Login - PetShop</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<<<<<<< HEAD
      <style>
         /* CSS para estilização de layout, cores e tema Pet Shop */
         
         /* Fundo com Patinhas (Marca D'água) */
+=======
+       <style>
+         
+>>>>>>> 23e8a940afaddaa7bf552ddc3a93d92140b2b2d0
         body {
-            /* Bege Aconchegante */
             background-color: #FAFAF5; 
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             
-            /* Efeito Patinhas Sutil (via CSS) */
             background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="%23EFEFEA" d="M 50 20 L 70 30 L 60 50 L 80 60 L 60 70 L 40 60 L 50 80 L 30 70 L 40 50 L 20 60 L 30 30 Z M 50 20 C 45 15, 55 15, 50 20 Z M 35 35 C 30 30, 40 30, 35 35 Z M 65 35 C 60 30, 70 30, 65 35 Z M 35 65 C 30 60, 40 60, 35 65 Z M 65 65 C 60 60, 70 60, 65 65 Z"/></svg>');
-            background-size: 80px; /* Tamanho da patinha */
+            background-size: 80px; 
             background-repeat: repeat;
-            opacity: 0.9; /* Deixa o fundo opaco */
+            opacity: 0.9; 
         }
 
-        /* Card de Login */
         .login-card {
             max-width: 400px; 
             width: 90%; 
             padding: 2rem;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15); /* Sombra mais destacada */
-            background-color: #fff; /* Fundo branco para contraste */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15); 
+            background-color: #fff; 
             border-radius: 10px;
         }
 
-        /* Botão Primário (Marrom Caramelo) */
         .btn-primary, .login-btn {
-            background-color: #964B00 !important; /* Marrom Caramelo */
+            background-color: #964B00 !important; 
             border-color: #964B00 !important;
             font-weight: bold;
             letter-spacing: 0.5px;
@@ -139,11 +151,10 @@ exibir_html:
         }
 
         .btn-primary:hover, .login-btn:hover {
-            background-color: #703600 !important; /* Marrom mais escuro no hover */
+            background-color: #703600 !important; 
             border-color: #604d3cff !important;
         }
         
-        /* Detalhe da Logo */
         .logo-borda {
              border: 3px solid #964B00 !important;
         }
@@ -176,7 +187,7 @@ exibir_html:
                              alt="Logo PetShop" 
                              class="img-fluid rounded-circle mb-3 logo-borda" 
                              style="max-width: 120px;"> 
-                              
+                             
                     <h2 class="card-title">Acesso PetShop</h2> 
                 </div>
 

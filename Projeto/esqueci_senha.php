@@ -2,7 +2,8 @@
 // Arquivo: esqueci_senha.php
 
 session_start();
-require_once 'conexao.php'; // Inclui a conexão PDO ($pdo)
+require_once 'conexao.php'; 
+$pdo = $conexao; 
 
 $mensagem_status = "";
 
@@ -31,32 +32,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($usuario) {
             // 2. Gerar Token Único e Tempo de Expiração (Ex: 1 hora)
             $token = bin2hex(random_bytes(32)); 
-            $expira = date("Y-m-d H:i:s", time() + 3600); // Expira em 1 hora
+            $expira = date("Y-m-d H:i:s", time() + 3600); 
             $usuario_id = $usuario['id'];
             
-            // 3. Salvar Token no Banco de Dados (Será necessário criar esta tabela/colunas)
+            // 3. Salvar Token no Banco de Dados 
             // Assumindo que você tem as colunas 'token_senha' e 'token_expira' na tabela 'usuario'.
-            // Você pode criar uma tabela separada para tokens se preferir, mas vamos usar a tabela 'usuario' para simplicidade.
             $sql_token = "UPDATE usuario SET token_senha = ?, token_expira = ? WHERE id = ?";
             $stmt_token = $pdo->prepare($sql_token);
             $stmt_token->execute([$token, $expira, $usuario_id]);
 
             // 4. Montar o Link de Redefinição
-            // ATENÇÃO: Use o domínio real do seu site aqui!
             $link_redefinicao = "http://localhost/PHP_PI/redefinir_senha.php?token=" . $token;
 
-            // 5. SIMULAÇÃO DE ENVIO DE E-MAIL (Em ambiente real, use PHPMailer ou similar)
+            // 5. SIMULAÇÃO DE ENVIO DE E-MAIL 
             $mensagem_status = "<div class='alert alert-success'>";
             $mensagem_status .= "Se o e-mail estiver cadastrado, um link de redefinição foi enviado. ";
             $mensagem_status .= "Verifique sua caixa de entrada (e spam).";
             $mensagem_status .= "</div>";
             
-            // --- CÓDIGO DE DEBUG (Remova em produção) ---
+            // --- CÓDIGO DE DEBUG ---
             $mensagem_status .= "<p class='text-danger small'>DEBUG: Link de Redefinição (Clique AQUI para testar localmente): <a href='{$link_redefinicao}'>$link_redefinicao</a></p>";
             // ------------------------------------------
 
-            // NOTA: Para segurança, sempre retorne a mesma mensagem (sucesso ou falha)
-            // para evitar que um atacante descubra quais e-mails estão cadastrados.
+            // NOTA: Para segurança, sempre retorne a mesma mensagem 
 
         } else {
             $mensagem_status = "<div class='alert alert-success'>Se o e-mail estiver cadastrado, um link de redefinição foi enviado. Verifique sua caixa de entrada (e spam).</div>";
@@ -78,45 +76,35 @@ exibir_html:
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
-    /* TEMA PET SHOP: Bege Aconchegante e Marrom Caramelo */
-    
-    /* Fundo com Patinhas (Marca D'água) */
     body {
-        /* Bege Aconchegante */
         background-color: #FAFAF5; 
         display: flex;
         justify-content: center;
         align-items: center;
         height: 100vh;
         
-        /* Efeito Patinhas Sutil (via CSS) */
         background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="%23EFEFEA" d="M 50 20 L 70 30 L 60 50 L 80 60 L 60 70 L 40 60 L 50 80 L 30 70 L 40 50 L 20 60 L 30 30 Z M 50 20 C 45 15, 55 15, 50 20 Z M 35 35 C 30 30, 40 30, 35 35 Z M 65 35 C 60 30, 70 30, 65 35 Z M 35 65 C 30 60, 40 60, 35 65 Z M 65 65 C 60 60, 70 60, 65 65 Z"/></svg>');
-        background-size: 80px; /* Tamanho da patinha */
+        background-size: 80px; 
         background-repeat: repeat;
-        opacity: 0.9; /* Deixa o fundo opaco */
+        opacity: 0.9; 
     }
 
-    /* Card de Login - AJUSTADO PARA MAIOR TAMANHO */
     .login-card {
-        /* Aumentado para 750px */
-        max-width: **500px**; 
+        max-width: 500px; 
         width: 30%; 
-        /* Aumentado para 550px */
-        min-height: **550px**; 
+        min-height: 550px; 
         padding: 2rem;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.15); /* Sombra mais destacada */
-        background-color: #fff; /* Fundo branco para contraste */
+        box-shadow: 0 4px 15px rgba(0,0,0,0.15); 
+        background-color: #fff; 
         border-radius: 10px;
     }
     
-    /* === AJUSTE PARA CENTRALIZAR O TEXTO DENTRO DOS ALERTAS === */
     .login-card .alert {
         text-align: center;
     }
 
-    /* Botão Primário (Marrom Caramelo) */
     .btn-primary, .login-btn {
-        background-color: #964B00 !important; /* Marrom Caramelo */
+        background-color: #964B00 !important; 
         border-color: #964B00 !important;
         font-weight: bold;
         letter-spacing: 0.5px;
@@ -124,11 +112,10 @@ exibir_html:
     }
 
     .btn-primary:hover, .login-btn:hover {
-        background-color: #703600 !important; /* Marrom mais escuro no hover */
+        background-color: #703600 !important; 
         border-color: #604d3cff !important;
     }
     
-    /* Detalhe da Logo */
     .logo-borda {
         border: 3px solid #964B00 !important;
     }
@@ -141,11 +128,11 @@ exibir_html:
 
             <div class="text-center mb-4">
                     <img src="Logo.jpeg" 
-                         alt="Logo PetShop" 
-                         class="img-fluid rounded-circle mb-3 logo-borda" 
-                         style="max-width: 120px;"> 
-                         
-                  
+                             alt="Logo PetShop" 
+                             class="img-fluid rounded-circle mb-3 logo-borda" 
+                             style="max-width: 120px;"> 
+                             
+                    
                 </div>
 
             

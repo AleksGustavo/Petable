@@ -2,10 +2,10 @@
 // Arquivo: editar_perfil_processar.php
 
 session_start();
-require_once 'conexao.php'; // Inclui a conexão
-$pdo = $conexao; // Assume que $conexao é o PDO
+require_once 'conexao.php'; 
+$pdo = $conexao; 
 
-header('Content-Type: application/json'); // Responde em JSON
+header('Content-Type: application/json'); 
 
 $response = ['sucesso' => false, 'mensagem' => ''];
 
@@ -46,15 +46,15 @@ $nome_completo = $primeiro_nome . ' ' . $sobrenome;
 
 // 3. Atualização no Banco de Dados (Tabela funcionario)
 $sql = "UPDATE funcionario 
-        SET nome = ?, 
-            data_nascimento = ?, 
-            telefone = ?, 
-            cep = ?, 
-            rua = ?, 
-            bairro = ?, 
-            numero = ?, 
-            complemento = ?
-        WHERE usuario_id = ?";
+         SET nome = ?, 
+             data_nascimento = ?, 
+             telefone = ?, 
+             cep = ?, 
+             rua = ?, 
+             bairro = ?, 
+             numero = ?, 
+             complemento = ?
+         WHERE usuario_id = ?";
         
 try {
     $stmt = $pdo->prepare($sql);
@@ -77,8 +77,8 @@ try {
         $response['mensagem'] = 'Nenhuma alteração foi salva ou erro ao executar a atualização.';
     }
 } catch (PDOException $e) {
-    // Em caso de erro, por exemplo, CPF já existente (embora CPF não esteja sendo alterado, é bom ter)
-    if ($e->getCode() == 23000) { // Código de erro de violação de restrição de integridade
+    
+    if ($e->getCode() == 23000) { 
         $response['mensagem'] = 'Erro: Os dados inseridos (ex: telefone) já existem no sistema.';
     } else {
         $response['mensagem'] = 'Erro fatal ao salvar: ' . $e->getMessage();

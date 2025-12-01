@@ -1,7 +1,4 @@
 <?php
-// Arquivo: pets_editar.php
-// Objetivo: Formulário para editar as informações de um pet existente.
-
 require_once 'conexao.php'; 
 
 $pet_id = $_GET['id'] ?? null;
@@ -10,15 +7,7 @@ $especies = [];
 $racas = [];
 $nome_cliente = 'Cliente Não Encontrado';
 
-// ==================================================================================
-// CONFIGURAÇÃO DE CAMINHOS WEB: AJUSTADO PARA GARANTIR CAMINHO RELATIVO NO FRONT-END
-// ==================================================================================
-// REMOVIDO: $BASE_PATH = 'PHP_PI'; 
-// Acessa o diretório de uploads a partir da raiz do projeto ou caminho relativo
 $URL_UPLOADS = 'uploads/fotos_pets/'; 
-// Se o seu servidor exige o prefixo, use: $URL_UPLOADS = '/PHP_PI/uploads/fotos_pets/'; 
-// Mas para o PHP encontrar o arquivo no disco, geralmente um caminho relativo basta.
-// ==================================================================================
 
 if (!$pet_id) {
     echo '<div class="alert alert-danger">ID do Pet não fornecido para edição.</div>';
@@ -26,7 +15,6 @@ if (!$pet_id) {
 }
 
 try {
-    // 1. Carrega os dados do Pet - AGORA COM P.PORTE DEFINITIVO NA QUERY
     $stmt_pet = $pdo->prepare("
         SELECT 
             p.id, p.cliente_id, p.nome, p.data_nascimento, p.peso, p.castrado, p.vacinado, 
@@ -45,10 +33,8 @@ try {
     }
     
     $nome_cliente = htmlspecialchars($pet['nome_cliente']);
-    // Garante que o porte seja lido corretamente ou seja string vazia
     $porte_atual = $pet['porte'] ?? ''; 
 
-    // 2. Busca lista de espécies e raças
     $stmt_especies = $pdo->query("SELECT id, nome FROM especie ORDER BY nome ASC");
     $especies = $stmt_especies->fetchAll(PDO::FETCH_ASSOC);
 
@@ -185,29 +171,22 @@ try {
 
 <script>
 $(document).ready(function() {
-    // Lógica para controle de visibilidade e obrigatoriedade do campo 'Porte'
     function togglePorteField() {
-        // ASSUNÇÃO: O ID da Espécie "Cachorro" é 1. (Mantenha este ID consistente com seu BD!)
         const especieId = $('#especie_id').val();
         const porteRow = $('#pet-porte-row');
         const porteSelect = $('#porte');
 
-        // Note: Se o ID da sua espécie "Cachorro" for outro (ex: '2'), mude o '1' abaixo.
         if (especieId === '1') { 
-            // Se for Cachorro, torna o campo visível e habilitado.
             porteRow.show();
             porteSelect.prop('disabled', false);
         } else {
-            // Para outras espécies, esconde e desabilita.
             porteRow.hide();
             porteSelect.prop('disabled', true);
         }
     }
 
-    // Aplica a lógica quando a espécie muda
     $('#especie_id').on('change', togglePorteField); 
     
-    // Aplica a lógica na inicialização para exibir o estado correto do pet atual
     togglePorteField(); 
 });
 </script>

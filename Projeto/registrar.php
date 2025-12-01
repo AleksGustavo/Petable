@@ -1,22 +1,14 @@
 <?php
-// Arquivo: registrar.php
-
 session_start();
 require_once 'conexao.php';
 
-// ------------------------------------------------------------------
-// BLOCO DE VERIFICAÇÃO DE SEGURANÇA CORRIGIDO
-// Garante que a permissão de ADM só vale por 5 minutos (ou pelo tempo definido).
-// ------------------------------------------------------------------
 $acesso_liberado = false;
 
 if (isset($_SESSION['admin_pode_registrar']) && $_SESSION['admin_pode_registrar'] === true) {
     
-    // 1. Verifica se a sessão e o tempo de permissão existem E se ainda não expirou
     if (isset($_SESSION['admin_auth_time']) && time() < $_SESSION['admin_auth_time']) {
         $acesso_liberado = true;
     } else {
-        // 2. Se a sessão expirou ou não existe o tempo, limpamos a permissão
         unset($_SESSION['admin_pode_registrar']);
         unset($_SESSION['admin_auth_time']);
     }
@@ -24,15 +16,12 @@ if (isset($_SESSION['admin_pode_registrar']) && $_SESSION['admin_pode_registrar'
 
 
 if (!$acesso_liberado) {
-    // Se o acesso NÃO ESTÁ liberado, bloqueia a execução.
     
-    // Se for uma tentativa de POST (registro) sem a sessão de ADM, bloqueia e exibe erro.
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mensagem_status = "<h4 class='text-danger'>Acesso negado. A sessão de SuperAdmin expirou ou é inválida. Tente o login novamente.</h4>";
         goto exibir_html; 
     }
     
-    // Se for requisição GET (carregamento inicial), exibe a tela de bloqueio e finaliza o script.
     header('Content-Type: text/html'); 
     ?>
     <!DOCTYPE html>
@@ -42,37 +31,29 @@ if (!$acesso_liberado) {
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
            <style>
-        /* TEMA PET SHOP: Bege Aconchegante e Marrom Caramelo */
-        
-        /* Fundo com Patinhas (Marca D'água) */
         body {
-            /* Bege Aconchegante */
             background-color: #FAFAF5; 
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            
-            /* Efeito Patinhas Sutil (via CSS) */
             background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="%23EFEFEA" d="M 50 20 L 70 30 L 60 50 L 80 60 L 60 70 L 40 60 L 50 80 L 30 70 L 40 50 L 20 60 L 30 30 Z M 50 20 C 45 15, 55 15, 50 20 Z M 35 35 C 30 30, 40 30, 35 35 Z M 65 35 C 60 30, 70 30, 65 35 Z M 35 65 C 30 60, 40 60, 35 65 Z M 65 65 C 60 60, 70 60, 65 65 Z"/></svg>');
-            background-size: 80px; /* Tamanho da patinha */
+            background-size: 80px; 
             background-repeat: repeat;
-            opacity: 0.9; /* Deixa o fundo opaco */
+            opacity: 0.9;
         }
 
-        /* Card de Login */
         .login-card {
             max-width: 400px; 
             width: 90%; 
             padding: 2rem;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15); /* Sombra mais destacada */
-            background-color: #fff; /* Fundo branco para contraste */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15); 
+            background-color: #fff; 
             border-radius: 10px;
         }
 
-        /* Botão Primário (Marrom Caramelo) */
         .btn-primary, .login-btn {
-            background-color: #964B00 !important; /* Marrom Caramelo */
+            background-color: #964B00 !important; 
             border-color: #964B00 !important;
             font-weight: bold;
             letter-spacing: 0.5px;
@@ -80,11 +61,10 @@ if (!$acesso_liberado) {
         }
 
         .btn-primary:hover, .login-btn:hover {
-            background-color: #703600 !important; /* Marrom mais escuro no hover */
+            background-color: #703600 !important; 
             border-color: #604d3cff !important;
         }
         
-        /* Detalhe da Logo */
         .logo-borda {
              border: 3px solid #964B00 !important;
         }
@@ -106,45 +86,36 @@ if (!$acesso_liberado) {
     </body>
     </html>
     <?php
-    exit; // INTERROMPE O SCRIPT AQUI
+    exit; 
 }
-// ------------------------------------------------------------------
-// FIM DO BLOQUEIO DE SEGURANÇA
-// ------------------------------------------------------------------
 
 
 $mensagem_status = "";
 $sucesso = false;
 
-// Regex para Senha Forte
 const REGEX_SENHA_FORTE = '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
-    // 1. VERIFICAÇÃO CRÍTICA DE CONEXÃO
     if (!isset($pdo)) {
         $mensagem_status = "<h4 class='text-danger'>Erro crítico: Falha na conexão com o banco de dados.</h4>";
         goto exibir_html; 
     }
     
-    // 2. Coletar e limpar os dados
     $usuario_novo = trim($_POST['username'] ?? '');
     $email_novo = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
     $senha_nova = $_POST['password'] ?? '';
     $senha_confirmar = $_POST['confirm_password'] ?? '';
     
-    // 3. Validação básica e de segurança da senha
     if (empty($usuario_novo) || empty($senha_nova) || empty($senha_confirmar) || $email_novo === false) {
         $mensagem_status = "<h4 class='text-danger'>Preencha todos os campos corretamente, incluindo um e-mail válido.</h4>";
     } elseif ($senha_nova !== $senha_confirmar) {
         $mensagem_status = "<h4 class='text-danger'>As senhas não coincidem.</h4>";
     } elseif (!preg_match(REGEX_SENHA_FORTE, $senha_nova)) {
-        // ESSA VALIDAÇÃO É MANTIDA POR SEGURANÇA (SERVER-SIDE)
         $mensagem_status = "<h4 class='text-danger'>A senha não atende aos requisitos mínimos de segurança (8 digitos, maiúscula, minúscula, número e caractere especial).</h4>";
     } else {
         
         try {
-            // 4. Verifica se o USUÁRIO ou o E-MAIL já existe
             $sql_check = "SELECT id FROM usuario WHERE usuario = ? OR email = ?";
             $stmt_check = $pdo->prepare($sql_check);
             $stmt_check->execute([$usuario_novo, $email_novo]);
@@ -153,11 +124,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $mensagem_status = "<h4 class='text-danger'>Usuário ou E-mail já existe. Escolha credenciais diferentes.</h4>";
             } else {
                 
-                // 5. Cria o hash seguro da senha (BCRYPT)
                 $hash_senha = password_hash($senha_nova, PASSWORD_DEFAULT);
                 
-                // 6. Insere o novo usuário (PDO)
-                $papel_id_padrao = 2; // Ex: 'FuncionarioVendas'
+                $papel_id_padrao = 2; 
 
                 $sql_insert = "INSERT INTO usuario (usuario, email, senha_hash, papel_id, ativo) 
                                      VALUES (?, ?, ?, ?, 1)";
@@ -175,14 +144,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $mensagem_status = "<h4 class='text-success'>✅ Cadastro efetuado com sucesso! Redirecionando para o login...</h4>";
                     $sucesso = true;
                     
-                    // ------------------------------------------------------------------
-                    // AÇÃO CORRETA: REMOVER A SESSÃO DE ADMIN IMEDIATAMENTE APÓS O SUCESSO
-                    // ------------------------------------------------------------------
                     if (isset($_SESSION['admin_pode_registrar'])) {
                         unset($_SESSION['admin_pode_registrar']); 
-                        unset($_SESSION['admin_auth_time']); // Limpa também o tempo
+                        unset($_SESSION['admin_auth_time']);
                     }
-                    // ------------------------------------------------------------------
                     
                     header("Refresh: 3; URL=login.php"); 
                     
@@ -198,7 +163,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 exibir_html: 
-// O restante do HTML SÓ é exibido se a verificação de segurança no topo passar.
 ?>
 
 <!DOCTYPE html>
@@ -212,21 +176,18 @@ exibir_html:
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     
     <style>
-        /* TEMA PET SHOP */
         body {
             background-color: #FAFAF5; 
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            /* Efeito Patinhas Sutil */
             background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="%23EFEFEA" d="M 50 20 L 70 30 L 60 50 L 80 60 L 60 70 L 40 60 L 50 80 L 30 70 L 40 50 L 20 60 L 30 30 Z M 50 20 C 45 15, 55 15, 50 20 Z M 35 35 C 30 30, 40 30, 35 35 Z M 65 35 C 60 30, 70 30, 65 35 Z M 35 65 C 30 60, 40 60, 35 65 Z M 65 65 C 60 60, 70 60, 65 65 Z"/></svg>');
             background-size: 80px;
             background-repeat: repeat;
             opacity: 0.9;
         }
 
-        /* Card de Login/Registro */
         .login-card {
             max-width: 450px; 
             width: 90%; 
@@ -236,7 +197,6 @@ exibir_html:
             border-radius: 10px;
         }
 
-        /* Botão Primário (Marrom Caramelo) */
         .btn-primary, .login-btn {
             background-color: #964B00 !important;
             border-color: #964B00 !important;
@@ -255,7 +215,6 @@ exibir_html:
              box-shadow: 0 0 10px rgba(121, 85, 72, 0.7);
         }
         
-        /* ESTILOS DO NOVO CARD DE VALIDAÇÃO DE SENHA (FLUTUANTE) */
         .password-validation-card {
             position: absolute;
             width: 100%; 
@@ -266,7 +225,6 @@ exibir_html:
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             z-index: 10;
             margin-top: 5px;
-            /* Esconder por padrão */
             display: none;
         }
 
@@ -277,16 +235,15 @@ exibir_html:
         }
 
         .check-item {
-            color: #dc3545; /* Vermelho (falhando) */
+            color: #dc3545; 
             transition: color 0.3s;
             margin-bottom: 2px;
         }
 
         .check-item.valid {
-            color: #198754; /* Verde (sucesso) */
+            color: #198754; 
         }
         
-        /* Estilo para o ícone de olho */
         .toggle-password {
             cursor: pointer;
         }
@@ -311,7 +268,7 @@ exibir_html:
                              alt="Logo PetShop" 
                              class="img-fluid rounded-circle mb-3 logo-borda" 
                              style="max-width: 120px;"> 
-                                 
+                                    
                     <h2 class="card-title">CRIAR CONTA</h2> 
                 </div>
 
@@ -319,18 +276,18 @@ exibir_html:
                     
                     <div class="mb-3 input-group">
                         <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
-                        <input type="text" name="username" class="form-control" placeholder="Escolha um Usuário" required value="<?php echo htmlspecialchars($usuario_novo ?? ''); // Manter valor preenchido ?>">
+                        <input type="text" name="username" class="form-control" placeholder="Escolha um Usuário" required value="<?php echo htmlspecialchars($usuario_novo ?? ''); ?>">
                     </div>
                     
                     <div class="mb-3 input-group">
                         <span class="input-group-text"><i class="fa-solid fa-envelope"></i></span>
-                        <input type="email" name="email" class="form-control" placeholder="Digite seu E-mail" required value="<?php echo htmlspecialchars($email_novo ?? ''); // Manter valor preenchido ?>">
+                        <input type="email" name="email" class="form-control" placeholder="Digite seu E-mail" required value="<?php echo htmlspecialchars($email_novo ?? ''); ?>">
                     </div>
 
                     <div class="mb-3" style="position: relative;">
                         <div class="input-group">
                             <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
-                            <input type="password" name="password" id="password" class="form-control" placeholder="Digite sua Senha" required value="<?php echo htmlspecialchars($senha_nova ?? ''); // Manter valor preenchido ?>">
+                            <input type="password" name="password" id="password" class="form-control" placeholder="Digite sua Senha" required value="<?php echo htmlspecialchars($senha_nova ?? ''); ?>">
                             <span class="input-group-text toggle-password" data-target="password">
                                 <i class="fa-solid fa-eye" id="togglePasswordIcon"></i>
                             </span>
@@ -361,7 +318,7 @@ exibir_html:
 
                     <div class="mb-3 input-group">
                         <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
-                        <input type="password" name="confirm_password" id="confirm_password" class="form-control" placeholder="Confirme a Senha" required value="<?php echo htmlspecialchars($senha_confirmar ?? ''); // Manter valor preenchido ?>">
+                        <input type="password" name="confirm_password" id="confirm_password" class="form-control" placeholder="Confirme a Senha" required value="<?php echo htmlspecialchars($senha_confirmar ?? ''); ?>">
                         <span class="input-group-text toggle-password" data-target="confirm_password">
                             <i class="fa-solid fa-eye" id="toggleConfirmIcon"></i>
                         </span>
@@ -390,20 +347,17 @@ exibir_html:
             const validationCard = document.getElementById('validationCard');
             const validationWarning = document.getElementById('validationWarning'); 
             
-            // Elementos do Checklist
             const checkLength = document.getElementById('check-length');
             const checkUpper = document.getElementById('check-upper');
             const checkLower = document.getElementById('check-lower');
             const checkNumber = document.getElementById('check-number');
             const checkSpecial = document.getElementById('check-special');
 
-            // Regex de validação para o Cliente (mesma lógica do PHP)
             const regexUpper = /[A-Z]/;
             const regexLower = /[a-z]/;
             const regexNumber = /[0-9]/;
             const regexSpecial = /[\W_]/; 
             
-            // Função de toggle de senha
             document.querySelectorAll('.toggle-password').forEach(toggle => {
                 toggle.addEventListener('click', function() {
                     const targetId = this.getAttribute('data-target');
@@ -425,13 +379,11 @@ exibir_html:
 
             function updateCheckItem(element, isValid) {
                 element.classList.toggle('valid', isValid);
-                // Mudar o ícone para check-circle ou times-circle
                 const iconClass = isValid ? 'fa-check-circle' : 'fa-times-circle';
                 const textContent = element.textContent.substring(element.textContent.indexOf(' ') + 1).trim();
                 element.innerHTML = `<i class="fas ${iconClass} me-1"></i> ${textContent}`;
             }
 
-            // Função principal de validação em tempo real
             function validatePassword() {
                 const senha = passwordInput.value;
                 
@@ -449,62 +401,51 @@ exibir_html:
                 
                 const isPasswordSecure = isLengthValid && isUpperValid && isLowerValid && isNumberValid && isSpecialValid;
                 
-                // Exibe ou oculta o aviso de falha na validação
                 validationWarning.style.display = isPasswordSecure ? 'none' : 'block';
                 
                 return isPasswordSecure;
             }
 
-            // EXIBIÇÃO FLUIDA DO CARD
             passwordInput.addEventListener('focus', function() {
                 validationCard.style.display = 'block';
-                validatePassword(); // Atualiza o status imediatamente
+                validatePassword(); 
             });
 
             passwordInput.addEventListener('blur', function() {
-                // Oculta o card se a senha estiver válida E o campo de confirmação não estiver focado
                 if (validatePassword() && document.activeElement !== confirmPasswordInput) {
                     validationCard.style.display = 'none';
                 }
             });
             
-            // Oculta o card se estiver visível e o foco for para a confirmação de senha
             confirmPasswordInput.addEventListener('focus', function() {
                 if (validationCard.style.display !== 'none') {
                     validationCard.style.display = 'none';
                 }
             });
 
-            // Evento de digitação na senha para feedback em tempo real
             passwordInput.addEventListener('keyup', validatePassword);
             passwordInput.addEventListener('change', validatePassword);
 
-            // Validação final ao tentar submeter o formulário (Regra Crítica)
             form.addEventListener('submit', function(e) {
                 const isPasswordSecure = validatePassword();
                 const senhasCoincidem = passwordInput.value === confirmPasswordInput.value;
                 
-                // 1. IMPEDE O SUBMIT se a senha não for segura (Atendendo ao Requisito Crítico)
                 if (!isPasswordSecure) {
                     alert('ERRO: A senha não atende a todos os requisitos de segurança. Por favor, verifique o checklist.');
-                    validationCard.style.display = 'block'; // Mostra o card
-                    passwordInput.focus(); // Retorna o foco para o campo de senha
+                    validationCard.style.display = 'block'; 
+                    passwordInput.focus(); 
                     e.preventDefault();
                     return;
                 }
                 
-                // 2. IMPEDE O SUBMIT se as senhas não coincidirem
                 if (!senhasCoincidem) {
                     alert('ERRO: As senhas digitadas não coincidem.');
-                    confirmPasswordInput.focus(); // Retorna o foco
+                    confirmPasswordInput.focus(); 
                     e.preventDefault();
                     return;
                 }
-                
-                // Se tudo OK, o formulário é enviado para o PHP
             });
             
-            // Chama a validação no carregamento para senhas que já vieram preenchidas do PHP (erro de server-side)
             if (passwordInput.value.length > 0) {
                  validatePassword();
             }

@@ -1,18 +1,9 @@
 <?php
-// Arquivo: relatorios_listar.php
 
-// ------------------------------------------------------------
-// 1. INCLUSÃO DA CONEXÃO
-// ------------------------------------------------------------
-// Garanta que 'conexao.php' inicializa a variável $pdo (PDO)
 require_once 'conexao.php'; 
 
-// ------------------------------------------------------------
-// 2. LÓGICA DE BUSCA DE VENDAS
-// ------------------------------------------------------------
 $vendas = [];
 try {
-    // Consulta SQL para listar as vendas com informações do cliente e funcionário
     $sql_vendas = "
         SELECT 
             v.id AS venda_id,
@@ -30,7 +21,7 @@ try {
             funcionario f ON v.funcionario_id = f.id
         ORDER BY 
             v.data_venda DESC
-        LIMIT 100 -- Limita para não sobrecarregar
+        LIMIT 100
     ";
     
     $stmt_vendas = $pdo->query($sql_vendas);
@@ -41,13 +32,11 @@ try {
     error_log($erro_bd);
 }
 
-// Formatação para exibição
 function formatarMoeda($valor) {
     return 'R$ ' . number_format($valor, 2, ',', '.');
 }
 
 function formatarData($data) {
-    // Converte de 'AAAA-MM-DD HH:MM:SS' para 'DD/MM/AAAA HH:MM'
     return (new DateTime($data))->format('d/m/Y H:i');
 }
 ?>
@@ -60,7 +49,6 @@ function formatarData($data) {
     <link href="caminho/para/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
-        /* Estilos básicos para a tabela */
         .table-vendas { font-size: 0.9rem; }
         .table-vendas th, .table-vendas td { vertical-align: middle; }
     </style>

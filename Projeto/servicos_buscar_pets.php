@@ -1,33 +1,28 @@
 <?php
-// Arquivo: servicos_buscar_pets.php
-// Objetivo: Retornar a lista de pets ativos de um cliente específico via AJAX.
 
-// 1. OBRIGATÓRIO: NENHUMA SAÍDA DEVE PRECEDER ESTA LINHA.
 header('Content-Type: application/json');
 
-// Inclui o arquivo de conexão.
 require_once 'conexao.php'; 
 
-// Verifica se a conexão está ativa (garantindo que conexao.php não falhou silenciosamente)
 if (empty($conexao)) {
     http_response_code(500);
     echo json_encode(['error' => 'Erro crítico: Conexão mysqli indisponível.']);
     exit;
 }
 
-// 2. Valida a entrada do cliente_id
 $cliente_id = filter_input(INPUT_GET, 'cliente_id', FILTER_VALIDATE_INT);
 
 if (!$cliente_id) {
-    // Retorna erro 400 se o parâmetro estiver faltando ou for inválido
     http_response_code(400);
     echo json_encode(['error' => 'ID do Cliente inválido ou ausente.']);
     exit;
 }
 
-// 3. Query para buscar pets do cliente (usando prepared statement mysqli)
-// As colunas id, nome e porte são essenciais.
-$sql_pets = "SELECT id, nome, porte FROM pet WHERE cliente_id = ? AND ativo = 1 ORDER BY nome ASC";
+$sql_pets = "SELECT p.id, p.nome, p.porte, r.nome AS raca_nome 
+             FROM pet p
+             LEFT JOIN raca r ON p.raca_id = r.id 
+             WHERE p.cliente_id = ? AND p.ativo = 1 
+             ORDER BY p.nome ASC";
 $stmt = mysqli_prepare($conexao, $sql_pets);
 
 if ($stmt) {
@@ -41,20 +36,15 @@ if ($stmt) {
         mysqli_stmt_close($stmt);
         mysqli_close($conexao);
 
-        // 4. Retorna os pets em formato JSON (SUCESSO)
         echo json_encode($pets);
     } else {
-        // Erro na execução da query
         http_response_code(500);
         echo json_encode(['error' => 'Erro ao executar a consulta no banco de dados.']);
         mysqli_stmt_close($stmt);
         mysqli_close($conexao);
     }
 } else {
-    // Erro na preparação da query
-    error_log("Erro MySQL na busca de pets: " . mysqli_error($conexao));
     http_response_code(500);
     echo json_encode(['error' => 'Erro interno na preparação da consulta.']);
     mysqli_close($conexao);
 }
-// NOTA IMPORTANTE: Este arquivo não deve ter a tag de fechamento ?>

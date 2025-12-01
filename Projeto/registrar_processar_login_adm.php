@@ -1,11 +1,7 @@
 <?php
-// Arquivo: registrar_processar_login_adm.php
-// Verifica se o usuário é um SuperAdmin (papel_id = 1) para liberar o registro.
-
 session_start();
-require_once 'conexao.php'; // Inclui sua conexão PDO ($pdo)
+require_once 'conexao.php';
 
-// Prepara para responder em JSON (obrigatório para o AJAX)
 header('Content-Type: application/json');
 $response = ['success' => false, 'message' => ''];
 
@@ -25,7 +21,6 @@ if (empty($usuario) || empty($senha_digitada)) {
 }
 
 try {
-    // Busca a senha_hash, verificando se o usuário está ativo E é um SuperAdmin (papel_id = 1)
     $sql = "SELECT senha_hash FROM usuario 
             WHERE usuario = ? AND ativo = 1 AND papel_id = 1";
     
@@ -36,37 +31,26 @@ try {
     if ($row) {
         $senha_hash = $row['senha_hash'];
         
-        // 1. Verifica a senha com BCRYPT
         if (password_verify($senha_digitada, $senha_hash)) {
-            
-            // SUCESSO! Define a sessão que libera o acesso ao registrar.php
+
             $_SESSION['admin_pode_registrar'] = true;
-            
-            // --------------------------------------------------------------
-            // CORREÇÃO CRÍTICA: ARMAZENA O TEMPO DE EXPIRAÇÃO (5 minutos)
-            // Isso impede que o registrar.php bloqueie o acesso logo após o login.
-            // --------------------------------------------------------------
-            $limite_segundos = 300; // 5 minutos * 60 segundos
+
+            $limite_segundos = 300;
             $_SESSION['admin_auth_time'] = time() + $limite_segundos;
-            // --------------------------------------------------------------
-            
+
             $response['success'] = true;
             $response['message'] = "Acesso concedido. Formulário de registro liberado.";
             
         } else {
-            // Senha incorreta
             $response['message'] = "Acesso Negado! Senha incorreta.";
         }
     } else {
-        // Usuário não encontrado ou não é SuperAdmin
         $response['message'] = "Acesso Negado! Credenciais ou permissões insuficientes.";
     }
 
 } catch (PDOException $e) {
-    // Erro no banco de dados
     $response['message'] = "Erro interno do sistema na autenticação: " . $e->getMessage();
 }
 
 echo json_encode($response);
 exit();
-?>
