@@ -1,65 +1,69 @@
 <?php
 // Arquivo: login.php (Versão PDO - Login Apenas por Usuário e Senha)
 
+// Inicia a sessão para gerenciamento do estado do usuário.
 session_start(); 
 
-require_once 'conexao.php'; // Inclui a conexão PDO ($pdo)
+// Inclui o arquivo de conexão PDO ($pdo).
+require_once 'conexao.php'; 
 
+// Inicializa variáveis de controle de status e sucesso.
 $mensagem_status = "";
 $sucesso = false;
 
 
+// Verifica se o formulário foi submetido via método POST.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
-    // 1. VERIFICAÇÃO CRÍTICA DE CONEXÃO
+    // 1. VERIFICAÇÃO CRÍTICA DE CONEXÃO: Verifica se a variável $pdo (conexão) foi estabelecida.
     if (!isset($pdo)) {
         $mensagem_status = "<h2 class='text-danger'>Erro crítico: Falha na conexão com o banco de dados.</h2>";
-        goto exibir_html;
+        goto exibir_html; // Salta para a exibição do HTML se houver falha na conexão.
     }
     
-    // 2. Coletar e limpar dados
-    $usuario_digitado = trim($_POST['username'] ?? ''); // Coleta APENAS o usuário
+    // 2. Coletar e limpar dados: Coleta e remove espaços em branco do nome de usuário, e coleta a senha.
+    $usuario_digitado = trim($_POST['username'] ?? ''); 
     $senha_digitada = $_POST['password'] ?? '';
 
-    // 3. Consulta Segura
+    // 3. Consulta Segura: Prepara a query para buscar o usuário ativo pelo nome.
     $sql = "SELECT id, usuario, email, senha_hash, papel_id FROM usuario 
             WHERE usuario = ? AND ativo = 1";
     
     try {
         $stmt = $pdo->prepare($sql);
-        // EXECUÇÃO: Passa APENAS o usuário como parâmetro
+        // EXECUÇÃO: Executa a consulta, passando o usuário digitado como parâmetro.
         $stmt->execute([$usuario_digitado]);
         $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // 4. Verifica se o usuário existe e está ativo
+        // 4. Verifica se o usuário existe e está ativo.
         if ($usuario) {
             
             $hash_senha_bd = $usuario['senha_hash']; 
             
-            // 5. Verifica a senha com BCRYPT
+            // 5. Verifica a senha com BCRYPT: Compara a senha digitada com o hash armazenado de forma segura.
             if (password_verify($senha_digitada, $hash_senha_bd)) {
                 
-                // Sucesso no login
+                // Sucesso no login: Define as variáveis de sessão.
                 $_SESSION['logado'] = true;
                 $_SESSION['id_usuario'] = $usuario['id'];
                 $_SESSION['usuario'] = $usuario['usuario'];
                 $_SESSION['papel_id'] = $usuario['papel_id']; 
                 
                 // ------------------------------------------------------------------
-                // 6. [CORREÇÃO] BUSCAR E DEFINIR O ID DO FUNCIONÁRIO PARA O PDV
-                //    Isto é o que faltava para o 'vendas_processar.php' funcionar.
+                // 6. BUSCAR E DEFINIR O ID DO FUNCIONÁRIO (para módulos como PDV).
                 // ------------------------------------------------------------------
                 
                 $sql_func = "SELECT id FROM funcionario WHERE usuario_id = ?";
                 $stmt_func = $pdo->prepare($sql_func);
+                // Busca o ID do funcionário associado ao ID do usuário logado.
                 $stmt_func->execute([$_SESSION['id_usuario']]); 
                 $funcionario_detalhes = $stmt_func->fetch(PDO::FETCH_ASSOC);
 
                 if ($funcionario_detalhes) {
-                    // Armazena o ID da tabela 'funcionario'
+                    // Armazena o ID da tabela 'funcionario' na sessão.
                     $_SESSION['id_funcionario'] = $funcionario_detalhes['id']; 
                 } else {
-                    // Se o usuário logado não tiver um perfil de funcionário na tabela, define como 0
+                    // Define como 0 se não houver perfil de funcionário associado.
                     $_SESSION['id_funcionario'] = 0; 
                 }
                 
@@ -68,21 +72,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $mensagem_status = "<h2 class='text-success'>Login efetuado com sucesso!</h2>";
                 $sucesso = true;
                 
-                // Redireciona para o dashboard.php
+                // Redireciona para o dashboard após 2 segundos.
                 header('Refresh: 2; URL=dashboard.php'); 
                 
             } else {
-                // Senha incorreta
+                // Senha incorreta: Exibe mensagem de erro genérica.
                 $mensagem_status = "<div class='alert alert-danger mt-3'>Usuário ou Senha incorretos.</div>";
             }
         } else {
-            // Usuário não encontrado ou inativo
+            // Usuário não encontrado ou inativo: Exibe mensagem de erro genérica.
             $mensagem_status = "<div class='alert alert-danger mt-3'>Usuário ou Senha incorretos.</div>";
         }
 
     } catch (PDOException $e) {
-        // Erro na consulta SQL
-        $mensagem_status = "<div class='alert alert-danger mt-3'>Erro interno: Falha ao tentar autenticar.</div>";
+        // Erro na consulta SQL: Exibe mensagem de erro interno.
+        $mensagem_status = "<div class='alert alert alert-danger mt-3'>Erro interno: Falha ao tentar autenticar.</div>";
     }
 }
 
@@ -97,7 +101,7 @@ exibir_html:
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
      <style>
-        /* TEMA PET SHOP: Bege Aconchegante e Marrom Caramelo */
+        /* CSS para estilização de layout, cores e tema Pet Shop */
         
         /* Fundo com Patinhas (Marca D'água) */
         body {
@@ -143,10 +147,15 @@ exibir_html:
         .logo-borda {
              border: 3px solid #964B00 !important;
         }
+        
+        /* Estilo para o ícone de mostrar/ocultar senha */
+        .toggle-password {
+            cursor: pointer;
+            user-select: none; /* Impede seleção de texto */
+        }
     </style>
 </head>
 <body>
-
     <div class="card login-card">
         <div class="card-body">
             
@@ -180,9 +189,12 @@ exibir_html:
                     
                     <div class="mb-3 input-group">
                         <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
-                        <input type="password" name="password" class="form-control" placeholder="Senha" required>
+                        <input type="password" name="password" id="passwordField" class="form-control" placeholder="Senha" required>
+                        
+                        <span class="input-group-text toggle-password" id="togglePassword">
+                            <i class="fas fa-eye"></i> 
+                        </span>
                     </div>
-
                     <button type="submit" class="btn btn-primary w-100 mt-2 login-btn">
                         <i class="fas fa-sign-in-alt me-2"></i> Entrar
                     </button>
@@ -197,5 +209,31 @@ exibir_html:
     </div> 
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Obtém a referência ao campo de senha pelo ID
+        const passwordField = document.getElementById('passwordField');
+        // Obtém a referência ao ícone de olho pelo ID
+        const togglePassword = document.getElementById('togglePassword');
+        // Obtém a referência ao elemento do ícone Font Awesome dentro do span
+        const toggleIcon = togglePassword.querySelector('i');
+
+        // Adiciona um listener de evento de clique ao ícone de olho
+        togglePassword.addEventListener('click', function () {
+            // Verifica o tipo atual do campo: se for 'password', muda para 'text'; se for 'text', volta para 'password'.
+            const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordField.setAttribute('type', type);
+
+            // Alterna o ícone: se a senha for visível (type='text'), mostra o olho riscado ('fa-eye-slash');
+            // caso contrário, mostra o olho normal ('fa-eye').
+            if (type === 'text') {
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
+            } else {
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
+            }
+        });
+    </script>
 </body>
 </html>
