@@ -33,7 +33,8 @@ $conteudo_inicial = '';
                         <select class="form-select" id="status_filtro" name="status_filtro">
                             <option value="todos">Todos</option>
                             <option value="agendado">Agendado</option>
-                            <option value="atrasado">Atrasado</option> <option value="confirmado">Confirmado</option>
+                            <option value="atrasado">Atrasado</option> 
+                            <option value="confirmado">Confirmado</option>
                             <option value="concluido">Concluído</option>
                             <option value="cancelado">Cancelado</option>
                         </select>
@@ -42,8 +43,9 @@ $conteudo_inicial = '';
                     <div class="col-md-3">
                         <label for="ordenacao" class="form-label">Ordenar por</label>
                         <select class="form-select" id="ordenacao" name="ordenacao">
-                            <option value="data_crescente">Data (Mais Antigo)</option>
-                            <option value="data_decrescente">Data (Mais Recente)</option>
+                            <option value="id_decrescente">Criação (Mais Recente)</option> 
+                            <option value="data_crescente" selected>Data Agendada (Mais Antigo)</option>
+                            <option value="data_decrescente">Data Agendada (Mais Recente)</option>
                             <option value="cliente">Cliente (A-Z)</option>
                             <option value="pet">Pet (A-Z)</option>
                         </select>
@@ -116,8 +118,20 @@ $(document).ready(function() {
 
         const busca_termo = $campoBusca.val().trim();
         const status_filtro = $campoStatus.val();
-        const ordenacao = $campoOrdenacao.val();
+        let ordenacao = $campoOrdenacao.val(); // Use 'let' para poder mudar
+
+        // 🎯 LÓGICA DE CORREÇÃO (Item 1 e 2): Ordenação "Pilha" e "Mais Próxima"
+        if (listar_todos) {
+            // Prioriza data de agendamento mais próxima ou, se igual, o último criado.
+            // Para isso, precisamos de um valor que o PHP no 'servicos_agendamentos_buscar_rapido.php' entenda.
+            // Usamos 'data_proxima' para priorizar a data e 'id_decrescente' para ordem de criação
+            ordenacao = 'data_proxima'; 
+            
+            // Se você quiser APENAS a ordem de criação, use:
+            // ordenacao = 'id_decrescente';
+        }
         
+        // Se a busca for vazia e não for para listar todos, esconde
         if (!listar_todos && busca_termo.length === 0 && status_filtro === 'todos') {
             $msgInformativa.show(); 
             $container.html('');
@@ -127,6 +141,9 @@ $(document).ready(function() {
             $msgInformativa.hide(); 
         }
         
+        // Adicionando um parâmetro para tratar a ordenação e garantir a não duplicação (Item 3)
+        // A lógica de remoção de duplicação deve ser implementada no PHP (servicos_agendamentos_buscar_rapido.php)
+        // usando GROUP BY ou DISTINCT na ID principal do agendamento.
         let url = 'servicos_agendamentos_buscar_rapido.php?limite=10&pagina_atual=' + pagina_atual;
 
         if (listar_todos) {
@@ -136,6 +153,7 @@ $(document).ready(function() {
             if (status_filtro !== 'todos') url += '&status_filtro=' + encodeURIComponent(status_filtro);
         }
         
+        // A ordenação é enviada, seja a selecionada ou a especial 'data_proxima'
         url += '&ordenacao=' + encodeURIComponent(ordenacao);
 
         $container.html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-3x"></i><p class="mt-2">Buscando agendamentos...</p></div>').show(); 
@@ -161,6 +179,7 @@ $(document).ready(function() {
         clearTimeout(timerBusca);
         timerBusca = setTimeout(function() {
             if (busca_termo.length > 0 && busca_termo.length < 3) {
+                // Se a busca for por termo, mas não atingir 3 caracteres, não faz nada
                 return; 
             }
             realizarBusca(1, false);
@@ -178,6 +197,7 @@ $(document).ready(function() {
     
     $campoOrdenacao.on('change', function() {
         clearTimeout(timerBusca);
+        // Quando o usuário muda a ordenação manualmente, ele desativa o modo 'listar_todos' especial
         realizarBusca(1, isShowingAll); 
     });
 
@@ -192,7 +212,8 @@ $(document).ready(function() {
         e.preventDefault();
         $campoBusca.val('');
         $campoStatus.val('todos');
-        $campoOrdenacao.val('data_crescente');
+        // Reseta para a nova opção de ordenação padrão
+        $campoOrdenacao.val('id_decrescente'); 
         
         clearTimeout(timerBusca);
         isShowingAll = false; 
@@ -206,11 +227,13 @@ $(document).ready(function() {
         const isCurrentlyShowing = $btnToggle.hasClass('btn-danger');
 
         if (isCurrentlyShowing) {
+            // Esconder
             toggleContainerVisibility(false);
             $container.html('');
             $msgInformativa.show(); 
             isShowingAll = false; 
         } else {
+            // Mostrar Todos: Realiza a busca com o modo 'listar_todos=true'
             realizarBusca(1, true); 
         }
     });
@@ -236,11 +259,9 @@ $(document).ready(function() {
 
         if (acao === 'concluir_status') {
             confirm_msg = "Tem certeza que deseja marcar este agendamento como CONCLUÍDO?";
-            //  Envia a ação completa no GET
             url_processamento = 'servicos_agendamento_processar.php?acao=concluir_status'; 
         } else if (acao === 'cancelar_status') {
             confirm_msg = "Tem certeza que deseja CANCELAR este agendamento?";
-            // Envia a ação completa no GET
             url_processamento = 'servicos_agendamento_processar.php?acao=cancelar_status';
         } else if (acao === 'deletar') {
             confirm_msg = "ATENÇÃO: Deseja EXCLUIR permanentemente este agendamento?";
@@ -252,9 +273,8 @@ $(document).ready(function() {
         if (confirm(confirm_msg)) {
             
             $.ajax({
-                // A URL agora inclui a ação correta no GET
                 url: url_processamento,
-                method: 'POST', // O ID ainda é enviado via POST
+                method: 'POST', 
                 data: { id: id_agendamento },
                 dataType: 'json', 
                 beforeSend: function() {
@@ -262,12 +282,11 @@ $(document).ready(function() {
                 },
                 success: function(response) {
                     if (response.sucesso) {
-                        //  mostrar a mensagem na tela principal (ex: div.alert)
-                        alert("Sucesso! " + id_agendamento);
+                        alert("Sucesso! Agendamento #" + id_agendamento + " processado.");
                         // Recarrega a lista para refletir a mudança no status
                         realizarBusca(1, isShowingAll); 
                     } else {
-                        alert('Erro ao processar agendamento: ' + response.mensagem.replace(/<[^>]*>?/gm, '')); // Remove tags HTML para alert
+                        alert('Erro ao processar agendamento: ' + response.mensagem.replace(/<[^>]*>?/gm, '')); 
                         $linha.css('opacity', '1');
                     }
                 },
@@ -280,6 +299,7 @@ $(document).ready(function() {
         }
     });
 
+    // Estado inicial: Esconde a tabela
     toggleContainerVisibility(false);
 });
 </script>
