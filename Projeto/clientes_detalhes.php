@@ -10,8 +10,8 @@ if (isset($conexao) && $conexao && $cliente_id) {
     try {
         
         $sql_cliente = "SELECT id, nome, cpf, telefone, email, rua, numero, bairro, cep, complemento, data_nascimento 
-                         FROM cliente
-                         WHERE id = ? AND ativo = 1";
+                             FROM cliente
+                             WHERE id = ? AND ativo = 1";
         $stmt_cliente = mysqli_prepare($conexao, $sql_cliente);
         mysqli_stmt_bind_param($stmt_cliente, "i", $cliente_id);
         mysqli_stmt_execute($stmt_cliente);
@@ -23,19 +23,19 @@ if (isset($conexao) && $conexao && $cliente_id) {
             
             
             $sql_pets = "SELECT 
-                            p.id, p.nome, p.data_nascimento, p.foto AS foto_path, 
-                            r.nome AS raca_nome,
-                            e.nome AS especie_nome 
-                          FROM 
-                            pet p
-                          LEFT JOIN 
-                            raca r ON p.raca_id = r.id
-                          LEFT JOIN
-                            especie e ON p.especie_id = e.id
-                          WHERE 
-                            p.cliente_id = ? 
-                          ORDER BY 
-                            p.nome ASC";
+                                 p.id, p.nome, p.data_nascimento, p.foto AS foto_path, 
+                                 r.nome AS raca_nome,
+                                 e.nome AS especie_nome 
+                              FROM 
+                                 pet p
+                              LEFT JOIN 
+                                 raca r ON p.raca_id = r.id
+                              LEFT JOIN
+                                 especie e ON p.especie_id = e.id
+                              WHERE 
+                                 p.cliente_id = ? 
+                              ORDER BY 
+                                 p.nome ASC";
                             
             $stmt_pets = mysqli_prepare($conexao, $sql_pets);
             mysqli_stmt_bind_param($stmt_pets, "i", $cliente_id);
@@ -50,7 +50,10 @@ if (isset($conexao) && $conexao && $cliente_id) {
         echo '<div class="alert alert-danger">Erro técnico: ' . $e->getMessage() . '</div>';
     }
     
-    if (isset($conexao)) mysqli_close($conexao);
+    // Tentativa de fechar a conexão se estiver aberta (depende do seu arquivo conexao.php)
+    // if (isset($conexao) && is_object($conexao) && method_exists($conexao, 'close')) mysqli_close($conexao);
+    // Nota: Como o arquivo original usava $pdo, mas aqui usa mysqli, mantenho a chamada mysqli_close.
+    if (isset($conexao) && $conexao) mysqli_close($conexao);
 }
 
 if (!$cliente) {
@@ -242,22 +245,29 @@ function get_pet_icon($especie_nome) {
                         </div>
 
                         <div class="d-grid gap-2">
-                            <a href="#" class="btn btn-sm btn-warning text-dark fw-bold item-menu-ajax" 
+                            <a href="#" class="btn btn-warning text-dark fw-bold item-menu-ajax" 
                                data-pagina="pets_carteira_vacinas.php?pet_id=<?php echo $pet['id']; ?>">
-                                 <i class="fas fa-syringe me-1"></i> Vacinas
+                                <i class="fas fa-syringe me-1"></i> Vacinas
                             </a>
                             
+                            <!--BOTÃO DE AGENDAMENTO -->
+                            <a href="#" class="btn btn-primary item-menu-ajax" 
+                               data-pagina="servicos_agendar_banhotosa.php?pet_id=<?php echo $pet['id']; ?>">
+                                <i class="fas fa-calendar-alt me-1"></i> Agendar
+                            </a>
+                            <!-- FIM NOVO BOTÃO -->
+
                             <div class="row g-2">
                                 <div class="col-6">
                                     <a href="#" class="btn btn-sm btn-outline-secondary w-100 item-menu-ajax" 
                                        data-pagina="pets_detalhes.php?id=<?php echo $pet['id']; ?>">
-                                         <i class="fas fa-eye"></i> Detalhes
+                                        <i class="fas fa-eye"></i> Detalhes
                                     </a>
                                 </div>
                                 <div class="col-6">
                                     <a href="#" class="btn btn-sm btn-outline-primary w-100 item-menu-ajax" 
                                        data-pagina="pets_editar.php?id=<?php echo $pet['id']; ?>">
-                                         <i class="fas fa-pencil-alt"></i> Editar
+                                        <i class="fas fa-pencil-alt"></i> Editar
                                     </a>
                                 </div>
                             </div>

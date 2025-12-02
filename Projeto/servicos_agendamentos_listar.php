@@ -236,11 +236,11 @@ $(document).ready(function() {
 
         if (acao === 'concluir_status') {
             confirm_msg = "Tem certeza que deseja marcar este agendamento como CONCLUÍDO?";
-            // CORRIGIDO: Envia a ação completa no GET
+            //  Envia a ação completa no GET
             url_processamento = 'servicos_agendamento_processar.php?acao=concluir_status'; 
         } else if (acao === 'cancelar_status') {
             confirm_msg = "Tem certeza que deseja CANCELAR este agendamento?";
-            // CORRIGIDO: Envia a ação completa no GET
+            // Envia a ação completa no GET
             url_processamento = 'servicos_agendamento_processar.php?acao=cancelar_status';
         } else if (acao === 'deletar') {
             confirm_msg = "ATENÇÃO: Deseja EXCLUIR permanentemente este agendamento?";
@@ -262,7 +262,7 @@ $(document).ready(function() {
                 },
                 success: function(response) {
                     if (response.sucesso) {
-                        // Você pode mostrar a mensagem na tela principal (ex: div.alert)
+                        //  mostrar a mensagem na tela principal (ex: div.alert)
                         alert("Sucesso! " + id_agendamento);
                         // Recarrega a lista para refletir a mudança no status
                         realizarBusca(1, isShowingAll); 

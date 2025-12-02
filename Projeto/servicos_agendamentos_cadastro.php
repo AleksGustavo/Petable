@@ -30,7 +30,7 @@ $types_servicos = str_repeat('i', count($all_servico_ids));
 if (!mysqli_stmt_bind_param($stmt_servicos, $types_servicos, ...$all_servico_ids)) {
     die("Erro ao vincular parâmetros para a busca de serviços: " . mysqli_stmt_error($stmt_servicos));
 }
-mysqli_stmt_execute($stmt_servicos); // CORREÇÃO: Execução garantida.
+mysqli_stmt_execute($stmt_servicos); // Execução garantida.
 $result_servicos = mysqli_stmt_get_result($stmt_servicos);
 $servicos_lista = mysqli_fetch_all($result_servicos, MYSQLI_ASSOC);
 mysqli_stmt_close($stmt_servicos);

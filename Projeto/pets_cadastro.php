@@ -1,18 +1,18 @@
 <?php
-require_once 'conexao.php'; 
+require_once 'conexao.php';
 
 $cliente_id_preselecionado = $_GET['cliente_id'] ?? null;
 $nome_cliente = 'Cliente Não Encontrado';
 $especies = [];
-$racas = [];
 
-$BASE_PATH = '/PHP_PI/'; 
-$URL_UPLOADS = $BASE_PATH . 'uploads/fotos_pets/'; 
-$URL_PLACEHOLDER = $BASE_PATH . 'assets/img/pet_placeholder.png'; 
+$BASE_PATH = '/PHP_PI/';
+$URL_UPLOADS = $BASE_PATH . 'uploads/fotos_pets/';
+$URL_PLACEHOLDER = $BASE_PATH . 'assets/img/pet_placeholder.png';
 
 try {
     
     if ($cliente_id_preselecionado) {
+        // Busca apenas clientes ativos
         $stmt_cliente = $pdo->prepare("SELECT nome FROM cliente WHERE id = ? AND ativo = 1");
         $stmt_cliente->execute([$cliente_id_preselecionado]);
         $cliente = $stmt_cliente->fetch(PDO::FETCH_ASSOC);
@@ -20,21 +20,18 @@ try {
         if ($cliente) {
             $nome_cliente = htmlspecialchars($cliente['nome']);
         } else {
-            $cliente_id_preselecionado = null; 
+            $cliente_id_preselecionado = null; // Cliente inválido ou inativo
         }
     }
 
+    // Carrega as espécies
     $stmt_especies = $pdo->query("SELECT id, nome FROM especie ORDER BY nome ASC");
     $especies = $stmt_especies->fetchAll(PDO::FETCH_ASSOC);
-
-    $stmt_racas = $pdo->query("SELECT id, nome FROM raca ORDER BY nome ASC");
-    $racas = $stmt_racas->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (PDOException $e) {
     error_log("Erro ao carregar dados essenciais para cadastro de pet: " . $e->getMessage());
     $nome_cliente = 'ERRO DE DB';
     $especies = [];
-    $racas = [];
 }
 ?>
 
@@ -88,11 +85,8 @@ try {
 
                 <div class="col-md-4 mb-3">
                     <label for="raca_id" class="form-label">Raça</label>
-                    <select id="raca_id" name="raca_id" class="form-select">
-                        <option value="">Selecione a Raça (Opcional)</option>
-                        <?php foreach ($racas as $r): ?>
-                            <option value="<?= $r['id'] ?>"><?= htmlspecialchars($r['nome']) ?></option>
-                        <?php endforeach; ?>
+                    <select id="raca_id" name="raca_id" class="form-select" disabled>
+                        <option value="">Selecione uma Espécie primeiro</option>
                     </select>
                 </div>
                 
@@ -148,26 +142,94 @@ try {
 
 <script>
 $(document).ready(function() {
-    $('#especie_id').on('change', function() {
-        // ASSUNÇÃO: O ID da Espécie "Cachorro" é 1.
-        const especieId = $(this).val();
-        const porteRow = $('#pet-porte-row');
-        const porteSelect = $('#porte');
+    const porteRow = $('#pet-porte-row');
+    const porteSelect = $('#porte');
+    const racaSelect = $('#raca_id');
+    const especieSelect = $('#especie_id');
 
+    // Funções para gerenciar o estado da Raça
+    function resetRacaSelect(initialText) {
+        racaSelect.empty().append($('<option>', {
+            value: '',
+            text: initialText
+        })).prop('disabled', true);
+    }
+    
+    // Inicializa o campo Raça
+    resetRacaSelect('Selecione uma Espécie primeiro');
+
+    especieSelect.on('change', function() {
+        const especieId = $(this).val();
+        
+        // ================================================================
+        // LÓGICA DE FILTRAGEM DE RAÇAS (AJAX)
+        // ================================================================
+        if (especieId) {
+            resetRacaSelect('Carregando...');
+            
+            $.ajax({
+                url: 'fetch_racas.php', // O arquivo que busca as raças no banco
+                type: 'GET',
+                data: { especie_id: especieId },
+                dataType: 'json',
+                success: function(racas) {
+                    racaSelect.empty().append($('<option>', {
+                        value: '',
+                        text: 'Selecione a Raça (Opcional)'
+                    }));
+                    
+                    if (racas.length > 0) {
+                        // Adiciona as raças retornadas
+                        $.each(racas, function(i, raca) {
+                            racaSelect.append($('<option>', {
+                                value: raca.id,
+                                text: raca.nome
+                            }));
+                        });
+                        racaSelect.prop('disabled', false);
+                    } else {
+                        racaSelect.empty().append($('<option>', {
+                            value: '',
+                            text: 'Nenhuma raça cadastrada para esta espécie'
+                        }));
+                        racaSelect.prop('disabled', true);
+                    }
+                },
+                error: function() {
+                    racaSelect.empty().append($('<option>', {
+                        value: '',
+                        text: 'Erro ao carregar raças. Tente novamente.'
+                    }));
+                    racaSelect.prop('disabled', true);
+                }
+            });
+        } else {
+            // Nenhuma espécie selecionada
+            resetRacaSelect('Selecione uma Espécie primeiro');
+        }
+        
+        // ================================================================
+        // LÓGICA DE PORTE (Para Cães - ID '1')
+        // ================================================================
+        
         if (especieId === '1') { 
             porteRow.show();
             porteSelect.prop('disabled', false);
             porteSelect.prop('required', true); 
         } else {
+            // Reseta e esconde o campo Porte se não for Cão
             porteRow.hide();
             porteSelect.val(''); 
             porteSelect.prop('disabled', true);
             porteSelect.prop('required', false);
         }
-    }).trigger('change'); 
+        
+    });
+
+    // Garante que os campos iniciem no estado correto
+    especieSelect.trigger('change'); 
 
 });
 </script>
-
 
 <?php endif; ?>
