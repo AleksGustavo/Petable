@@ -29,6 +29,7 @@ html, body {
     margin: 0;
     
     background-color: #FAFAF5; 
+    /* Manter a imagem de fundo */
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="%23EFEFEA" d="M 50 20 L 70 30 L 60 50 L 80 60 L 60 70 L 40 60 L 50 80 L 30 70 L 40 50 L 20 60 L 30 30 Z M 50 20 C 45 15, 55 15, 50 20 Z M 35 35 C 30 30, 40 30, 35 35 Z M 65 35 C 60 30, 70 30, 65 35 Z M 35 65 C 30 60, 40 60, 35 65 Z M 65 65 C 60 60, 70 60, 65 65 Z"/></svg>');
     background-size: 80px; 
     background-repeat: repeat;
@@ -36,14 +37,17 @@ html, body {
 }
 
 .sidebar {
-    min-height: 100vh;
+    /* Corrigir para 'position: fixed;' e 'left: 0;' para fixar a barra lateral e permitir o scroll no main */
+    position: fixed; 
+    top: 0; 
+    bottom: 0;
+    left: 0;
+    z-index: 100;
     background-color: #3E2723; 
     color: white;
     padding-top: 20px;
-    position: sticky; 
-    top: 0; 
-    z-index: 100;
-    height: 100%;
+    height: 100vh; /* Ocupa a altura total da viewport */
+    overflow-y: auto; /* Permite scroll se o menu for muito longo */
 }
     
 .nav-link {
@@ -98,6 +102,59 @@ html, body {
 main {
     padding-bottom: 50px; 
 }
+
+/* Estilos específicos de vendas_detalhes.php para consistência */
+:root {
+    --bs-primary: #0d6efd;
+    --bs-secondary: #6c757d;
+    --bs-success: #198754;
+    --bs-warning: #ffc107;
+    --bs-danger: #dc3545;
+}
+
+/* Estilo do Card Principal (semelhante ao card-cliente) */
+.card-venda-info { 
+    border-left: 5px solid var(--bs-primary); 
+    background-color: #f8f9fa; 
+}
+
+/* Estilos dos cabeçalhos dos cards */
+.card-header-primary {
+    background-color: var(--bs-primary) !important;
+    color: white !important;
+    font-weight: bold;
+}
+.card-header-secondary {
+    background-color: var(--bs-secondary) !important;
+    color: white !important;
+    font-weight: bold;
+}
+
+/* Estilização da Tabela de Itens */
+.table-itens { 
+    font-size: 0.9rem; 
+    --bs-table-hover-bg: #f3f4f6;
+}
+
+/* Destaque para o valor total */
+.total-box {
+    background-color: var(--bs-success);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 5px;
+    font-size: 1.25rem;
+    font-weight: bold;
+    text-align: right;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+    
+.badge-tipo {
+    font-size: 0.75rem;
+    padding: 0.4em 0.6em;
+    border-radius: 0.25rem;
+}
+/* Fim dos Estilos Específicos */
+
 </style>
 </head>
 <body>
@@ -105,7 +162,7 @@ main {
 <div class="container-fluid">
     <div class="row"> 
         
-        <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+        <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block sidebar">
             <div class="position-sticky pt-3">
                 <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 text-uppercase">
                     <span>Menu</span>
@@ -208,7 +265,7 @@ main {
             </div>
         </nav>
         
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+        <main class="col-md-9 ms-md-auto col-lg-10 px-md-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                 <h1 class="h2">Painel de Gerenciamento</h1>
                 <div class="btn-toolbar mb-2 mb-md-0">
@@ -254,6 +311,7 @@ main {
 
 
         
+        
         $(document).on('keydown', '.input-numbers-only', function (e) {
             
             if ($.inArray(e.keyCode, [46, 8, 9, 27, 13, 65]) !== -1 ||
@@ -272,9 +330,9 @@ main {
             var charCode = (e.which) ? e.which : e.keyCode;
             
             var isValid = (charCode >= 65 && charCode <= 90) || 
-                               (charCode >= 97 && charCode <= 122) || 
-                               charCode === 32 || 
-                               (charCode > 192);
+                                       (charCode >= 97 && charCode <= 122) || 
+                                       charCode === 32 || 
+                                       (charCode > 192);
             
             if (!isValid) {
                 e.preventDefault();
@@ -311,14 +369,21 @@ main {
                 
                 
                 $('.nav-link[data-pagina]').removeClass('active');
+                
+                // Ativa o link direto
                 $(`.nav-link[data-pagina="${pagina}"]`).addClass('active');
 
-                
+                // Garante que o menu pai esteja ativo e aberto (no caso de submenus)
                 const $activeLink = $(`.nav-link[data-pagina="${pagina}"]`);
                 const $parentCollapse = $activeLink.closest('.collapse');
                 if ($parentCollapse.length) {
                     const collapseInstance = bootstrap.Collapse.getOrCreateInstance($parentCollapse.get(0));
                     collapseInstance.show();
+                    // Ativa o link pai (dropdown-toggle)
+                    $parentCollapse.prev('.dropdown-toggle').addClass('active');
+                } else {
+                    // Desativa outros dropdown-toggle se não for um submenu
+                    $('.dropdown-toggle').removeClass('active');
                 }
             },
             error: function(xhr, status, error) {
@@ -465,6 +530,7 @@ main {
         
         
         
+        
         $(document).on('submit', '#filter-form', function(e) {
             e.preventDefault(); 
             
@@ -511,7 +577,7 @@ main {
                 return; 
             }
             
-
+            
             if (confirm(confirmMessage)) {
                 $('#status-message-area').html('<div class="alert alert-info text-center"><i class="fas fa-spinner fa-spin me-2"></i> Processando ' + acao + '...</div>');
 
@@ -523,6 +589,7 @@ main {
                     success: function(response) {
                         if (response.success) {
                             $('#status-message-area').html('<div class="alert alert-success">' + response.message + '</div>');
+                            
                             
                             
                             setTimeout(function() { 
@@ -555,7 +622,7 @@ main {
         });
 
 
-        
+        // CORREÇÃO: Chama a função para carregar o conteúdo inicial após o DOM estar pronto e os eventos configurados
         carregarConteudo(paginaInicial, false); 
     });
 </script>

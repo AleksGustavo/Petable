@@ -4,8 +4,8 @@
 $host = 'localhost'; 
 $user = 'root';
 $pass = ''; 
-$banco = 'pet_e_pet_db'; 
-$port = 3306; // Adicionado para uso opcional, mas essencial para o PDO DSN.
+$banco = 'petshop_db'; 
+$port = 3307; // Adicionado para uso opcional, mas essencial para o PDO DSN.
 
 // --- 1. CONEXÃO MySQLi 
 $conexao = @mysqli_connect($host, $user, $pass, $banco, $port); 
