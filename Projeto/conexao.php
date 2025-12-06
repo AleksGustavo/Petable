@@ -2,10 +2,10 @@
 // Arquivo: conexao.php - Conexão Dupla (MySQLi para $conexao e PDO para $pdo)
 
 $host = 'localhost'; 
-$user = 'u579326255_g5';
-$pass = '*8AcZp6dmS'; 
-$banco = 'u579326255_g5';  
-$port = 3307; // Adicionado para uso opcional, mas essencial para o PDO DSN.
+$user = 'root';
+$pass = ''; 
+$banco = 'petshop_db';  
+$port = 3306; // Adicionado para uso opcional, mas essencial para o PDO DSN.
 
 // --- 1. CONEXÃO MySQLi 
 $conexao = @mysqli_connect($host, $user, $pass, $banco, $port); 
