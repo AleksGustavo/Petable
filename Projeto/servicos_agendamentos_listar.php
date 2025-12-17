@@ -43,7 +43,7 @@ $conteudo_inicial = '';
                         <label for="ordenacao" class="form-label">Ordenar por</label>
                         <select class="form-select" id="ordenacao" name="ordenacao">
                             <option value="data_crescente">Data (Mais Antigo)</option>
-                            <option value="data_decrescente">Data (Mais Recente)</option>
+                            <option value="data_decrescente" selected>Data (Mais Recente)</option>
                             <option value="cliente">Cliente (A-Z)</option>
                             <option value="pet">Pet (A-Z)</option>
                         </select>
@@ -192,7 +192,8 @@ $(document).ready(function() {
         e.preventDefault();
         $campoBusca.val('');
         $campoStatus.val('todos');
-        $campoOrdenacao.val('data_crescente');
+        // Novo padrão
+        $campoOrdenacao.val('data_decrescente');
         
         clearTimeout(timerBusca);
         isShowingAll = false; 

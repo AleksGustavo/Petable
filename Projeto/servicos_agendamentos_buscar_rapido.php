@@ -10,7 +10,8 @@ $offset = ($pagina_atual - 1) * $limite;
 
 $termo_busca = $_GET['busca'] ?? ''; 
 $filtro_status = $_GET['status_filtro'] ?? 'todos';
-$ordenacao_param = $_GET['ordenacao'] ?? 'data_crescente'; 
+// ALTERAÇÃO FEITA AQUI
+$ordenacao_param = $_GET['ordenacao'] ?? 'data_decrescente'; 
 
 $listar_todos = $_GET['listar_todos'] ?? 'false';
 $total_registros = 0;
