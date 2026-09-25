@@ -1,0 +1,15 @@
+# Segredos — nunca versionar
+.env
+.env.*
+!.env.example
+
+# SO / editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml
+
+# Arquivos de lock do LibreOffice/Word
+.~lock.*
+~$*

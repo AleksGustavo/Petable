@@ -1,0 +1,55 @@
+# Configuração base. Valores sensíveis SEMPRE via variável de ambiente
+# (ver .env.example na raiz do repositório). Perfis: dev (padrão), prod.
+spring:
+  application:
+    name: petconnect-web-api
+  profiles:
+    active: ${APP_ENV:dev}
+  datasource:
+    url: ${MYSQL_URL:jdbc:mysql://localhost:3307/petconnect_web}
+    username: ${MYSQL_USER:petconnect}
+    password: ${MYSQL_PASSWORD:petconnect}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate          # o schema é do Flyway, nunca do Hibernate
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27019/petconnect_web}
+
+server:
+  shutdown: graceful
+  error:
+    include-stacktrace: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+app:
+  security:
+    jwt:
+      # >= 32 bytes. Em dev há um valor padrão só para subir local; em prod é obrigatório.
+      secret: ${JWT_SECRET:dev-only-secret-change-me-dev-only-secret-change-me}
+      issuer: petconnect-web-api
+      ttl: ${JWT_TTL:PT8H}
+    cors:
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  bootstrap-admin:
+    username: ${ADMIN_USERNAME:}
+    email: ${ADMIN_EMAIL:}
+    password: ${ADMIN_PASSWORD:}

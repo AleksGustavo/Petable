@@ -1,86 +1,102 @@
-# 🐾 Pet & Pet - Sistema de Gerenciamento para Petshops
+# 🐾 PetConnect Web
 
+Sistema web de **gestão de petshop** (clientes, pets, agendamentos de banho e tosa, carteira de vacinas, PDV, estoque e relatórios), responsivo, para desktop e celular.
 
+É a evolução do **Pet & Pet** (Projeto Integrador Fatec Araras, 2º sem/2025), que foi escrito em PHP + MySQL. O código antigo continua em [`legacy/php`](legacy/php) como referência até a migração terminar.
 
-**Cliente:** Agro Família (Tatuí / SP)
+Faz parte do ecossistema **PetConnect** da TecnoDreamer, junto com o app mobile Flutter (`PetConnect`) e a API do app (`PetConnect-API`).
 
-**Desenvolvimento:** Fatec Araras "Antônio Brambilla" - Projeto Integrador 2º Semestre/2025
+## Stack
 
----
+| Camada | Tecnologia |
+|---|---|
+| Frontend | Next.js 16 (App Router, Server Actions), React 19, TypeScript, Tailwind CSS 4, Zod |
+| Backend | Spring Boot 4.1 (Java 21): Web MVC, Security (JWT), Data JPA, Data MongoDB, Validation, Actuator, springdoc |
+| Banco relacional | MySQL 8.4, com schema versionado pelo Flyway |
+| Banco de documentos | MongoDB 7, para a trilha de auditoria |
+| Testes | JUnit 5, Mockito, Testcontainers (MySQL e Mongo reais), JaCoCo · Vitest, Testing Library |
+| DevOps | Docker, Docker Compose, GitHub Actions (CI, CodeQL, imagens no GHCR), Dependabot |
 
-## 💡 Sobre o Projeto
+## Estrutura
 
-O **Pet & Pet** é um sistema de **gestão web** desenvolvido em PHP com banco de dados MySQL, projetado para simplificar e automatizar as operações diárias do petshop em questão. O foco principal é no gerenciamento de **clientes**, **animais**, **agendamentos** e **produtos**, através de um CRUD (Create, Read, Update, Delete) simples e intuitivo.
+```
+PetConnect-Web/
+├── backend/            API Spring Boot (monólito modular)
+├── frontend/           App Next.js (BFF: o navegador nunca vê o JWT)
+├── legacy/php/         Sistema antigo em PHP (somente leitura, referência)
+├── docs/
+│   ├── arquitetura.md
+│   ├── banco-de-dados.md
+│   ├── github.md                  organização, proteção de branch, segredos
+│   ├── next-stage/                especificações .md de cada etapa (ChatGPT → Claude)
+│   └── legacy/                    documentação original do PI (diagramas, dicionário, slides)
+├── compose.yaml        MySQL + MongoDB + API + Web
+└── .github/            workflows, Dependabot, template de PR, CODEOWNERS
+```
 
-### Missão
-Nossa missão é proporcionar soluções tecnológicas inovadoras que simplifiquem a gestão de petshops, facilitando o dia a dia dos profissionais e melhorando a experiência dos clientes e seus animais.
+## Rodando localmente
 
-### Objetivos Principais
-* Centralizar e organizar os dados do petshop em uma única plataforma.
-* Facilitar o agendamento e controle de serviços.
-* Gerenciar o cadastro de clientes e seus respectivos animais.
-* Controlar o estoque de produtos comercializados.
-* Gerar relatório básico para apoio à decisão gerencial.
+Pré-requisitos: Docker Desktop. Para desenvolver fora do container, também JDK 21 e Node 24.
 
----
+```bash
+cp .env.example .env
+docker compose up -d --build
+```
 
-## 🛠️ Tecnologias e Metodologia
+| Serviço | URL padrão |
+|---|---|
+| Web | http://localhost:3000 (`WEB_PORT`) |
+| API | http://localhost:8081 (`API_PORT`) |
+| Swagger | http://localhost:8081/swagger-ui.html |
+| Health | http://localhost:8081/actuator/health |
+| MySQL | `localhost:3307`, banco `petconnect_web` |
+| MongoDB | `mongodb://localhost:27019/petconnect_web` |
 
-| Categoria | Recurso / Ferramenta | Descrição e Justificativa |
-| :--- | :--- | :--- |
-| **Linguagens** | HTML, CSS, JavaScript, PHP | Linguagens base para o desenvolvimento front-end e back-end do sistema. |
-| **Framework CSS** | Bootstrap | Framework escolhido para acelerar o desenvolvimento da interface, garantir a responsividade e aderir aos padrões de design atuais. |
-| **Banco de Dados** | MySQL | Selecionado por sua confiabilidade, alto desempenho e por ser uma solução open source, alinhando-se perfeitamente com a tecnologia PHP. |
-| **Modelagem** | brModelo | Ferramenta utilizada para a criação dos Modelos Conceitual, Lógico e Físico do banco de dados. |
-| **Gerenciamento** | Jira Software (Kanban) | Plataforma utilizada para administração e rastreamento das tarefas do projeto, configurado com um board Kanban para visualização do fluxo de trabalho. |
-| **Metodologia** | Metodologia Incremental | A abordagem adotada, que permite a entrega de partes funcionais do sistema em ciclos curtos, validando o produto com o usuário ao final de cada incremento. |
+O primeiro usuário ADMIN é criado a partir de `ADMIN_USERNAME`/`ADMIN_EMAIL`/`ADMIN_PASSWORD` do `.env`. Não existe senha fixa em script.
 
----
+> Se alguma porta já estiver ocupada na sua máquina, mude `WEB_PORT`, `API_PORT`, `MYSQL_PORT` ou `MONGO_PORT` no `.env`.
 
-## 🚀 Requisitos Funcionais e Funcionalidades Implementadas
+### Desenvolvimento com hot reload
 
-As funcionalidades principais do sistema são:
+```bash
+docker compose up -d mysql mongo api          # bancos + API
+cd frontend && cp .env.example .env.local     # API_URL=http://localhost:8081
+npm install && npm run dev
+```
 
-* **Autenticação de Usuário (RF01):** O sistema deve permitir que o usuário faça login e logout.
-* **CRUD de Funcionários (RF02):** Permitir cadastro, consulta, alteração e exclusão de funcionários.
-* **CRUD de Clientes (RF03):** Gerenciamento completo de clientes (nome, contato e endereço).
-* **CRUD de Pets (RF04):** Gerenciamento dos animais, com vinculação obrigatória a um cliente, espécie e raça.
-* **Criação de Agendamentos (RF05):** Agendar serviços, selecionando o pet, o serviço, a data e o funcionário designado.
-* **CRUD de Serviços (RF06):** Gerenciar serviços (nome, descrição e preço de padrão).
-* **CRUD de Produtos (RF07):** Gerenciar produtos (preço de venda, custo e vinculação à categoria).
-* **Registro de PDV (RF09):** Registro rápido de vendas, incluindo produtos e/ou serviços, cliente (opcional) e forma de pagamento.
+A API pode rodar pela IDE (`./mvnw spring-boot:run`) ou com bancos descartáveis (`./mvnw spring-boot:test-run`). Nesta máquina, porém, o Windows bloqueia o loopback NIO do Tomcat, então prefira a API no container (mesmo problema documentado no PetConnect-API).
 
----
+## Testes
 
-## 🛡️ Qualidade e Testes
+```bash
+cd backend  && ./mvnw verify                                  # unit + integração (precisa do Docker)
+cd frontend && npm run lint && npm run typecheck && npm test
+```
 
-A Garantia da Qualidade (QA) foi estabelecida com foco em:
+## CI/CD
 
-* **Estratégia de Testes:** Principalmente **Teste de Usabilidade (UX)**, com cenários focados na rotina do petshop (Cadastro de Cliente/Pet, Agendamento, Venda).
-* **Práticas de QA:** Revisão de Código (**Code Review**), **Testes de Unidade Automatizados** e **Controle de Versão (Git)** para rastreabilidade e reversão.
-* **Homologação:** Execução de testes de ponta a ponta em um ambiente idêntico ao de produção antes da liberação final.
+| Workflow | Quando | O que faz |
+|---|---|---|
+| `backend.yml` | PR/push que toca `backend/` | `mvn verify` com Testcontainers e publica relatórios e cobertura |
+| `frontend.yml` | PR/push que toca `frontend/` | lint, typecheck, testes e build |
+| `codeql.yml` | PR, push na `main`, toda segunda | análise de segurança Java e TypeScript |
+| `delivery.yml` | push na `main` e tags `v*` | publica `petconnect-web-api` e `petconnect-web-web` no GHCR |
 
-### Requisitos Mínimos (Lado do Cliente)
-* **Processador:** CPU Dual Core de 2.0 GHz ou superior.
-* **Memória RAM:** Mínimo de 4 GB de RAM.
-* **Navegador Web:** Uma das últimas três versões do Google Chrome, Mozilla Firefox ou Safari.
-* **Conexão com a Internet:** Velocidade mínima de 5 Mbps para acesso estável.
+Veja [docs/github.md](docs/github.md) para configurar a organização, a proteção da `main` e os ambientes.
 
----
+## Status da migração
 
-## 🔗 Links e Documentação
+| Módulo | Status |
+|---|---|
+| Fundação (estrutura, schema, segurança, CI/CD, Docker) | ✅ |
+| Autenticação (login JWT, papéis, bloqueio por tentativas) | ✅ |
+| Clientes + endereço | ✅ |
+| Auditoria (MongoDB) | ✅ (clientes e login) |
+| Pets, espécies/raças, vacinas, consultas | ⏳ |
+| Serviços e agendamentos | ⏳ |
+| Produtos, fornecedores, compras e estoque | ⏳ |
+| PDV / vendas | ⏳ |
+| Financeiro e relatórios | ⏳ |
+| Migração dos dados do banco legado | ⏳ |
 
-* **Link Repositório (Completo):** https://github.com/AleksGustavo/PI-2--Semestre-2025
-* **Jira Software (Kanban Board):** https://petepet.atlassian.net/jira/software/projects/KAN/boards/1
-* **Diário de Bordo (Aleksander):** https://github.com/AleksGustavo/PI-2--Semestre-2025/blob/main/Documenta%C3%A7%C3%A3o/Diario%20de%20Bordo%20-%20Aleksander.md
-
----
-
-## 👥 Equipe de Desenvolvimento - Grupo 5
-
-| Integrante | Papel Principal |
-| :--- | :--- |
-| **Aleksander Gustavo Assis** | Product Owner e Banco de Dados |
-| **Everton Rodrigues da Silva** | Engenharia de Software |
-| **Marcos Firmino Rodrigues** | Desenvolvedor Back-End |
-| **Wanderson Jaime de A. Santos** | Desenvolvedor Front-End |
+As próximas etapas são especificadas em [`docs/next-stage/`](docs/next-stage).
