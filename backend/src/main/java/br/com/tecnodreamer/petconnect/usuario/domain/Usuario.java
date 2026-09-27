@@ -35,6 +35,10 @@ public class Usuario {
 
     private boolean ativo = true;
 
+    /** Versão da credencial: sobe a cada troca de senha, papel ou ativação; JWTs antigos deixam de valer. */
+    @Column(name = "token_version")
+    private int tokenVersion;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;
@@ -51,6 +55,48 @@ public class Usuario {
         this.email = email;
         this.senhaHash = senhaHash;
         this.papel = papel;
+    }
+
+    public void alterarConta(String username, String email) {
+        this.username = username;
+        this.email = email;
+    }
+
+    /** Devolve se o papel mudou (só então a versão da credencial sobe). */
+    public boolean alterarPapel(Papel novo) {
+        if (papel != null && papel.getNome().equals(novo.getNome())) {
+            return false;
+        }
+        this.papel = novo;
+        this.tokenVersion++;
+        return true;
+    }
+
+    public void desativar() {
+        this.ativo = false;
+        this.tokenVersion++;
+    }
+
+    public void ativar() {
+        this.ativo = true;
+        this.tokenVersion++;
+    }
+
+    public void definirSenha(String senhaHash) {
+        this.senhaHash = senhaHash;
+        this.tokenVersion++;
+    }
+
+    public boolean isAdmin() {
+        return Papel.ADMIN.equals(papel.getNome());
+    }
+
+    public int getTokenVersion() {
+        return tokenVersion;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
     }
 
     public Long getId() {

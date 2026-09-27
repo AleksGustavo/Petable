@@ -35,6 +35,7 @@ public class TokenService {
                 .issuedAt(agora)
                 .expiresAt(agora.plus(props.jwt().ttl()))
                 .claim("uid", usuario.getId())
+                .claim("tv", usuario.getTokenVersion())
                 .claim(SecurityConfig.ROLES_CLAIM, List.of(usuario.getPapel().getNome()))
                 .build();
         JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();

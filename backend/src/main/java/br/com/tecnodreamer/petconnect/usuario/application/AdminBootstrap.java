@@ -1,6 +1,7 @@
 package br.com.tecnodreamer.petconnect.usuario.application;
 
 import br.com.tecnodreamer.petconnect.usuario.domain.Papel;
+import br.com.tecnodreamer.petconnect.usuario.domain.PoliticaSenha;
 import br.com.tecnodreamer.petconnect.usuario.domain.Usuario;
 import br.com.tecnodreamer.petconnect.usuario.infrastructure.PapelRepository;
 import br.com.tecnodreamer.petconnect.usuario.infrastructure.UsuarioRepository;
@@ -46,9 +47,9 @@ public class AdminBootstrap implements ApplicationRunner {
             log.warn("Nenhum usuário ADMIN cadastrado. Defina ADMIN_USERNAME, ADMIN_EMAIL e ADMIN_PASSWORD para criar o primeiro.");
             return;
         }
-        if (props.password().length() < 10) {
-            throw new IllegalStateException("ADMIN_PASSWORD precisa ter pelo menos 10 caracteres");
-        }
+        PoliticaSenha.violacao(props.password(), props.username(), props.email()).ifPresent(msg -> {
+            throw new IllegalStateException("ADMIN_PASSWORD não atende à política de senha: " + msg);
+        });
         Papel admin = papeis.findByNome(Papel.ADMIN).orElseThrow();
         usuarios.save(new Usuario(props.username(), props.email(), encoder.encode(props.password()), admin));
         log.info("Usuário ADMIN inicial '{}' criado.", props.username());
