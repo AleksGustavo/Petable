@@ -1,0 +1,74 @@
+name: Segurança
+
+# Scan de vulnerabilidades (dependências e imagens) e SBOM (etapa 09, DA-20).
+# Falha com CVE CRÍTICA que já tenha correção (R-14). CodeQL continua em codeql.yml.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependencias:
+    name: Dependências (Trivy fs)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          skip-dirs: docs/legacy,legacy
+          timeout: 15m0s
+
+  imagens:
+    name: Imagem ${{ matrix.app }} (Trivy + SBOM)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [backend, frontend]
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Build da imagem
+        run: docker build -t petconnect-${{ matrix.app }}:ci ${{ matrix.app }}
+
+      - name: Vulnerabilidades críticas
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: petconnect-${{ matrix.app }}:ci
+          scanners: vuln
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          timeout: 15m0s
+
+      - name: SBOM (CycloneDX)
+        if: always()
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: petconnect-${{ matrix.app }}:ci
+          format: cyclonedx
+          output: sbom-${{ matrix.app }}.cdx.json
+          exit-code: "0"
+          skip-setup-trivy: true
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: sbom-${{ matrix.app }}
+          path: sbom-${{ matrix.app }}.cdx.json
+          retention-days: 90

@@ -1,0 +1,55 @@
+name: Deploy (produção)
+
+# Deploy manual por tag (etapa 09, DA-21). O environment "producao" deve exigir aprovação
+# (Settings → Environments → producao → Required reviewers) — configuração do dono.
+# Secrets do environment: DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY, DEPLOY_KNOWN_HOSTS.
+# No servidor, scripts/deploy.sh faz: backup → troca TAG → pull → up → smoke → rollback se falhar.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag da imagem no GHCR (git tag v1.2.3 → 1.2.3; ou sha-abc1234)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-producao
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy ${{ inputs.tag }}
+    runs-on: ubuntu-latest
+    environment: producao
+    timeout-minutes: 30
+    steps:
+      - name: Validar a tag
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          [[ "$TAG" =~ ^[A-Za-z0-9._-]{1,64}$ ]] || { echo "::error::tag inválida"; exit 1; }
+
+      - name: Chave SSH
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Executar deploy no servidor
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USUARIO: ${{ secrets.DEPLOY_USER }}
+          TAG: ${{ inputs.tag }}
+        run: ssh -i ~/.ssh/deploy -o StrictHostKeyChecking=yes "$USUARIO@$HOST" "cd /opt/petconnect && ./scripts/deploy.sh '$TAG'"
+
+      - name: Remover a chave
+        if: always()
+        run: rm -f ~/.ssh/deploy
