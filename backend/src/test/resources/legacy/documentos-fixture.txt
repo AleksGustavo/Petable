@@ -1,0 +1,13 @@
+# CPFs/CNPJ/e-mails/telefones da fixture sintética: o teste de LGPD procura por eles nos relatórios e logs.
+274.831.956-73
+613.508.247-71
+840.265.173-90
+45.128.367/0001-23
+dono.legado@exemplo.test
+maria.vendas@exemplo.test
+cliente.um@exemplo.test
+ana.caixa@exemplo.test
+97777-0001
+97777-0002
+98888-0001
+240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9

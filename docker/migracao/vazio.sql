@@ -1,0 +1,1 @@
+-- Arquivo vazio de propósito: use em LEGADO_SCHEMA_SQL quando o dump real já traz o CREATE TABLE.
