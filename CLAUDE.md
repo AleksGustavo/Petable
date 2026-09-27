@@ -20,3 +20,5 @@ docker compose up -d --build                # teste manual; portas no .env
 ```
 - Nesta máquina a API não sobe direto no Windows (bug de loopback NIO do Tomcat). Rode a API no container.
 - As portas 3000 e 8080 costumam estar ocupadas. Use `WEB_PORT`/`API_PORT` no `.env`.
+- E-mails de dev (redefinição de senha) chegam no Mailpit: http://localhost:8025 (API: `/api/v1/messages`).
+- Os ITs usam o `jwt()` do spring-security-test, que não passa pelo conversor que consulta o banco. Para testar sessão, revogação e perfil, use o login real (`login(...)`/`bearer(...)` em `PetIntegrationTest`).

@@ -38,6 +38,7 @@ export default async function ClientesPage(props: PageProps<"/clientes">) {
       </header>
 
       {sp.inativado && <Aviso>Cliente removido da lista de ativos.</Aviso>}
+      {sp.anonimizado && <Aviso>Cliente anonimizado: os dados pessoais foram removidos e o histórico foi mantido.</Aviso>}
 
       <form role="search" className="flex gap-2">
         <label htmlFor="busca" className="sr-only">Buscar cliente</label>

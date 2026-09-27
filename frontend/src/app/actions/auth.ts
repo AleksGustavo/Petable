@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { apiUrl } from "@/lib/api";
+import { apiUrl, ipDoNavegador, requestIdAtual } from "@/lib/api";
 import { SESSION_COOKIE } from "@/lib/jwt";
 
 export type LoginState = { erro?: string; login?: string };
@@ -18,11 +18,17 @@ export async function entrar(_prev: LoginState, formData: FormData): Promise<Log
   const senha = String(formData.get("senha") ?? "");
   if (!login || !senha) return { erro: "Informe usuário e senha.", login };
 
+  // IP e request id repassados: a API limita tentativas por IP (etapa 09) e correlaciona os logs.
+  const [ip, requestId] = await Promise.all([ipDoNavegador(), requestIdAtual()]);
   let res: Response;
   try {
     res = await fetch(apiUrl("/api/v1/auth/login"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(ip && { "X-Forwarded-For": ip }),
+        ...(requestId && { "X-Request-Id": requestId }),
+      },
       body: JSON.stringify({ login, senha }),
       cache: "no-store",
     });

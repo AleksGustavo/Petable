@@ -19,3 +19,19 @@ app:
       secret: ${JWT_SECRET}
     cors:
       allowed-origins: ${CORS_ALLOWED_ORIGINS}
+
+# Etapa 09: management (health, métricas) numa porta que o compose.prod não publica
+# nem o Caddy roteia; logs em JSON (ECS) com máscara de dados pessoais.
+management:
+  server:
+    port: ${MANAGEMENT_PORT:9090}
+
+logging:
+  structured:
+    format:
+      console: ecs
+    ecs:
+      service:
+        name: petconnect-web-api
+    json:
+      customizer: br.com.tecnodreamer.petconnect.shared.logging.MascaramentoLogs

@@ -13,7 +13,7 @@ RUN --mount=type=cache,target=/root/.m2 ./mvnw -q -B -DskipTests package \
     && java -Djarmode=tools -jar app.jar extract --layers --launcher --destination extracted
 
 FROM eclipse-temurin:21-jre
-RUN groupadd --system app && useradd --system --gid app app
+RUN groupadd --system app && useradd --system --gid app app     && mkdir -p /data/uploads/pets && chown -R app:app /data
 WORKDIR /app
 COPY --from=build /build/extracted/dependencies/ ./
 COPY --from=build /build/extracted/spring-boot-loader/ ./
@@ -21,7 +21,8 @@ COPY --from=build /build/extracted/snapshot-dependencies/ ./
 COPY --from=build /build/extracted/application/ ./
 USER app
 EXPOSE 8080
-ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75"
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75" PETS_STORAGE_DIR=/data/uploads/pets
+VOLUME /data/uploads
 HEALTHCHECK --interval=15s --timeout=3s --start-period=60s --retries=5 \
     CMD curl -fsS http://localhost:8080/actuator/health/readiness || exit 1
 ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]

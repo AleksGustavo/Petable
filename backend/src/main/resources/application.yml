@@ -9,6 +9,12 @@ spring:
     url: ${MYSQL_URL:jdbc:mysql://localhost:3307/petconnect_web}
     username: ${MYSQL_USER:petconnect}
     password: ${MYSQL_PASSWORD:petconnect}
+    # Banco LEGADO (etapa 08): só lido pela migração offline, com usuário somente SELECT.
+    legacy:
+      url: ${LEGADO_DB_URL:}
+      username: ${LEGADO_DB_USERNAME:}
+      password: ${LEGADO_DB_PASSWORD:}
+      driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     open-in-view: false
     hibernate:
@@ -18,6 +24,23 @@ spring:
     locations: classpath:db/migration
   mongodb:
     uri: ${MONGODB_URI:mongodb://localhost:27019/petconnect_web}
+  mail:
+    # Dev/Docker: Mailpit (sem TLS/autenticação). Produção: SMTP real pelas mesmas variáveis.
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${SMTP_AUTH:false}
+      mail.smtp.starttls.enable: ${SMTP_STARTTLS:false}
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
+  servlet:
+    multipart:
+      # A regra de negócio é 5 MB (FotoPetService); a folga cobre o overhead do multipart.
+      max-file-size: 6MB
+      max-request-size: 7MB
 
 server:
   shutdown: graceful
@@ -25,10 +48,14 @@ server:
     include-stacktrace: never
 
 management:
+  health:
+    # SMTP fora do ar não pode derrubar o readiness da API.
+    mail:
+      enabled: false
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus
   endpoint:
     health:
       probes:
@@ -41,6 +68,10 @@ springdoc:
     path: /swagger-ui.html
 
 app:
+  # Base dos links enviados por e-mail (ex.: redefinição de senha).
+  frontend-url: ${APP_FRONTEND_URL:http://localhost:3000}
+  email:
+    remetente: ${EMAIL_REMETENTE:PetConnect Web <nao-responda@petconnect.local>}
   security:
     jwt:
       # >= 32 bytes. Em dev há um valor padrão só para subir local; em prod é obrigatório.
@@ -53,3 +84,21 @@ app:
     username: ${ADMIN_USERNAME:}
     email: ${ADMIN_EMAIL:}
     password: ${ADMIN_PASSWORD:}
+
+petconnect:
+  storage:
+    # Fotos dos pets. No Docker é o volume /data/uploads; nos testes, um diretório em target/.
+    pets: ${PETS_STORAGE_DIR:./data/uploads/pets}
+  # Migração do sistema PHP (etapa 08, ver docs/migracao-legado.md). Desligada no boot normal;
+  # quando ligada, o padrão é DRY-RUN (nada é gravado).
+  migracao:
+    legado: ${PETCONNECT_MIGRACAO_LEGADO:false}
+    dry-run: ${PETCONNECT_MIGRACAO_DRY_RUN:true}
+    lote: ${PETCONNECT_MIGRACAO_LOTE:500}
+    relatorio-dir: ${PETCONNECT_MIGRACAO_RELATORIO_DIR:build/migracao-relatorios}
+    fotos-dir: ${PETCONNECT_MIGRACAO_FOTOS_DIR:}
+    viacep:
+      enabled: ${PETCONNECT_MIGRACAO_VIACEP:false}
+      timeout-ms: ${PETCONNECT_MIGRACAO_VIACEP_TIMEOUT_MS:1500}
+    backfill-servico-forma: ${PETCONNECT_MIGRACAO_BACKFILL_SERVICO_FORMA:}
+    encerrar-ao-final: ${PETCONNECT_MIGRACAO_ENCERRAR:true}

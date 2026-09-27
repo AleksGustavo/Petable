@@ -14,6 +14,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
@@ -33,7 +34,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(ConflictException.class)
     ProblemDetail conflict(ConflictException ex) {
-        return problem(HttpStatus.CONFLICT, "Conflito", ex.getMessage());
+        ProblemDetail body = problem(HttpStatus.CONFLICT, "Conflito", ex.getMessage());
+        ex.getPropriedades().forEach(body::setProperty);
+        return body;
+    }
+
+    @ExceptionHandler(CampoInvalidoException.class)
+    ProblemDetail campoInvalido(CampoInvalidoException ex) {
+        ProblemDetail body = problem(HttpStatus.BAD_REQUEST, "Dados inválidos", ex.getMessage());
+        body.setProperty("errors", Map.of(ex.getCampo(), ex.getMessage()));
+        return body;
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
@@ -46,6 +56,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(BadCredentialsException.class)
     ProblemDetail badCredentials(BadCredentialsException ex) {
         return problem(HttpStatus.UNAUTHORIZED, "Não autenticado", "Usuário ou senha inválidos.");
+    }
+
+    @ExceptionHandler(LimiteExcedidoException.class)
+    ResponseEntity<ProblemDetail> limite(LimiteExcedidoException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(org.springframework.http.HttpHeaders.RETRY_AFTER, String.valueOf(ex.getRetryAfter()))
+                .body(problem(HttpStatus.TOO_MANY_REQUESTS, "Muitas tentativas", ex.getMessage()));
     }
 
     @ExceptionHandler(LockedException.class)
@@ -62,6 +79,15 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         }
         ProblemDetail body = problem(HttpStatus.BAD_REQUEST, "Dados inválidos", "Um ou mais campos são inválidos.");
         body.setProperty("errors", errors);
+        return ResponseEntity.badRequest().body(body);
+    }
+
+    /** Upload acima do limite do servidor: mesmo formato (400 no campo) do limite de 5 MB da foto. */
+    @Override
+    protected ResponseEntity<Object> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException ex,
+            HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+        ProblemDetail body = problem(HttpStatus.BAD_REQUEST, "Dados inválidos", "A foto deve ter no máximo 5 MB.");
+        body.setProperty("errors", Map.of("foto", "A foto deve ter no máximo 5 MB."));
         return ResponseEntity.badRequest().body(body);
     }
 

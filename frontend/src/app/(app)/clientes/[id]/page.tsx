@@ -3,10 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { inativarCliente } from "@/app/actions/clientes";
 import { Aviso } from "@/components/aviso";
+import { ClientePets } from "@/components/cliente-pets";
 import { ClienteForm } from "@/components/cliente-form";
+import { ClientePrivacidade } from "@/components/cliente-privacidade";
 import { ApiError, apiFetch } from "@/lib/api";
-import type { Cliente } from "@/lib/clientes";
-import { podeEditarClientes } from "@/lib/permissoes";
+import type { Cliente, Pagina } from "@/lib/clientes";
+import { podeAnonimizarClientes, podeEditarClientes, podeEditarPets } from "@/lib/permissoes";
+import type { Pet } from "@/lib/pets";
 import { exigirSessao } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Cliente" };
@@ -25,6 +28,7 @@ export default async function ClientePage(props: PageProps<"/clientes/[id]">) {
   const { id } = await props.params;
   const { salvo } = await props.searchParams;
   const [sessao, cliente] = await Promise.all([exigirSessao(), carregar(id)]);
+  const pets = await apiFetch<Pagina<Pet>>(`/api/v1/pets?clienteId=${cliente.id}&size=100`);
   const editavel = podeEditarClientes(sessao.papel);
 
   return (
@@ -43,11 +47,15 @@ export default async function ClientePage(props: PageProps<"/clientes/[id]">) {
 
       {salvo && <Aviso>Dados salvos.</Aviso>}
 
+      <ClientePets clienteId={cliente.id} pets={pets.content} podeEditar={podeEditarPets(sessao.papel)} />
+
       {editavel ? (
         <ClienteForm key={cliente.updatedAt} cliente={cliente} />
       ) : (
         <p className="cartao p-4 text-sm text-muted">Seu perfil pode consultar, mas não alterar clientes.</p>
       )}
+
+      {podeAnonimizarClientes(sessao.papel) && <ClientePrivacidade clienteId={cliente.id} />}
     </div>
   );
 }

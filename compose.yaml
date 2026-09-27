@@ -4,7 +4,13 @@
 #   docker compose up -d --build      # MySQL + MongoDB + API + Web
 #   docker compose up -d mysql mongo  # só os bancos (API/Web pela IDE)
 #   docker compose logs -f api
+#   http://localhost:8025             # Mailpit: e-mails enviados pela API (dev)
 #   docker compose down               # para (mantém dados)   | down -v apaga os dados
+#
+# Migração do sistema PHP (etapa 08 — runbook em docs/migracao-legado.md):
+#   docker compose --profile migracao up -d mysql-legado          # banco legado (fixture sintética por padrão)
+#   docker compose --profile migracao run --rm api-migracao        # DRY-RUN (padrão): não grava nada
+#   MIGRACAO_DRY_RUN=false docker compose --profile migracao run --rm api-migracao   # execução real (faça backup antes)
 #
 # Portas no host configuráveis no .env (API_PORT, WEB_PORT, MYSQL_PORT, MONGO_PORT).
 # Os padrões fogem de XAMPP (3306), PetConnect-API (27018/8090) e da 8080.
@@ -45,12 +51,20 @@ services:
       timeout: 5s
       retries: 10
 
+  # Caixa de e-mail de desenvolvimento: tudo que a API envia aparece em http://localhost:8025.
+  mailpit:
+    image: axllent/mailpit:v1.27
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_PORT:-8025}:8025"
+
   api:
     build: ./backend
     restart: unless-stopped
     depends_on:
       mysql: { condition: service_healthy }
       mongo: { condition: service_healthy }
+      mailpit: { condition: service_started }
     environment:
       APP_ENV: ${APP_ENV:-dev}
       MYSQL_URL: jdbc:mysql://mysql:3306/petconnect_web
@@ -62,6 +76,19 @@ services:
       ADMIN_USERNAME: ${ADMIN_USERNAME:-}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      PETS_STORAGE_DIR: /data/uploads/pets
+      # E-mail: Mailpit no dev. Em produção, aponte SMTP_* para o provedor real.
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_AUTH: ${SMTP_AUTH:-false}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-false}
+      EMAIL_REMETENTE: ${EMAIL_REMETENTE:-PetConnect Web <nao-responda@petconnect.local>}
+      # Base dos links enviados por e-mail (redefinição de senha).
+      APP_FRONTEND_URL: ${APP_FRONTEND_URL:-http://localhost:3000}
+    volumes:
+      - petconnect_uploads:/data/uploads   # fotos dos pets sobrevivem a restart/rebuild
     ports:
       - "${API_PORT:-8081}:8080"
 
@@ -76,6 +103,72 @@ services:
     ports:
       - "${WEB_PORT:-3000}:3000"
 
+  # ------------------------------------------------ migração do legado (etapa 08)
+  # Só sobe com --profile migracao. Por padrão carrega o esquema de teste + a fixture
+  # SINTÉTICA; para o dump real, veja docs/migracao-legado.md (LEGADO_SCHEMA_SQL/LEGADO_DADOS_SQL).
+  mysql-legado:
+    profiles: ["migracao"]
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: petshop_db
+      MYSQL_ROOT_PASSWORD: ${LEGADO_ROOT_PASSWORD:-}   # obrigatória com --profile migracao (o MySQL recusa subir sem ela)
+      # Usuário SÓ COM SELECT, criado por docker/migracao/00-usuario-leitura.sh.
+      LEGADO_DB_USERNAME: ${LEGADO_DB_USERNAME:-legado_read}
+      LEGADO_DB_PASSWORD: ${LEGADO_DB_PASSWORD:-}
+      TZ: America/Sao_Paulo
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci"]
+    ports:
+      - "${LEGADO_PORT:-3308}:3306"
+    volumes:
+      - mysql-legado-data:/var/lib/mysql
+      - ./docker/migracao/00-usuario-leitura.sh:/docker-entrypoint-initdb.d/00-usuario-leitura.sh:ro
+      - ${LEGADO_SCHEMA_SQL:-./backend/src/test/resources/legacy/01-schema-legado.sql}:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ${LEGADO_DADOS_SQL:-./backend/src/test/resources/legacy/02-fixture-legado.sql}:/docker-entrypoint-initdb.d/02-dados.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Ferramenta offline: roda a migração e termina (código 0 = concluída, 1 = falhou).
+  api-migracao:
+    profiles: ["migracao"]
+    build: ./backend
+    restart: "no"
+    depends_on:
+      mysql: { condition: service_healthy }
+      mongo: { condition: service_healthy }
+      mysql-legado: { condition: service_healthy }
+    environment:
+      APP_ENV: ${APP_ENV:-dev}
+      SPRING_MAIN_WEB_APPLICATION_TYPE: none
+      MYSQL_URL: jdbc:mysql://mysql:3306/petconnect_web
+      MYSQL_USER: ${MYSQL_USER:-petconnect}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MONGODB_URI: mongodb://mongo:27017/petconnect_web
+      JWT_SECRET: ${JWT_SECRET}
+      # O username do ADMIN do bootstrap nunca é sobrescrito (colisão vira <nome>_legado).
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      PETS_STORAGE_DIR: /data/uploads/pets
+      LEGADO_DB_URL: jdbc:mysql://mysql-legado:3306/petshop_db
+      LEGADO_DB_USERNAME: ${LEGADO_DB_USERNAME:-legado_read}
+      LEGADO_DB_PASSWORD: ${LEGADO_DB_PASSWORD:-}
+      PETCONNECT_MIGRACAO_LEGADO: "true"
+      PETCONNECT_MIGRACAO_DRY_RUN: ${MIGRACAO_DRY_RUN:-true}
+      PETCONNECT_MIGRACAO_LOTE: ${MIGRACAO_LOTE:-500}
+      PETCONNECT_MIGRACAO_RELATORIO_DIR: /migracao/relatorios
+      PETCONNECT_MIGRACAO_FOTOS_DIR: /migracao/fotos
+      PETCONNECT_MIGRACAO_VIACEP: ${MIGRACAO_VIACEP:-false}
+      PETCONNECT_MIGRACAO_BACKFILL_SERVICO_FORMA: ${MIGRACAO_BACKFILL_SERVICO_FORMA:-}
+    volumes:
+      - petconnect_uploads:/data/uploads                      # as fotos importadas vão para o mesmo volume da API
+      - ./.migracao/relatorios:/migracao/relatorios            # relatórios (fora do git)
+      - ${MIGRACAO_FOTOS_DIR:-./.migracao/fotos}:/migracao/fotos:ro
+
 volumes:
+  mysql-legado-data:
   mysql-data:
   mongo-data:
+  petconnect_uploads:

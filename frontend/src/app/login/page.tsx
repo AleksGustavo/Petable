@@ -1,11 +1,20 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Aviso } from "@/components/aviso";
 import { LoginForm } from "@/components/login-form";
 import { Logo } from "@/components/logo";
 
 export const metadata: Metadata = { title: "Entrar" };
 
 export default async function LoginPage(props: PageProps<"/login">) {
-  const { next } = await props.searchParams;
+  const { next, aviso, expirada } = await props.searchParams;
+  const mensagem = expirada
+    ? "Sua sessão expirou ou foi encerrada. Entre novamente."
+    : aviso === "senha-alterada"
+      ? "Senha alterada. Entre de novo com a nova senha."
+      : aviso === "senha-redefinida"
+        ? "Senha redefinida. Entre com a nova senha."
+        : null;
   return (
     <div className="grid min-h-dvh lg:grid-cols-2">
       <section className="relative hidden overflow-hidden bg-brand p-12 text-white lg:flex lg:flex-col lg:justify-between">
@@ -23,7 +32,9 @@ export default async function LoginPage(props: PageProps<"/login">) {
           <Logo className="mb-8 lg:hidden" />
           <h2 className="text-2xl font-semibold">Entrar</h2>
           <p className="mt-1 mb-6 text-sm text-muted">Use o usuário cadastrado pelo administrador.</p>
+          {mensagem && <div className="mb-4"><Aviso>{mensagem}</Aviso></div>}
           <LoginForm next={typeof next === "string" ? next : undefined} />
+          <Link href="/esqueci-senha" className="mt-4 block text-center text-sm text-brand hover:underline">Esqueci minha senha</Link>
         </div>
       </section>
     </div>

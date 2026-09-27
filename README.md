@@ -28,9 +28,15 @@ PetConnect-Web/
 │   ├── arquitetura.md
 │   ├── banco-de-dados.md
 │   ├── github.md                  organização, proteção de branch, segredos
+│   ├── producao.md                arquitetura de produção, instalação, segurança, observabilidade
+│   ├── runbooks/                  deploy, rollback, backup/restore, incidente, rotação, desastre, go-live, LGPD
+│   ├── migracao-legado.md         runbook da migração do sistema PHP
 │   ├── next-stage/                especificações .md de cada etapa (ChatGPT → Claude)
 │   └── legacy/                    documentação original do PI (diagramas, dicionário, slides)
-├── compose.yaml        MySQL + MongoDB + API + Web
+├── compose.yaml        desenvolvimento: MySQL + MongoDB + Mailpit + API + Web (+ perfil migracao)
+├── compose.prod.yaml   produção: Caddy (HTTPS) + Web + API + MySQL + MongoDB, só o Caddy exposto
+├── deploy/Caddyfile    proxy reverso de produção
+├── scripts/            backup, restore(-test), deploy, smoke, monitorar
 └── .github/            workflows, Dependabot, template de PR, CODEOWNERS
 ```
 
@@ -51,8 +57,9 @@ docker compose up -d --build
 | Health | http://localhost:8081/actuator/health |
 | MySQL | `localhost:3307`, banco `petconnect_web` |
 | MongoDB | `mongodb://localhost:27019/petconnect_web` |
+| Mailpit (e-mails de dev) | http://localhost:8025 (`MAILPIT_PORT`) |
 
-O primeiro usuário ADMIN é criado a partir de `ADMIN_USERNAME`/`ADMIN_EMAIL`/`ADMIN_PASSWORD` do `.env`. Não existe senha fixa em script.
+O primeiro usuário ADMIN é criado a partir de `ADMIN_USERNAME`/`ADMIN_EMAIL`/`ADMIN_PASSWORD` do `.env`. Não existe senha fixa em script, e a senha precisa atender à política (10–72 caracteres, com maiúscula, minúscula, número e caractere especial). Os demais usuários são criados pelo ADMIN em **Usuários**.
 
 > Se alguma porta já estiver ocupada na sua máquina, mude `WEB_PORT`, `API_PORT`, `MYSQL_PORT` ou `MONGO_PORT` no `.env`.
 
@@ -89,14 +96,18 @@ Veja [docs/github.md](docs/github.md) para configurar a organização, a proteç
 | Módulo | Status |
 |---|---|
 | Fundação (estrutura, schema, segurança, CI/CD, Docker) | ✅ |
-| Autenticação (login JWT, papéis, bloqueio por tentativas) | ✅ |
+| Autenticação (login JWT, papéis, bloqueio por tentativas, sessão revogável por `token_version`) | ✅ |
+| Usuários, funcionários, perfil, troca e recuperação de senha (e-mail via Mailpit/SMTP) | ✅ |
 | Clientes + endereço | ✅ |
-| Auditoria (MongoDB) | ✅ (clientes e login) |
-| Pets, espécies/raças, vacinas, consultas | ⏳ |
-| Serviços e agendamentos | ⏳ |
-| Produtos, fornecedores, compras e estoque | ⏳ |
-| PDV / vendas | ⏳ |
-| Financeiro e relatórios | ⏳ |
-| Migração dos dados do banco legado | ⏳ |
+| Auditoria (MongoDB) | ✅ (login, clientes, pets, serviços, agendamentos, usuários, produtos, estoque, fornecedores, compras, vendas, caixa, financeiro e exportação de relatórios) |
+| Pets, espécies/raças, carteira de vacinas, consultas, foto | ✅ |
+| Serviços (catálogo + preço por porte) e agendamentos (agenda, conflitos, status, conclusão, vacinação) | ✅ |
+| Produtos, fornecedores, compras e estoque (histórico imutável, custo médio, lock no saldo) | ✅ |
+| PDV / vendas (leitor de código, idempotência, cancelamento com estorno, comprovante) | ✅ |
+| Financeiro (caixa por operador, lançamentos automáticos e manuais com estorno, contas a pagar, fluxo) | ✅ |
+| Relatórios gerenciais (vendas, ranking, curva ABC, estoque/giro, margem estimada, serviços, despesas, caixas, contas; CSV e impressão) | ✅ |
+| Migração dos dados do banco legado (ferramenta offline: dry-run, idempotente, retomável, relatório sem dados pessoais — [runbook](docs/migracao-legado.md)) | ✅ |
+
+| Produção e operação (HTTPS/Caddy, CSP com nonce, logs JSON mascarados, métricas internas, backup cifrado com teste de restore, deploy com rollback, E2E Playwright, Trivy/SBOM, LGPD: exportar/anonimizar cliente — [produção](docs/producao.md), [runbooks](docs/runbooks)) | ✅ |
 
 As próximas etapas são especificadas em [`docs/next-stage/`](docs/next-stage).

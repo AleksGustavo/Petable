@@ -32,6 +32,25 @@ public final class Documentos {
         return resto == 10 ? 0 : resto;
     }
 
+    public static boolean cnpjValido(String valor) {
+        String cnpj = somenteDigitos(valor);
+        if (cnpj == null || cnpj.length() != 14 || cnpj.chars().distinct().count() == 1) {
+            return false;
+        }
+        return digitoCnpj(cnpj, 12) == cnpj.charAt(12) - '0' && digitoCnpj(cnpj, 13) == cnpj.charAt(13) - '0';
+    }
+
+    private static int digitoCnpj(String cnpj, int tamanho) {
+        int soma = 0;
+        int peso = tamanho - 7;
+        for (int i = 0; i < tamanho; i++) {
+            soma += (cnpj.charAt(i) - '0') * peso;
+            peso = peso == 2 ? 9 : peso - 1;
+        }
+        int resto = soma % 11;
+        return resto < 2 ? 0 : 11 - resto;
+    }
+
     /** Fixo (10 dígitos) ou celular (11), sempre com DDD. */
     public static boolean telefoneValido(String valor) {
         String tel = somenteDigitos(valor);

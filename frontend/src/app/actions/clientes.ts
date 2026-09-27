@@ -41,3 +41,20 @@ export async function inativarCliente(id: number) {
   revalidatePath("/clientes");
   redirect("/clientes?inativado=1");
 }
+
+export type AnonimizacaoState = { erro?: string };
+
+/** LGPD: anonimização irreversível (só ADMIN; a API confere o papel). */
+export async function anonimizarCliente(id: number, _prev: AnonimizacaoState, formData: FormData): Promise<AnonimizacaoState> {
+  const motivo = String(formData.get("motivo") ?? "").trim();
+  if (motivo.length < 5) return { erro: "Informe o motivo (mínimo de 5 caracteres)." };
+  if (formData.get("confirmacao") !== "ANONIMIZAR") return { erro: "Digite ANONIMIZAR para confirmar." };
+  try {
+    await apiFetch<void>(`/api/v1/clientes/${id}/anonimizar`, { method: "POST", body: { motivo } });
+  } catch (e) {
+    if (e instanceof ApiError) return { erro: e.message };
+    throw e;
+  }
+  revalidatePath("/clientes");
+  redirect("/clientes?anonimizado=1");
+}
