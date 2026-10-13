@@ -1,0 +1,24 @@
+PetConnect Web — Licença proprietária
+
+Copyright (c) 2025-2026 Aleksander Gustavo e colaboradores. Todos os direitos reservados.
+Copyright (c) 2025-2026 Aleksander Gustavo and contributors. All rights reserved.
+
+Este software e a documentação que o acompanha são propriedade dos seus titulares.
+É PROIBIDO, sem autorização prévia e por escrito dos titulares:
+
+  1. usar este software, em todo ou em parte, em produção ou para fins comerciais;
+  2. copiar, modificar, mesclar, publicar, distribuir, sublicenciar ou vender o software,
+     seus módulos ou trabalhos derivados;
+  3. oferecer o software, ou parte dele, a terceiros como serviço.
+
+A visualização do código-fonte, quando o acesso ao repositório for concedido, não transfere
+nenhum direito de uso. O código do sistema antigo (pasta `legacy/`) e a documentação do
+Projeto Integrador (pasta `docs/legacy/`) são mantidos como registro histórico do trabalho
+acadêmico e pertencem aos seus respectivos autores.
+
+O SOFTWARE É FORNECIDO "NO ESTADO EM QUE SE ENCONTRA", SEM GARANTIA DE QUALQUER TIPO, EXPRESSA
+OU IMPLÍCITA, INCLUINDO, SEM LIMITAÇÃO, GARANTIAS DE COMERCIALIZAÇÃO E ADEQUAÇÃO A UM FIM
+ESPECÍFICO. EM NENHUMA HIPÓTESE OS TITULARES SERÃO RESPONSÁVEIS POR QUALQUER DANO DECORRENTE
+DO USO DO SOFTWARE.
+
+Para solicitar uma licença de uso, entre em contato com os titulares pelo próprio repositório.

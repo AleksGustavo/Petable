@@ -1,0 +1,148 @@
+# Stack de PRODUÇÃO do PetConnect Web (etapa 09) — 1 servidor Linux com Docker.
+#
+#   Servidor: /opt/petconnect com este arquivo, deploy/Caddyfile, scripts/ e .env.prod (chmod 600, fora do git).
+#   docker compose -f compose.prod.yaml --env-file .env.prod up -d
+#   Deploy/rollback: scripts/deploy.sh <tag>   (ver docs/runbooks/deploy.md)
+#
+# Só o Caddy publica portas (80/443). API, MySQL e MongoDB ficam em redes internas (R-01).
+# Validação local: DOMINIO=localhost, CADDY_TLS=internal, HTTP_PORT=8880, HTTPS_PORT=8443 (ver docs/producao.md).
+
+name: petconnect
+
+x-logs: &logs
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "5" }   # retenção de logs dos containers (DA-24)
+
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    <<: *logs
+    depends_on:
+      web: { condition: service_healthy }
+    environment:
+      DOMINIO: ${DOMINIO:?defina DOMINIO no .env.prod}
+      CADDY_TLS: ${CADDY_TLS:?e-mail para o Let's Encrypt, ou "internal" para teste local}
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+      - "${HTTPS_PORT:-443}:443/udp"   # HTTP/3
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data                 # certificados (não perder: limite de emissão do Let's Encrypt)
+      - caddy-config:/config
+      - caddy-logs:/var/log/caddy
+    networks: [borda]
+    mem_limit: 128m
+
+  web:
+    image: ghcr.io/aleksgustavo/petconnect-web-web:${TAG:?defina TAG no .env.prod}
+    restart: unless-stopped
+    <<: *logs
+    depends_on:
+      api: { condition: service_healthy }
+    environment:
+      API_URL: http://api:8080
+      COOKIE_SECURE: "true"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/login"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    networks: [borda, interna]
+    mem_limit: 512m
+
+  api:
+    image: ghcr.io/aleksgustavo/petconnect-web-api:${TAG}
+    restart: unless-stopped
+    <<: *logs
+    depends_on:
+      mysql: { condition: service_healthy }
+      mongo: { condition: service_healthy }
+    environment:
+      APP_ENV: prod
+      MYSQL_URL: jdbc:mysql://mysql:3306/petconnect_web
+      MYSQL_USER: ${MYSQL_USER:?}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?}
+      MONGODB_URI: mongodb://${MONGO_USER:?}:${MONGO_PASSWORD:?}@mongo:27017/petconnect_web?authSource=admin
+      JWT_SECRET: ${JWT_SECRET:?}
+      CORS_ALLOWED_ORIGINS: https://${DOMINIO}
+      APP_FRONTEND_URL: https://${DOMINIO}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      SMTP_HOST: ${SMTP_HOST:?}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_AUTH: ${SMTP_AUTH:-true}
+      SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
+      EMAIL_REMETENTE: ${EMAIL_REMETENTE:?}
+      PETS_STORAGE_DIR: /data/uploads/pets
+      MANAGEMENT_PORT: "9090"              # health e /actuator/prometheus só na rede interna (DA-12)
+      PETCONNECT_MIGRACAO_LEGADO: "false"  # ferramenta offline, desligada em produção (R-19)
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=75
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9090/actuator/health/readiness"]
+      interval: 15s
+      timeout: 5s
+      start_period: 90s
+      retries: 5
+    volumes:
+      - uploads:/data/uploads
+    networks: [interna, saida]
+    mem_limit: 768m
+
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    <<: *logs
+    environment:
+      MYSQL_DATABASE: petconnect_web
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?}
+      TZ: America/Sao_Paulo
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci"]
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [interna]
+    mem_limit: 1g
+
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    <<: *logs
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [interna]
+    mem_limit: 512m
+
+networks:
+  borda: {}
+  interna:
+    internal: true    # sem rota para a internet: bancos isolados (DA-04)
+  saida: {}           # só a API, para o SMTP
+
+volumes:
+  mysql-data:
+  mongo-data:
+  uploads:
+  caddy-data:
+  caddy-config:
+  caddy-logs:

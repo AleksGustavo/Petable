@@ -1,0 +1,49 @@
+# Proxy reverso de produção (etapa 09, DA-02). Variáveis vêm do compose.prod.yaml:
+#   DOMINIO    domínio público (ex.: sistema.petshop.com.br) — "localhost" no teste local
+#   CADDY_TLS  e-mail do Let's Encrypt (produção) ou "internal" (certificado local de teste)
+# HTTP → HTTPS é automático (308). Só o Next (web) é roteado: a API não é exposta.
+
+{
+	# Sem painel de administração remoto.
+	admin off
+}
+
+{$DOMINIO} {
+	tls {$CADDY_TLS}
+
+	encode zstd gzip
+
+	# Foto do pet: 5 MB de regra + folga do multipart (a API e o Next também limitam).
+	request_body {
+		max_size 7MB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+		-Via
+	}
+
+	# Log de acesso em JSON, usado pelo scripts/monitorar.sh (contagem de 5xx).
+	# LGPD: Cookie/Authorization já são omitidos pelo Caddy; a busca (?busca=) sai do log
+	# e o IP é truncado (/24 no IPv4, /48 no IPv6).
+	log {
+		output file /var/log/caddy/acesso.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+		format filter {
+			request>uri query {
+				delete busca
+			}
+			request>remote_ip ip_mask 24 48
+			request>client_ip ip_mask 24 48
+			wrap json
+		}
+	}
+
+	reverse_proxy web:3000 {
+		# Id de correlação gerado aqui (o do cliente é descartado): Next → API → logs (DA-11).
+		header_up X-Request-Id {http.request.uuid}
+	}
+}

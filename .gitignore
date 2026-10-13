@@ -1,0 +1,25 @@
+# Segredos — nunca versionar
+.env
+.env.*
+!.env.example
+!.env.prod.example
+# Estado do deploy e backups no servidor
+.ultimo-deploy
+backups/
+
+# SO / editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml
+
+# Arquivos de lock do LibreOffice/Word
+.~lock.*
+~$*
+
+# Migração do legado (etapa 08): relatórios, dumps e fotos reais nunca vão para o git
+build/migracao-relatorios/
+.migracao/
+docker/migracao/dados-reais/
+*.legacy.sql
