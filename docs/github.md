@@ -69,6 +69,10 @@ Os workflows atuais **não precisam de segredo nenhum** (usam `GITHUB_TOKEN` par
 - Todo trabalho novo nasce como **issue** (modelos em `.github/ISSUE_TEMPLATE`), com etiquetas de prioridade (`prioridade:alta|media|baixa`) e de área (`arquitetura`, `modularizacao`, `lgpd`, `infra`, `mobile`, `docs`, `testes`, `estoque`).
 - Etapas concluídas ficam registradas em `docs/next-stage/` e no [CHANGELOG](../CHANGELOG.md).
 
+## CodeQL em repositório privado
+
+Sem o plano pago GitHub Code Security, o GitHub não aceita o envio dos resultados do CodeQL para a aba *Security* em repositório privado. O workflow `codeql.yml` roda a análise com `upload: never`, guarda o SARIF como artefato do job e reprova o CI se houver achado de nível `error`. Com Code Security ativo, volte para `upload: always` (instruções no cabeçalho do workflow).
+
 ## Visibilidade
 
 O repositório é **privado**: o histórico do git guarda um script do sistema antigo com dados pessoais reais (`Documentação/Banco de Dados/Scripts do Banco/`). A limpeza do histórico (`git filter-repo` + force-push) está registrada como issue e depende de avisar os colaboradores, porque muda os hashes dos commits.
