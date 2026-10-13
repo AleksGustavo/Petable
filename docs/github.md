@@ -33,7 +33,16 @@ Recomendado fazer o mesmo com o `PetConnect-API`, para o ecossistema ficar todo 
 
 ## Proteção da `main`
 
-**Em vigor** (aplicada na etapa de higiene do repositório): PR obrigatório, checks obrigatórios (`Build + testes (unit + integração)`, `Lint + tipos + testes + build`, `Playwright (Chromium)`), branch atualizada antes do merge, sem force-push e sem exclusão. **Sem exigir aprovação**: com um único mantenedor, ele não consegue aprovar o próprio PR. Ao entrar mais gente, passe para 1 aprovação com *Code Owners* (`.github/CODEOWNERS`). Para ver ou alterar: Settings → Branches (ou Rules → Rulesets).
+**Hoje NÃO há proteção ativa na `main`.** O GitHub só oferece *branch protection* e *rulesets* em repositório **privado** nos planos pagos (Pro/Team): a API responde `403 Upgrade to GitHub Pro or make this repository public`. O repositório é privado de propósito (o histórico tem dados pessoais do sistema antigo, ver a issue #2), então a proteção fica pendente da issue #3.
+
+Enquanto isso, vale a **regra de disciplina**: sempre abrir PR, esperar o CI ficar verde e nunca fazer push direto na `main`. O CI roda em todo PR e na `main`, mas não impede o merge.
+
+Quando houver plano pago (ou o repositório puder ficar público), aplique a configuração abaixo. Com um único mantenedor, **não exija aprovação**: ele não consegue aprovar o próprio PR.
+
+- PR obrigatório, sem force-push e sem exclusão da branch.
+- Checks obrigatórios: `Build + testes (unit + integração)`, `Lint + tipos + testes + build`, `Playwright (Chromium)`, `Análise (java-kotlin)` e `Análise (javascript-typescript)`.
+- Branch atualizada antes do merge e conversas resolvidas.
+- Para o time, passar para 1 aprovação com *Code Owners* (`.github/CODEOWNERS`).
 
 Recomendação completa (para o time):
 
