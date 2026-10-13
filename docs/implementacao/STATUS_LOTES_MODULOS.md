@@ -16,6 +16,7 @@
 | 07 | Autorização e isolamento modular | pendente | — |
 | 08 | Provisionamento e operação por cliente | pendente | — |
 | 09 | Testes modulares e go-live | pendente | — |
+| 10 (futura) | Unidade de medida e quantidade decimal (granel) | planejada, **pré-requisito do pacote agropecuário**; fora deste plano de 9 etapas | D24 em [01_DECISOES_LOTES.md](01_DECISOES_LOTES.md) |
 
 ## Etapa 01 — checklist
 
@@ -40,13 +41,15 @@
 | Multiempresa / NF-e / offline | `grep` por termos exatos em `backend` e `frontend` | 0 ocorrências |
 | Testes existentes | listados em `01_MAPA_ATUAL.md` §8 | **não executados nesta etapa** (nenhum código mudou); a linha de base vem do CI da `main` (346 + 267 + 249 + 6 E2E, tudo verde) |
 
-## Decisões pendentes (padrões em uso)
+## Decisões fechadas (dono)
 
-| # | Pergunta | Padrão |
+| # | Pergunta | Decisão |
 |---|---|---|
-| Q1 | Produtos a granel (kg/litro) neste ciclo? | Não: quantidades inteiras |
-| Q2 | Dias de margem antes do vencimento para bloquear a venda | 0 |
-| Q3 | Opção de descarte no cancelamento de venda | Etapa 03; padrão devolve ao lote original |
+| Q1 | Granel (kg/litro) neste ciclo? | **Não.** Lotes com quantidade `INT`. Etapa futura de unidade e decimal (uma migration para todas as colunas de quantidade), pré-requisito do pacote agropecuário (D7, D24) |
+| Q2 | Dias de bloqueio antes do vencimento | **Global (padrão 0) + sobrescrita por produto**; **lote vencido sempre bloqueado, sem exceção**; alertas de 30/60/90 dias na etapa 04 (D4, D23) |
+| Q3 | Cancelamento com produto danificado | **Escolha explícita** `RETORNAR` ou `DESCARTAR` (sem padrão) para produto com lote; `DESCARTAR` grava `PERDA`; dinheiro estornado nos dois casos; produto sem lote não muda (D9) |
+
+Sem pontos abertos bloqueadores para a etapa 02.
 
 ## Próximo passo
 
