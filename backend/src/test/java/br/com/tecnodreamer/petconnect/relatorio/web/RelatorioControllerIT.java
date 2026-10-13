@@ -235,9 +235,25 @@ class RelatorioControllerIT extends VendaIntegrationTest {
                 .andExpect(jsonPath("$.porCategoria[1].valor").value(50.0));
     }
 
+    /**
+     * Caixa FECHADO como o fechamento real grava: esperado, contado e diferença de TODAS as formas
+     * (zerados) além da diferença total. Linhas incompletas quebram outros ITs que listam caixas
+     * no mesmo banco compartilhado (CaixaResponse soma os valores por forma).
+     */
     private void caixaFechado(long usuarioId, LocalDateTime fechadoEm, String diferenca) {
-        insert("caixa", m("usuario_id", usuarioId, "status", "FECHADO", "aberto_em", fechadoEm.minusHours(8), "fundo_abertura",
-                BigDecimal.ZERO, "fechado_em", fechadoEm, "diferenca_total", new BigDecimal(diferenca)));
+        Map<String, Object> cols = new LinkedHashMap<>();
+        cols.put("usuario_id", usuarioId);
+        cols.put("status", "FECHADO");
+        cols.put("aberto_em", fechadoEm.minusHours(8));
+        cols.put("fundo_abertura", BigDecimal.ZERO);
+        cols.put("fechado_em", fechadoEm);
+        for (String prefixo : new String[] {"esperado_", "contado_", "diferenca_"}) {
+            for (String forma : new String[] {"dinheiro", "cartao_credito", "cartao_debito", "pix", "transferencia"}) {
+                cols.put(prefixo + forma, BigDecimal.ZERO);
+            }
+        }
+        cols.put("diferenca_total", new BigDecimal(diferenca));
+        insert("caixa", cols);
     }
 
     @Test
