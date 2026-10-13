@@ -7,8 +7,8 @@
 
 | Ordem | Etapa | Estado | Evidência |
 |---|---|---|---|
-| 01 | Diagnóstico e contratos | **concluída** (aguardando autorização para a 02) | [01_MAPA_ATUAL.md](01_MAPA_ATUAL.md), [01_DECISOES_LOTES.md](01_DECISOES_LOTES.md) |
-| 02 | Domínio e banco de lotes (`V11`) | pendente | — |
+| 01 | Diagnóstico e contratos | **concluída** (mesclada, PR #14) | [01_MAPA_ATUAL.md](01_MAPA_ATUAL.md), [01_DECISOES_LOTES.md](01_DECISOES_LOTES.md) |
+| 02 | Domínio e banco de lotes (`V11`) | **implementada, aguardando revisão/merge do PR** | [02_DOMINIO_E_BANCO.md](02_DOMINIO_E_BANCO.md), `V11__lotes_estoque.sql` |
 | 03 | Movimentações, FEFO e concorrência | pendente | — |
 | 04 | Telas, alertas e operação | pendente | — |
 | 05 | Testes de lotes e homologação | pendente | — |
@@ -51,6 +51,24 @@
 
 Sem pontos abertos bloqueadores para a etapa 02.
 
+## Etapa 02 — checklist
+
+- [x] `V11__lotes_estoque.sql` aditiva: colunas em `produto` e `movimentacao_estoque`, tabelas `lote_estoque`, `item_venda_lote`, `item_compra_lote`, CHECK de tipo ampliado, índice FEFO
+- [x] Entidades, repositórios, `LoteEstoqueService` e `LotesProperties` (flag `petconnect.estoque.lotes.habilitado` = falso; margem global 0)
+- [x] Nenhuma rota nova; nenhum fluxo de venda/compra/ajuste alterado
+- [x] Testes: migration V10 → V11 com dados legados, CRUD técnico, constraints, índices, FEFO, rastreio, reprocessamento (ver `02_DOMINIO_E_BANCO.md` §6)
+- [x] Dicionário de dados e ER atualizados (33 tabelas); `scripts/gerar-dicionario.py` conhece as tabelas novas
+- [x] Rollback operacional documentado (`02_DOMINIO_E_BANCO.md` §5)
+- [ ] Revisão e merge do PR pelo dono (regra fixa: nunca mesclar na `main` sem autorização)
+
+## Evidências da etapa 02
+
+| Verificação | Comando | Resultado |
+|---|---|---|
+| Unitários do domínio | `./mvnw -q -Dtest=LoteEstoqueTest test` | 9/9 |
+| ITs novos | `./mvnw verify -Dit.test='LoteEstoqueIT,MigracaoLotesV11IT'` | 22/22 + 1/1 |
+| Suíte completa do backend | `./mvnw verify` | 355 unitários + 290 ITs, BUILD SUCCESS |
+
 ## Próximo passo
 
-Autorização do dono para a **etapa 02** (`02_DOMINIO_E_BANCO_LOTES.md`): migration `V11`, entidades e repositórios, sem mudar o comportamento (feature flag desligada).
+Revisão e merge do PR da etapa 02. Depois, o dono envia `03_MOVIMENTACOES_FEFO_E_CONCORRENCIA.md`: entrada no recebimento, baixa FEFO na venda, cancelamento com `RETORNAR`/`DESCARTAR`, ajuste/perda/vencimento, regularização do saldo legado e testes de concorrência.

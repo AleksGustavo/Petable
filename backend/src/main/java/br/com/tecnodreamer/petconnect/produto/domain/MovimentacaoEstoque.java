@@ -56,6 +56,21 @@ public class MovimentacaoEstoque {
 
     private String motivo;
 
+    /** Lote movimentado (nulo = produto sem controle de lote, como todo o histórico anterior). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lote_id")
+    private LoteEstoque lote;
+
+    @Column(name = "lote_saldo_anterior")
+    private Integer loteSaldoAnterior;
+
+    @Column(name = "lote_saldo_resultante")
+    private Integer loteSaldoResultante;
+
+    /** Agrupa os movimentos de uma mesma operação (ex.: o par ESTORNO_VENDA + PERDA do descarte). */
+    @Column(name = "operacao_id")
+    private String operacaoId;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;
@@ -80,6 +95,21 @@ public class MovimentacaoEstoque {
             int saldoResultante, Long vendaId, Usuario usuario) {
         this(produto, tipo, quantidade, saldoAnterior, saldoResultante, null, usuario, null);
         this.vendaId = vendaId;
+    }
+
+    /**
+     * Movimento de um lote: guarda o saldo do lote antes e depois (I6). {@code compra} ou {@code vendaId}
+     * identificam a origem quando houver; {@code operacaoId} liga movimentos da mesma operação.
+     */
+    public MovimentacaoEstoque(Produto produto, TipoMovimentacao tipo, int quantidade, int saldoAnterior,
+            int saldoResultante, Compra compra, Long vendaId, Usuario usuario, String motivo, LoteEstoque lote,
+            int loteSaldoAnterior, String operacaoId) {
+        this(produto, tipo, quantidade, saldoAnterior, saldoResultante, compra, usuario, motivo);
+        this.vendaId = vendaId;
+        this.lote = lote;
+        this.loteSaldoAnterior = loteSaldoAnterior;
+        this.loteSaldoResultante = loteSaldoAnterior + quantidade;
+        this.operacaoId = operacaoId;
     }
 
     public Long getId() {
@@ -120,6 +150,22 @@ public class MovimentacaoEstoque {
 
     public String getMotivo() {
         return motivo;
+    }
+
+    public LoteEstoque getLote() {
+        return lote;
+    }
+
+    public Integer getLoteSaldoAnterior() {
+        return loteSaldoAnterior;
+    }
+
+    public Integer getLoteSaldoResultante() {
+        return loteSaldoResultante;
+    }
+
+    public String getOperacaoId() {
+        return operacaoId;
     }
 
     public Instant getCreatedAt() {

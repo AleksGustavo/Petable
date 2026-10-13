@@ -57,6 +57,18 @@ public class Produto {
 
     private boolean ativo = true;
 
+    /** Opt-in por produto (D1). Só liga depois de regularizar o saldo existente em lotes (D11). */
+    @Column(name = "controla_lote")
+    private boolean controlaLote;
+
+    /** Política explícita (D5): falso = todo lote do produto exige validade. */
+    @Column(name = "permite_sem_validade")
+    private boolean permiteSemValidade;
+
+    /** Margem de bloqueio antes do vencimento (D4). Nulo = usa a margem global. */
+    @Column(name = "dias_bloqueio_validade")
+    private Integer diasBloqueioValidade;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;
@@ -96,6 +108,28 @@ public class Produto {
         }
         quantidadeEstoque = anterior + delta;
         return anterior;
+    }
+
+    /**
+     * Liga o controle de lote. Só a regularização do saldo (etapa 03) chama isto, com o produto travado:
+     * o saldo existente precisa estar distribuído em lotes antes (D11).
+     */
+    public void ativarControleLote() {
+        this.controlaLote = true;
+    }
+
+    /** Desliga o controle. O serviço só chama com todos os lotes zerados (D12). */
+    public void desativarControleLote() {
+        this.controlaLote = false;
+    }
+
+    /** Política de lote do produto: exigência de validade (D5) e margem própria de bloqueio (D4). */
+    public void definirPoliticaDeLote(boolean permiteSemValidade, Integer diasBloqueioValidade) {
+        if (diasBloqueioValidade != null && diasBloqueioValidade < 0) {
+            throw new IllegalArgumentException("A margem de bloqueio não pode ser negativa.");
+        }
+        this.permiteSemValidade = permiteSemValidade;
+        this.diasBloqueioValidade = diasBloqueioValidade;
     }
 
     public void atualizarCusto(BigDecimal novoCusto) {
@@ -157,6 +191,18 @@ public class Produto {
 
     public boolean isAtivo() {
         return ativo;
+    }
+
+    public boolean isControlaLote() {
+        return controlaLote;
+    }
+
+    public boolean isPermiteSemValidade() {
+        return permiteSemValidade;
+    }
+
+    public Integer getDiasBloqueioValidade() {
+        return diasBloqueioValidade;
     }
 
     public Instant getCreatedAt() {
