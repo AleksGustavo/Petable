@@ -1,0 +1,38 @@
+name: Bug
+description: Algo não funciona como deveria
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Não inclua dados pessoais reais, senhas nem tokens.** Falhas de segurança: use *Security → Report a vulnerability*, não esta issue.
+  - type: dropdown
+    id: modulo
+    attributes:
+      label: Módulo
+      options: [Clientes, Pets, Agendamentos, Usuários, Produtos/Estoque, PDV/Vendas, Caixa/Financeiro, Relatórios, Migração, Infra/Deploy, Outro]
+    validations:
+      required: true
+  - type: textarea
+    id: passos
+    attributes:
+      label: Passos para reproduzir
+      placeholder: "1. Entrei como VENDAS\n2. Abri o PDV\n3. ..."
+    validations:
+      required: true
+  - type: textarea
+    id: esperado
+    attributes:
+      label: O que deveria acontecer / o que aconteceu
+    validations:
+      required: true
+  - type: input
+    id: versao
+    attributes:
+      label: Versão ou commit
+      placeholder: "v0.1.0 ou hash curto"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs ou prints (sem dados pessoais)
+      description: Se houver, inclua o `requestId` do log (cabeçalho `X-Request-Id`).

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Relatar vulnerabilidade de segurança (privado)
+    url: https://github.com/AleksGustavo/PetConnect-Web/security/advisories/new
+    about: Não abra issue pública para falhas de segurança ou vazamento de dados.

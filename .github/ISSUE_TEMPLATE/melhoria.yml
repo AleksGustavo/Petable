@@ -1,0 +1,29 @@
+name: Melhoria ou funcionalidade
+description: Proposta de algo novo ou de mudança
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: prioridade
+    attributes:
+      label: Prioridade sugerida
+      options: [Alta, Média, Baixa]
+    validations:
+      required: true
+  - type: textarea
+    id: problema
+    attributes:
+      label: Qual problema isso resolve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposta
+    attributes:
+      label: Proposta
+      description: Como deveria funcionar? Quem usa (ADMIN, VENDAS, SERVICO)?
+    validations:
+      required: true
+  - type: textarea
+    id: criterios
+    attributes:
+      label: Critérios de aceite
+      placeholder: "- [ ] ...\n- [ ] ..."

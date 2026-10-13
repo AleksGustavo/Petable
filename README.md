@@ -2,7 +2,7 @@
 
 Sistema web de **gestão de petshop** (clientes, pets, agendamentos de banho e tosa, carteira de vacinas, PDV, estoque e relatórios), responsivo, para desktop e celular.
 
-É a evolução do **Pet & Pet** (Projeto Integrador Fatec Araras, 2º sem/2025), que foi escrito em PHP + MySQL. O código antigo continua em [`legacy/php`](legacy/php) como referência até a migração terminar.
+É a evolução do **Pet & Pet** (Projeto Integrador Fatec Araras, 2º sem/2025), que foi escrito em PHP + MySQL. O código antigo continua em [`legacy/php`](legacy/php) como registro histórico, somente leitura. A migração dos dados do PHP para o sistema novo tem ferramenta própria e roteiro em [docs/migracao-legado.md](docs/migracao-legado.md).
 
 Faz parte do ecossistema **PetConnect** da TecnoDreamer, junto com o app mobile Flutter (`PetConnect`) e a API do app (`PetConnect-API`).
 
@@ -26,7 +26,8 @@ PetConnect-Web/
 ├── legacy/php/         Sistema antigo em PHP (somente leitura, referência)
 ├── docs/
 │   ├── arquitetura.md
-│   ├── banco-de-dados.md
+│   ├── banco-de-dados.md          decisões do banco, diagrama ER das 30 tabelas, retenção
+│   ├── dicionario-de-dados.md     colunas, tipos e regras (gerado do banco real)
 │   ├── github.md                  organização, proteção de branch, segredos
 │   ├── producao.md                arquitetura de produção, instalação, segurança, observabilidade
 │   ├── runbooks/                  deploy, rollback, backup/restore, incidente, rotação, desastre, go-live, LGPD
@@ -40,6 +41,8 @@ PetConnect-Web/
 └── .github/            workflows, Dependabot, template de PR, CODEOWNERS
 ```
 
+> **Licença:** código proprietário, todos os direitos reservados ([LICENSE](LICENSE)). Contribuições: [CONTRIBUTING.md](CONTRIBUTING.md). Falhas de segurança: [SECURITY.md](SECURITY.md). Versões: [CHANGELOG.md](CHANGELOG.md). Planejamento: quadro **PetConnect Web — Roadmap** na aba *Projects* do GitHub.
+
 ## Rodando localmente
 
 Pré-requisitos: Docker Desktop. Para desenvolver fora do container, também JDK 21 e Node 24.
@@ -51,7 +54,7 @@ docker compose up -d --build
 
 | Serviço | URL padrão |
 |---|---|
-| Web | http://localhost:3000 (`WEB_PORT`) |
+| Web | http://localhost:3000 (`WEB_PORT`; pode variar conforme o seu `.env`) |
 | API | http://localhost:8081 (`API_PORT`) |
 | Swagger | http://localhost:8081/swagger-ui.html |
 | Health | http://localhost:8081/actuator/health |
@@ -87,7 +90,10 @@ cd frontend && npm run lint && npm run typecheck && npm test
 | `backend.yml` | PR/push que toca `backend/` | `mvn verify` com Testcontainers e publica relatórios e cobertura |
 | `frontend.yml` | PR/push que toca `frontend/` | lint, typecheck, testes e build |
 | `codeql.yml` | PR, push na `main`, toda segunda | análise de segurança Java e TypeScript |
+| `e2e.yml` | PR e push na `main` | fluxos críticos no navegador (Playwright) |
+| `seguranca.yml` | PR, push na `main`, toda segunda | Trivy (dependências e imagens) e SBOM |
 | `delivery.yml` | push na `main` e tags `v*` | publica `petconnect-web-api` e `petconnect-web-web` no GHCR |
+| `deploy.yml` | manual, com aprovação | deploy por tag na VPS (backup, smoke test e rollback) |
 
 Veja [docs/github.md](docs/github.md) para configurar a organização, a proteção da `main` e os ambientes.
 

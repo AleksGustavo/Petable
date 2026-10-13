@@ -31,9 +31,11 @@ Recomendado fazer o mesmo com o `PetConnect-API`, para o ecossistema ficar todo 
 | `mantenedores` | Admin | configurações, releases |
 | `devs` | Write | PRs e revisões |
 
-## Proteção da `main` (Settings → Rules → Rulesets)
+## Proteção da `main`
 
-Crie um ruleset para a branch padrão com:
+**Em vigor** (aplicada na etapa de higiene do repositório): PR obrigatório, checks obrigatórios (`Build + testes (unit + integração)`, `Lint + tipos + testes + build`, `Playwright (Chromium)`), branch atualizada antes do merge, sem force-push e sem exclusão. **Sem exigir aprovação**: com um único mantenedor, ele não consegue aprovar o próprio PR. Ao entrar mais gente, passe para 1 aprovação com *Code Owners* (`.github/CODEOWNERS`). Para ver ou alterar: Settings → Branches (ou Rules → Rulesets).
+
+Recomendação completa (para o time):
 
 - **Require a pull request before merging**: 1 aprovação e *Require review from Code Owners* (usa `.github/CODEOWNERS`).
 - **Require status checks to pass**:
@@ -60,6 +62,16 @@ Os workflows atuais **não precisam de segredo nenhum** (usam `GITHUB_TOKEN` par
 |---|---|
 | `staging` | `MYSQL_URL`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MONGODB_URI`, `JWT_SECRET`, credenciais do destino de deploy |
 | `production` | os mesmos, com *required reviewers* no ambiente |
+
+## Planejamento (Kanban)
+
+- Quadro **PetConnect Web — Roadmap** (aba *Projects* do repositório): colunas *Backlog → Em andamento → Concluído*.
+- Todo trabalho novo nasce como **issue** (modelos em `.github/ISSUE_TEMPLATE`), com etiquetas de prioridade (`prioridade:alta|media|baixa`) e de área (`arquitetura`, `modularizacao`, `lgpd`, `infra`, `mobile`, `docs`, `testes`, `estoque`).
+- Etapas concluídas ficam registradas em `docs/next-stage/` e no [CHANGELOG](../CHANGELOG.md).
+
+## Visibilidade
+
+O repositório é **privado**: o histórico do git guarda um script do sistema antigo com dados pessoais reais (`Documentação/Banco de Dados/Scripts do Banco/`). A limpeza do histórico (`git filter-repo` + force-push) está registrada como issue e depende de avisar os colaboradores, porque muda os hashes dos commits.
 
 ## Segurança do repositório
 

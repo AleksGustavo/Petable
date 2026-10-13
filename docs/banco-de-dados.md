@@ -65,7 +65,29 @@ erDiagram
     venda |o--o{ movimentacao_financeira : ""
     compra |o--o{ movimentacao_financeira : ""
     servico_realizado |o--o{ movimentacao_financeira : ""
+    pet ||--o{ servico_realizado : ""
+    servico ||--o{ servico_realizado : ""
+    funcionario |o--o{ servico_realizado : ""
+    funcionario |o--o{ compra : ""
+    funcionario |o--o{ venda : ""
+    usuario |o--o{ venda : "operador"
+    usuario ||--o{ caixa : "abre (1 aberto por operador)"
+    caixa ||--o{ caixa_movimento : "sangria/suprimento"
+    caixa |o--o{ venda : ""
+    caixa |o--o{ movimentacao_financeira : ""
+    compra |o--o| conta_pagar : "uma por compra"
+    conta_pagar |o--o{ movimentacao_financeira : "pagamento"
+    movimentacao_financeira |o--o| movimentacao_financeira : "estorno"
+    usuario |o--o{ movimentacao_financeira : ""
+    produto ||--o{ movimentacao_estoque : "histórico imutável"
+    compra |o--o{ movimentacao_estoque : ""
+    venda |o--o{ movimentacao_estoque : ""
+    usuario ||--o{ movimentacao_estoque : ""
+    migracao_legado_execucao ||--o{ migracao_legado_mapa : ""
 ```
+
+O diagrama cobre as **30 tabelas** (os atributos estão no [dicionário de dados](dicionario-de-dados.md), gerado do banco real). Os grupos:
+acesso, pessoas e endereço, pets, serviços e agenda, produtos/estoque/compras, vendas, financeiro/caixa e migração do legado.
 
 ## MongoDB
 
