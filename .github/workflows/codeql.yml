@@ -1,5 +1,11 @@
 name: CodeQL
 
+# Análise estática (SAST) de Java e TypeScript.
+# O repositório é PRIVADO e sem GitHub Code Security (pago): o GitHub não aceita o envio dos
+# resultados para a aba Security ("Code scanning is not enabled"). Por isso o resultado fica como
+# artefato (SARIF) e o job REPROVA se houver achado de nível "error". Com Code Security ativo,
+# troque `upload: never` por `upload: always`, devolva `security-events: write` e remova os passos 2 e 3.
+
 on:
   push:
     branches: [main]
@@ -11,7 +17,6 @@ on:
 permissions:
   actions: read          # exigido pelo CodeQL em repositório privado
   contents: read
-  security-events: write
 
 jobs:
   analyze:
@@ -27,8 +32,33 @@ jobs:
             build-mode: none
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
       - uses: github/codeql-action/init@1190a975f95ce23525efb6a3fc21ea29567c1b52 # v3
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
+
+      # 1) Analisa e grava o SARIF localmente (sem enviar ao GitHub).
       - uses: github/codeql-action/analyze@1190a975f95ce23525efb6a3fc21ea29567c1b52 # v3
+        with:
+          upload: never
+          output: sarif-resultados
+
+      # 2) Guarda o resultado para consulta.
+      - name: Guardar resultado (SARIF)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: codeql-${{ matrix.language }}
+          path: sarif-resultados/
+          retention-days: 30
+
+      # 3) Reprova com achado de nível "error".
+      - name: Falhar com achados graves
+        run: |
+          total="$(jq -s '[.[].runs[].results[]? | select(.level == "error")] | length' sarif-resultados/*.sarif)"
+          echo "Achados de nível error (${{ matrix.language }}): $total"
+          if [ "$total" -gt 0 ]; then
+            jq -r -s '.[].runs[].results[]? | select(.level == "error") | "\(.ruleId): \(.locations[0].physicalLocation.artifactLocation.uri):\(.locations[0].physicalLocation.region.startLine)"' sarif-resultados/*.sarif
+            exit 1
+          fi
