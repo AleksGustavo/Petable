@@ -65,7 +65,7 @@ Os workflows atuais **não precisam de segredo nenhum** (usam `GITHUB_TOKEN` par
 
 ## Planejamento (Kanban)
 
-- Quadro **PetConnect Web — Roadmap** (aba *Projects* do repositório): colunas *Backlog → Em andamento → Concluído*.
+- Quadro **PetConnect Web — Roadmap** (aba *Projects* do repositório): colunas *Todo → In Progress → Done* (padrão do GitHub Projects).
 - Todo trabalho novo nasce como **issue** (modelos em `.github/ISSUE_TEMPLATE`), com etiquetas de prioridade (`prioridade:alta|media|baixa`) e de área (`arquitetura`, `modularizacao`, `lgpd`, `infra`, `mobile`, `docs`, `testes`, `estoque`).
 - Etapas concluídas ficam registradas em `docs/next-stage/` e no [CHANGELOG](../CHANGELOG.md).
 
