@@ -13,7 +13,10 @@ import br.com.tecnodreamer.petconnect.fornecedor.domain.Fornecedor;
 import br.com.tecnodreamer.petconnect.fornecedor.infrastructure.FornecedorRepository;
 import br.com.tecnodreamer.petconnect.funcionario.domain.Funcionario;
 import br.com.tecnodreamer.petconnect.funcionario.infrastructure.FuncionarioRepository;
+import br.com.tecnodreamer.petconnect.compra.web.RecebimentoRequest;
+import br.com.tecnodreamer.petconnect.produto.application.EstoqueLoteService;
 import br.com.tecnodreamer.petconnect.produto.application.EstoqueService;
+import br.com.tecnodreamer.petconnect.produto.application.LoteInformado;
 import br.com.tecnodreamer.petconnect.produto.domain.Produto;
 import br.com.tecnodreamer.petconnect.produto.infrastructure.ProdutoRepository;
 import br.com.tecnodreamer.petconnect.shared.audit.AuditoriaService;
@@ -47,18 +50,20 @@ public class CompraService {
     private final FuncionarioRepository funcionarios;
     private final ProdutoRepository produtos;
     private final EstoqueService estoque;
+    private final EstoqueLoteService estoqueLotes;
     private final AuditoriaService auditoria;
     private final FinanceiroService financeiro;
     private final Clock clock;
 
     public CompraService(CompraRepository compras, FornecedorRepository fornecedores, FuncionarioRepository funcionarios,
-            ProdutoRepository produtos, EstoqueService estoque, AuditoriaService auditoria, FinanceiroService financeiro,
-            Clock clock) {
+            ProdutoRepository produtos, EstoqueService estoque, EstoqueLoteService estoqueLotes, AuditoriaService auditoria,
+            FinanceiroService financeiro, Clock clock) {
         this.compras = compras;
         this.fornecedores = fornecedores;
         this.funcionarios = funcionarios;
         this.produtos = produtos;
         this.estoque = estoque;
+        this.estoqueLotes = estoqueLotes;
         this.auditoria = auditoria;
         this.financeiro = financeiro;
         this.clock = clock;
@@ -131,6 +136,17 @@ public class CompraService {
      */
     @Transactional
     public CompraResponse receber(Long id, LocalDate dataEntrega, LocalDate dataVencimento, Long usuarioId) {
+        return receber(id, dataEntrega, dataVencimento, null, usuarioId);
+    }
+
+    /**
+     * Recebimento com lotes (D17): para cada item de produto controlado, {@code lotes} traz os lotes recebidos (soma = quantidade
+     * do item). Produto sem controle segue o fluxo de antes e não pode vir com lotes. A repetição da chamada cai em 409 pela
+     * transição PEDIDO → RECEBIDO, sem nova entrada.
+     */
+    @Transactional
+    public CompraResponse receber(Long id, LocalDate dataEntrega, LocalDate dataVencimento,
+            List<RecebimentoRequest.LotesDoItem> lotesPorProduto, Long usuarioId) {
         Compra compra = compras.travar(id).orElseThrow(() -> new NotFoundException("Compra", id));
         compra.getStatus().exigirTransicaoPara(StatusCompra.RECEBIDO);
         if (dataEntrega.isAfter(LocalDate.now(clock))) {
@@ -150,9 +166,14 @@ public class CompraService {
         List<Long> ids = itens.stream().map(i -> i.getProduto().getId()).sorted().toList();
         Map<Long, Produto> travados = produtos.travarEmOrdem(ids).stream()
                 .collect(Collectors.toMap(Produto::getId, Function.identity()));
+        Map<Long, List<LoteInformado>> lotesDe = lotesPorProduto(lotesPorProduto, itens, travados);
         for (ItemCompra item : itens.stream().sorted((a, b) -> a.getProduto().getId().compareTo(b.getProduto().getId())).toList()) {
-            estoque.registrarEntradaCompra(travados.get(item.getProduto().getId()), item.getQuantidade(),
-                    item.getPrecoCustoUnitario(), compra, usuarioId);
+            Produto travado = travados.get(item.getProduto().getId());
+            if (travado.isControlaLote()) {
+                estoqueLotes.receberItem(travado, item, lotesDe.get(travado.getId()), dataEntrega, compra, usuarioId);
+            } else {
+                estoque.registrarEntradaCompra(travado, item.getQuantidade(), item.getPrecoCustoUnitario(), compra, usuarioId);
+            }
         }
         compra.receber(dataEntrega);
         Compra salva = compras.saveAndFlush(compra);
@@ -164,6 +185,30 @@ public class CompraService {
         // DA-09: conta a pagar na mesma transação; nenhuma saída financeira até o pagamento.
         ContaPagar conta = financeiro.criarContaPagar(salva, dataVencimento);
         return CompraResponse.of(salva).comConta(ContaPagarResponse.Resumo.of(conta));
+    }
+
+    /** Lotes informados por produto; produto sem controle de lote com lotes informados é erro do chamador. */
+    private static Map<Long, List<LoteInformado>> lotesPorProduto(List<RecebimentoRequest.LotesDoItem> informados,
+            List<ItemCompra> itens, Map<Long, Produto> travados) {
+        Map<Long, List<LoteInformado>> porProduto = new java.util.HashMap<>();
+        if (informados != null) {
+            for (RecebimentoRequest.LotesDoItem l : informados) {
+                if (porProduto.put(l.produtoId(), l.lotes()) != null) {
+                    throw new CampoInvalidoException("lotes", "O produto " + l.produtoId() + " aparece mais de uma vez nos lotes.");
+                }
+            }
+        }
+        Set<Long> daCompra = itens.stream().map(i -> i.getProduto().getId()).collect(Collectors.toSet());
+        for (Long produtoId : porProduto.keySet()) {
+            Produto p = travados.get(produtoId);
+            if (!daCompra.contains(produtoId)) {
+                throw new CampoInvalidoException("lotes", "O produto " + produtoId + " não faz parte desta compra.");
+            }
+            if (!p.isControlaLote()) {
+                throw new CampoInvalidoException("lotes", "O produto " + p.getNome() + " não controla lote.");
+            }
+        }
+        return porProduto;
     }
 
     /** Só PEDIDO; não mexe no estoque; o motivo vai para a auditoria e para as observações. */

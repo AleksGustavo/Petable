@@ -8,8 +8,8 @@
 | Ordem | Etapa | Estado | Evidência |
 |---|---|---|---|
 | 01 | Diagnóstico e contratos | **concluída** (mesclada, PR #14) | [01_MAPA_ATUAL.md](01_MAPA_ATUAL.md), [01_DECISOES_LOTES.md](01_DECISOES_LOTES.md) |
-| 02 | Domínio e banco de lotes (`V11`) | **implementada, aguardando revisão/merge do PR** | [02_DOMINIO_E_BANCO.md](02_DOMINIO_E_BANCO.md), `V11__lotes_estoque.sql` |
-| 03 | Movimentações, FEFO e concorrência | pendente | — |
+| 02 | Domínio e banco de lotes (`V11`) | **concluída** (mesclada, PR #28) | [02_DOMINIO_E_BANCO.md](02_DOMINIO_E_BANCO.md), `V11__lotes_estoque.sql` |
+| 03 | Movimentações, FEFO e concorrência | **implementada, aguardando revisão/merge do PR** | [03_MOVIMENTACOES_FEFO.md](03_MOVIMENTACOES_FEFO.md) |
 | 04 | Telas, alertas e operação | pendente | — |
 | 05 | Testes de lotes e homologação | pendente | — |
 | 06 | Catálogo de módulos e dependências | pendente | — |
@@ -59,7 +59,7 @@ Sem pontos abertos bloqueadores para a etapa 02.
 - [x] Testes: migration V10 → V11 com dados legados, CRUD técnico, constraints, índices, FEFO, rastreio, reprocessamento (ver `02_DOMINIO_E_BANCO.md` §6)
 - [x] Dicionário de dados e ER atualizados (33 tabelas); `scripts/gerar-dicionario.py` conhece as tabelas novas
 - [x] Rollback operacional documentado (`02_DOMINIO_E_BANCO.md` §5)
-- [ ] Revisão e merge do PR pelo dono (regra fixa: nunca mesclar na `main` sem autorização)
+- [x] Revisão e merge do PR pelo dono (PR #28, `e4df4a1`)
 
 ## Evidências da etapa 02
 
@@ -69,6 +69,26 @@ Sem pontos abertos bloqueadores para a etapa 02.
 | ITs novos | `./mvnw verify -Dit.test='LoteEstoqueIT,MigracaoLotesV11IT'` | 22/22 + 1/1 |
 | Suíte completa do backend | `./mvnw verify` | 355 unitários + 290 ITs, BUILD SUCCESS |
 
+## Etapa 03 — checklist
+
+- [x] Entrada de compra com lotes (soma = quantidade do item, validade conforme política, repetição não duplica)
+- [x] Ajuste, perda, vencimento e bloqueio por lote, com motivo, papel ADMIN e auditoria
+- [x] Baixa FEFO no PDV (3+2 entre dois lotes; vencido, bloqueado, zerado e dentro da margem ficam fora); prévia usa o mesmo alocador
+- [x] Concorrência por trava de linha do produto; leitura travada dos lotes (achado do teste: snapshot do REPEATABLE READ)
+- [x] Idempotência: venda por chave; recebimento e cancelamento pela transição de status
+- [x] Cancelamento com `destinoEstoque` obrigatório (`RETORNAR`/`DESCARTAR`), recompõe o lote original
+- [x] Nenhum caminho ignora lote: `EstoqueService` recusa produto controlado + teste de arquitetura
+- [x] Regularização do saldo legado (soma exata) e D13
+- [ ] Revisão e merge do PR pelo dono
+- Fora do escopo por inexistência (ver `03_MOVIMENTACOES_FEFO.md` §1): local, unidade/fração (etapa 10), recebimento e cancelamento parciais, transferência, consumo clínico, reserva
+
+## Evidências da etapa 03
+
+| Verificação | Resultado |
+|---|---|
+| Novos: 3 classes unitárias + 4 classes de IT (`LoteFluxoIT` 27, `LoteConcorrenciaIT` 5, `LoteFalhaTransacaoIT` 2, `LotesDesligadosIT` 2) | todos verdes |
+| `./mvnw verify` (suíte completa do backend) | 365 unitários + 326 ITs, BUILD SUCCESS |
+
 ## Próximo passo
 
-Revisão e merge do PR da etapa 02. Depois, o dono envia `03_MOVIMENTACOES_FEFO_E_CONCORRENCIA.md`: entrada no recebimento, baixa FEFO na venda, cancelamento com `RETORNAR`/`DESCARTAR`, ajuste/perda/vencimento, regularização do saldo legado e testes de concorrência.
+Revisão e merge do PR da etapa 03. Depois, o dono envia `04_TELAS_ALERTAS_E_OPERACAO.md`: PDV mostrando o lote, destino no cancelamento, tela de lotes, alertas de vencimento (30/60/90 dias) e relatórios. **A flag de lotes só pode ser ligada em produção depois das etapas 04 e 05.**

@@ -77,7 +77,7 @@ class CompraServiceTest {
     @BeforeEach
     void setUp() {
         EstoqueService estoque = new EstoqueService(produtos, movimentacoes, usuarios, new CustoMedioService(), auditoria);
-        service = new CompraService(compras, fornecedores, funcionarios, produtos, estoque, auditoria, financeiro, CLOCK);
+        service = new CompraService(compras, fornecedores, funcionarios, produtos, estoque, org.mockito.Mockito.mock(br.com.tecnodreamer.petconnect.produto.application.EstoqueLoteService.class), auditoria, financeiro, CLOCK);
         when(fornecedores.findById(4L)).thenReturn(Optional.of(fornecedor));
         when(produtos.findAllById(anyCollection())).thenReturn(List.of(racao, brinquedo));
         when(produtos.travarEmOrdem(anyCollection())).thenReturn(List.of(racao, brinquedo));
@@ -251,7 +251,7 @@ class CompraServiceTest {
         EstoqueService estoqueQueFalha = mock(EstoqueService.class);
         doThrow(new IllegalStateException("falha no 2º item")).when(estoqueQueFalha)
                 .registrarEntradaCompra(eq(brinquedo), anyInt(), any(), any(), anyLong());
-        CompraService comFalha = new CompraService(compras, fornecedores, funcionarios, produtos, estoqueQueFalha, auditoria, financeiro, CLOCK);
+        CompraService comFalha = new CompraService(compras, fornecedores, funcionarios, produtos, estoqueQueFalha, org.mockito.Mockito.mock(br.com.tecnodreamer.petconnect.produto.application.EstoqueLoteService.class), auditoria, financeiro, CLOCK);
         Compra c = pedido();
 
         assertThatThrownBy(() -> comFalha.receber(50L, HOJE, HOJE.plusDays(30), 1L)).isInstanceOf(IllegalStateException.class);

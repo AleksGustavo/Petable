@@ -20,7 +20,9 @@ import org.springframework.test.context.TestPropertySource;
         "app.bootstrap-admin.email=admin@petconnect.test",
         "app.bootstrap-admin.password=" + IntegrationTest.ADMIN_PASSWORD,
         // Fotos dos pets em diretório descartável (apagado pelo mvn clean).
-        "petconnect.storage.pets=target/it-uploads/pets"
+        "petconnect.storage.pets=target/it-uploads/pets",
+        // Lotes (etapa 03): ligado nos testes; o padrão de produção continua falso (LotesDesligadosIT e LotesPropertiesTest).
+        "petconnect.estoque.lotes.habilitado=true"
 })
 public abstract class IntegrationTest {
 

@@ -66,7 +66,7 @@ public class CompraController {
     @PreAuthorize(ADMIN)
     public CompraResponse receber(@PathVariable Long id, @Valid @RequestBody RecebimentoRequest request) {
         Long usuarioId = UsuarioAtual.id().orElseThrow(() -> new InsufficientAuthenticationException("Sessão sem usuário"));
-        return service.receber(id, request.dataEntrega(), request.dataVencimento(), usuarioId);
+        return service.receber(id, request.dataEntrega(), request.dataVencimento(), request.lotes(), usuarioId);
     }
 
     @PostMapping("/{id}/cancelar")

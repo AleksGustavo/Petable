@@ -1,7 +1,9 @@
 package br.com.tecnodreamer.petconnect.produto.infrastructure;
 
 import br.com.tecnodreamer.petconnect.produto.domain.LoteEstoque;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 
 import java.time.LocalDate;
@@ -28,6 +30,32 @@ public interface LoteEstoqueRepository extends JpaRepository<LoteEstoque, Long> 
             order by case when l.validade is null then 1 else 0 end, l.validade, l.id
             """)
     List<LoteEstoque> vendaveisEmOrdemFefo(Long produtoId, LocalDate limite);
+
+    /**
+     * Mesma ordem e mesmo filtro, mas como leitura TRAVADA (FOR UPDATE). Em todo caminho que escreve, os lotes precisam ser
+     * lidos assim: o MySQL usa REPEATABLE READ, e uma leitura comum feita depois de esperar a trava do produto ainda
+     * enxergaria o snapshot de antes, ou seja, o saldo que o outro caixa já consumiu. A leitura travada vê o último commit.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select l from LoteEstoque l
+            where l.produto.id = :produtoId and l.status = 'DISPONIVEL' and l.saldo > 0
+              and (l.validade is null or l.validade >= :limite)
+            order by case when l.validade is null then 1 else 0 end, l.validade, l.id
+            """)
+    List<LoteEstoque> travarVendaveisEmOrdemFefo(Long produtoId, LocalDate limite);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select l from LoteEstoque l where l.id = :id")
+    Optional<LoteEstoque> travar(Long id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select l from LoteEstoque l where l.produto.id = :produtoId and l.codigoLote = :codigoLote")
+    Optional<LoteEstoque> travarPorProdutoECodigo(Long produtoId, String codigoLote);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select l from LoteEstoque l where l.produto.id = :produtoId order by l.id")
+    List<LoteEstoque> travarDoProduto(Long produtoId);
 
     List<LoteEstoque> findByProdutoIdOrderByIdAsc(Long produtoId);
 
