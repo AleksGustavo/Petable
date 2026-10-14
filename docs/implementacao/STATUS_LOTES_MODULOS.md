@@ -11,8 +11,8 @@
 | 02 | Domínio e banco de lotes (`V11`) | **concluída** (mesclada, PR #28) | [02_DOMINIO_E_BANCO.md](02_DOMINIO_E_BANCO.md), `V11__lotes_estoque.sql` |
 | 03 | Movimentações, FEFO e concorrência | **concluída** (mesclada, PR #29) | [03_MOVIMENTACOES_FEFO.md](03_MOVIMENTACOES_FEFO.md) |
 | 04 | Telas, alertas e operação | **concluída** (PR #30 e #31 mesclados; operação clínica, opção A) | [04_TELAS_ALERTAS.md](04_TELAS_ALERTAS.md) |
-| 05 | Testes de lotes e homologação | **implementada, aguardando CI/merge do PR** | [05_RELATORIO_HOMOLOGACAO.md](05_RELATORIO_HOMOLOGACAO.md), [../runbooks/lotes-liberacao.md](../runbooks/lotes-liberacao.md) |
-| 06 | Catálogo de módulos e dependências | pendente | — |
+| 05 | Testes de lotes e homologação | **concluída** (PR #32 mesclado, `ace982e`) | [05_RELATORIO_HOMOLOGACAO.md](05_RELATORIO_HOMOLOGACAO.md), [../runbooks/lotes-liberacao.md](../runbooks/lotes-liberacao.md) |
+| 06 | Catálogo de módulos e dependências | **implementada, aguardando CI/merge do PR** | [06_CATALOGO_MODULOS.md](06_CATALOGO_MODULOS.md), `backend/src/main/resources/modulos/catalogo.json` |
 | 07 | Autorização e isolamento modular | pendente | — |
 | 08 | Provisionamento e operação por cliente | pendente | — |
 | 09 | Testes modulares e go-live | pendente | — |
@@ -124,8 +124,20 @@ Sem pontos abertos bloqueadores para a etapa 02.
 - [x] E2E no navegador: fluxo completo de produto controlado, produto sem lote e estoque legado (12 PASS com a flag ligada; 6 antigos + verificação de UI limpa com a flag desligada)
 - [x] Guia de liberação: backup, migração controlada, monitoramento, reversão operacional (`docs/runbooks/lotes-liberacao.md`)
 - [x] Achado A2: a flag governa só ligar o controle e vincular vacina; produto já controlado segue íntegro
-- [ ] Merge do PR da etapa 05 (autorização do dono)
+- [x] Merge do PR da etapa 05 (PR #32, `ace982e`)
+
+## Etapa 06 — checklist
+
+- [x] Catálogo validado contra o código: 12 módulos + núcleo + 1 integração, dependências, telas, rotas, ações, tabelas, jobs
+- [x] Achados que mudam o catálogo: `caixa` é módulo próprio (exigido por pdv, agenda e financeiro); `cadastros` dividido em `clientes` e `produtos`; `fornecedores` dentro de `compras`; núcleo técnico (estoque, FEFO, lançamentos) sempre ativo; grafo de pacotes com ciclos (a modularização é de exposição)
+- [x] Pacotes PDV, Pet Shop, Agropecuária (não pronta: depende de decimal/D24), Clínica (parcial), Completo; cada um fecha as dependências
+- [x] Decisão de configuração: `PETCONNECT_MODULOS` por cliente (padrão = todos nas instalações existentes), validação no boot, tabela geral de histórico, sem migration por cliente
+- [x] Política de upgrade/downgrade: nunca apaga dado, mantém automações obrigatórias, bloqueia remoção que viole operação pendente (consultas no catálogo)
+- [x] Ausências declaradas (multiempresa, NF-e, venda a prazo, granel, prontuário completo, notificações, offline)
+- [x] Rastreabilidade por teste: 132 rotas, 33 tabelas, 47 telas, 7 rotas do BFF, 45 Server Actions e o menu, cada um com um único dono
+- [x] Achado para a 07: 39 rotas exigem só estar logado; o módulo precisa cobrir toda rota, inclusive leitura
+- [ ] Merge do PR da etapa 06
 
 ## Próximo passo
 
-Merge do PR da etapa 05. **O controle de lote está homologado, mas continua desligado**: ligar em produção só seguindo `docs/runbooks/lotes-liberacao.md` e com autorização do dono. Depois, `06_CATALOGO_DE_MODULOS_E_DEPENDENCIAS.md` (modularização).
+Merge do PR da etapa 06 (autorização do dono, ou CI verde conforme a regra permanente). Depois, `07_AUTORIZACAO_E_ISOLAMENTO_MODULAR.md`: filtro de módulo na API a partir de `PETCONNECT_MODULOS` e do catálogo, validação de boot, `GET /api/v1/modulos`, e testes de que rota de módulo desligado não responde.
