@@ -1,6 +1,6 @@
 # Etapa 03 — Movimentações, FEFO e consistência transacional
 
-> Liga o núcleo da [etapa 02](02_DOMINIO_E_BANCO.md) aos fluxos reais. **Produto sem `controla_lote` segue exatamente o fluxo de antes.** A flag `petconnect.estoque.lotes.habilitado` continua falsa por padrão: desligada, não é possível ligar o controle nem movimentar lote (409).
+> Liga o núcleo da [etapa 02](02_DOMINIO_E_BANCO.md) aos fluxos reais. **Produto sem `controla_lote` segue exatamente o fluxo de antes.** A flag `petconnect.estoque.lotes.habilitado` continua falsa por padrão: desligada, não é possível ligar o controle de um produto (409); produto que já controla lote segue íntegro.
 
 ## 1. Equivalências com o texto da etapa
 
@@ -60,7 +60,7 @@ Eventos novos: `LOTE_CRIADO`, `LOTE_BLOQUEADO`, `LOTE_DESBLOQUEADO`, `ESTOQUE_RE
 | E1 | Desligar o controle é bloqueado com **qualquer** lote (não só com saldo) | O texto da etapa pede "sem procedimento aprovado"; o procedimento não existe neste ciclo |
 | E2 | Lote **já vencido não pode ser recebido** (`400`); na regularização do saldo legado pode (é a realidade do estoque) e depois sai por `VENCIMENTO` | Receber vencido é erro de digitação; o legado precisa refletir o que existe |
 | E3 | `RETORNAR` em lote vencido devolve ao lote, que continua não vendável | D9 |
-| E4 | Perda, vencimento, ajuste e bloqueio exigem a flag ligada | Coerente com D22 |
+| E4 | ~~Perda, vencimento, ajuste e bloqueio exigem a flag ligada~~ **Revisto na etapa 05 (achado A2 do relatório):** a flag governa só **ligar o controle** (regularização) e **vincular vacina**. Ajuste, perda, bloqueio e baixa de vencido valem para produto que já controla lote, com a flag ligada ou não | Com a flag desligada depois de haver produto controlado, o estoque não pode ficar sem correção nem divergir |
 | E5 | Não foi alterado o frontend | A UI é a etapa 04; a tela de histórico mostra o tipo bruto para os tipos novos (comportamento já existente para `ESTORNO_VENDA`) |
 
 Riscos conhecidos: `FOR UPDATE` em vendas muito grandes mantém as linhas do produto até o commit (mesmo comportamento do produto hoje); o PDV ainda não mostra o lote nem pergunta o destino no cancelamento (etapa 04) — **não ligue a flag em produção antes da etapa 04/05**.

@@ -1,13 +1,13 @@
 package br.com.tecnodreamer.petconnect.produto.web;
 
 import br.com.tecnodreamer.petconnect.produto.application.LoteConsultaService;
+import br.com.tecnodreamer.petconnect.produto.application.ReconciliacaoEstoqueService;
 import br.com.tecnodreamer.petconnect.produto.domain.StatusLote;
 import br.com.tecnodreamer.petconnect.shared.web.PageResponse;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -18,14 +18,15 @@ import org.springframework.web.bind.annotation.RestController;
  * regularizar…) ficam em {@link ProdutoController} e são só ADMIN. A API confere o papel; a tela só esconde botões.
  */
 @RestController
-@Validated
 @PreAuthorize("hasAnyRole('ADMIN', 'VENDAS')")
 public class LoteController {
 
     private final LoteConsultaService consulta;
+    private final ReconciliacaoEstoqueService reconciliacao;
 
-    public LoteController(LoteConsultaService consulta) {
+    public LoteController(LoteConsultaService consulta, ReconciliacaoEstoqueService reconciliacao) {
         this.consulta = consulta;
+        this.reconciliacao = reconciliacao;
     }
 
     @GetMapping("/api/v1/lotes")
@@ -50,6 +51,13 @@ public class LoteController {
     @PreAuthorize("isAuthenticated()")
     public ConfiguracaoLotesResponse configuracao() {
         return consulta.configuracao();
+    }
+
+    /** Reconciliação do estoque (I1, I2, I3, I5, I7): só ADMIN. Somente leitura; usada na homologação e no monitoramento. */
+    @GetMapping("/api/v1/estoque/reconciliacao")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ReconciliacaoEstoqueResponse reconciliacao() {
+        return reconciliacao.reconciliar();
     }
 
     @GetMapping("/api/v1/estoque/alertas")

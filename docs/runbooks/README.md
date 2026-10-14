@@ -13,3 +13,4 @@ Procedimentos de operação em produção. Todos partem de `/opt/petconnect` no 
 | Servidor perdido | [recuperacao-desastre.md](recuperacao-desastre.md) |
 | Primeira entrada em produção | [go-live.md](go-live.md) |
 | Pedidos do titular (LGPD) e retenção | [lgpd.md](lgpd.md) |
+| Ligar o controle de lote e validade (e reverter com segurança) | [lotes-liberacao.md](lotes-liberacao.md) |

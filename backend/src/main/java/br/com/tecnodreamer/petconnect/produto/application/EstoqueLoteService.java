@@ -46,7 +46,8 @@ import java.util.UUID;
 
 /**
  * Toda movimentação de estoque de produto COM controle de lote (D1): entrada de compra, baixa FEFO da venda,
- * estorno ao lote original, ajuste, perda, vencimento e regularização do saldo legado. Complementa o
+ * estorno ao lote original, ajuste, perda, vencimento e regularização do saldo legado. A flag de lotes governa só ligar o controle
+ * (regularização) e vincular vacina; ajuste, perda, bloqueio e baixa de produto que já controla lote não dependem dela. Complementa o
  * {@link EstoqueService}, que continua sendo o único caminho dos produtos sem lote (e recusa os controlados).
  *
  * <p>Regras que valem para tudo aqui: o produto vem travado (FOR UPDATE) e é o mutex dos seus lotes (D15); cada
@@ -184,9 +185,12 @@ public class EstoqueLoteService {
 
     // ------------------------------------------------------------- consumo clínico
 
-    /** A aplicação clínica deste produto baixa estoque: controle de lote ligado na instalação e no produto. */
+    /**
+     * A aplicação clínica deste produto baixa estoque: o produto controla lote. A flag da instalação só governa ligar o controle e
+     * vincular vacina (ações novas); produto que já controla lote segue consistente mesmo com a flag desligada depois.
+     */
     public boolean consumoClinicoAtivo(Produto produto) {
-        return produto != null && loteService.habilitado() && produto.isControlaLote();
+        return produto != null && produto.isControlaLote();
     }
 
     /**
@@ -219,7 +223,6 @@ public class EstoqueLoteService {
     @Transactional
     public MovimentacaoResponse ajustar(Long produtoId, int delta, String motivo, Long loteId, String codigoLote,
             LocalDate validade, Long usuarioId) {
-        exigirHabilitado();
         if (delta == 0) {
             throw new CampoInvalidoException("quantidade", "Informe uma quantidade diferente de zero.");
         }
@@ -259,7 +262,6 @@ public class EstoqueLoteService {
 
     private MovimentacaoResponse baixar(Long produtoId, Long loteId, int quantidade, String motivo, Long usuarioId,
             TipoMovimentacao tipo, String evento) {
-        exigirHabilitado();
         if (quantidade <= 0) {
             throw new CampoInvalidoException("quantidade", "A quantidade deve ser positiva.");
         }
@@ -363,7 +365,6 @@ public class EstoqueLoteService {
     }
 
     private LoteResponse mudarStatus(Long produtoId, Long loteId, String motivo, StatusLote novo, String evento) {
-        exigirHabilitado();
         String texto = motivoValido(motivo);
         Produto p = produtoControlado(produtoId);
         LoteEstoque lote = loteDoProduto(p, loteId);
