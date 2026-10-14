@@ -1,6 +1,6 @@
 # Dicionário de dados — PetConnect Web (MySQL)
 
-> **Gerado a partir do banco real** (`information_schema`) com as migrations Flyway aplicadas até a V10. A fonte da verdade continua sendo [`backend/src/main/resources/db/migration`](../backend/src/main/resources/db/migration). Para regenerar: `python scripts/gerar-dicionario.py` com o MySQL de desenvolvimento no ar.
+> **Gerado a partir do banco real** (`information_schema`) com as migrations Flyway aplicadas até a V11. A fonte da verdade continua sendo [`backend/src/main/resources/db/migration`](../backend/src/main/resources/db/migration). Para regenerar: `python scripts/gerar-dicionario.py` com o MySQL de desenvolvimento no ar.
 
 Convenções: dinheiro em `DECIMAL(10,2)`; datas e horas em horário local de São Paulo; enums como `VARCHAR` + `CHECK`; sem exclusão física (campo `ativo`). Veja o diagrama em [banco-de-dados.md](banco-de-dados.md).
 
@@ -18,8 +18,9 @@ Convenções: dinheiro em `DECIMAL(10,2)`; datas e horas em horário local de S�
 | V8 | financeiro caixa contas |
 | V9 | indices relatorios |
 | V10 | migracao legado |
+| V11 | lotes estoque |
 
-**30 tabelas** em 8 grupos.
+**33 tabelas** em 8 grupos.
 
 ## Acesso
 
@@ -326,9 +327,36 @@ Convenções: dinheiro em `DECIMAL(10,2)`; datas e horas em horário local de S�
 | `ativo` | `tinyint(1)` | não | índice | 1 |  |
 | `created_at` | `datetime(6)` | não |  | CURRENT_TIMESTAMP(6) | coluna gerada |
 | `updated_at` | `datetime(6)` | não |  | CURRENT_TIMESTAMP(6) | coluna gerada |
+| `controla_lote` | `tinyint(1)` | não | índice | 0 | Opt-in por produto (D1). Só liga com saldo regularizado em lotes (D11). |
+| `permite_sem_validade` | `tinyint(1)` | não |  | 0 | Política explícita (D5): FALSE = todo lote do produto exige validade. |
+| `dias_bloqueio_validade` | `int` | sim |  |  | Margem de bloqueio antes do vencimento (D4). NULL = usa a margem global. |
 
 - **Único** `uk_produto_codigo_barras`: (codigo_barras)
+- **Regra** `ck_produto_dias_bloqueio`: `((`dias_bloqueio_validade` is null) or (`dias_bloqueio_validade` >= 0))`
 - **Regra** `ck_produto_estoque`: `(`quantidade_estoque` >= 0)`
+
+### `lote_estoque`
+
+| Coluna | Tipo | Nulo | Chave | Padrão | Referência / observação |
+|---|---|---|---|---|---|
+| `id` | `bigint` | não | PK |  | auto incremento |
+| `produto_id` | `bigint` | não | índice |  | FK → `produto.id` |
+| `codigo_lote` | `varchar(50)` | não |  |  | Código do fabricante. Imutável. |
+| `validade` | `date` | sim | índice |  | Sem horário (D4). NULL só se o produto permite_sem_validade. Imutável. |
+| `saldo` | `int` | não |  | 0 |  |
+| `custo_unitario` | `decimal(10,2)` | sim |  |  | Custo da PRIMEIRA entrada do lote. Informativo; nunca sobrescrito (D16). |
+| `status` | `varchar(12)` | não |  | DISPONIVEL |  |
+| `data_recebimento` | `date` | não |  |  | Data da primeira entrada física do lote. |
+| `compra_id` | `bigint` | sim | índice |  | FK → `compra.id`; Compra da primeira entrada, quando houver. |
+| `fornecedor_id` | `bigint` | sim | índice |  | FK → `fornecedor.id`; Fornecedor da primeira entrada, quando houver. |
+| `usuario_id` | `bigint` | não | índice |  | FK → `usuario.id`; Quem cadastrou o lote. |
+| `created_at` | `datetime(6)` | não |  | CURRENT_TIMESTAMP(6) | coluna gerada |
+| `updated_at` | `datetime(6)` | não |  | CURRENT_TIMESTAMP(6) | coluna gerada |
+
+- **Único** `uk_lote_produto_codigo`: (produto_id,codigo_lote)
+- **Regra** `ck_lote_codigo`: `(char_length(trim(`codigo_lote`)) > 0)`
+- **Regra** `ck_lote_saldo`: `(`saldo` >= 0)`
+- **Regra** `ck_lote_status`: `(`status` in (_utf8mb4\\'DISPONIVEL\\',_utf8mb4\\'BLOQUEADO\\'))`
 
 ### `movimentacao_estoque`
 
@@ -345,10 +373,15 @@ Convenções: dinheiro em `DECIMAL(10,2)`; datas e horas em horário local de S�
 | `usuario_id` | `bigint` | não | índice |  | FK → `usuario.id` |
 | `motivo` | `varchar(500)` | sim |  |  |  |
 | `created_at` | `datetime(6)` | não |  | CURRENT_TIMESTAMP(6) | coluna gerada |
+| `lote_id` | `bigint` | sim | índice |  | FK → `lote_estoque.id` |
+| `lote_saldo_anterior` | `int` | sim |  |  |  |
+| `lote_saldo_resultante` | `int` | sim |  |  |  |
+| `operacao_id` | `char(36)` | sim | índice |  | UUID que agrupa os movimentos de uma mesma operação (ex.: o par ESTORNO_VENDA + PERDA). |
 
 - **Regra** `chk_mov_estoque_quantidade`: `(`quantidade` <> 0)`
 - **Regra** `chk_mov_estoque_saldos`: `((`saldo_anterior` >= 0) and (`saldo_resultante` >= 0))`
-- **Regra** `chk_mov_estoque_tipo`: `(`tipo` in (_utf8mb4\\'ENTRADA_COMPRA\\',_utf8mb4\\'SAIDA_VENDA\\',_utf8mb4\\'AJUSTE\\',_utf8mb4\\'ESTORNO_VENDA\\'))`
+- **Regra** `chk_mov_estoque_tipo`: `(`tipo` in (_utf8mb4\\'ENTRADA_COMPRA\\',_utf8mb4\\'SAIDA_VENDA\\',_utf8mb4\\'AJUSTE\\',_utf8mb4\\'ESTORNO_VENDA\\',_utf8mb4\\'PERDA\\',_utf8mb4\\'VENCIMENTO\\',_utf8mb4\\'REGULARIZACAO_LOTE\\'))`
+- **Regra** `ck_mov_estoque_lote`: `(((`lote_id` is null) and (`lote_saldo_anterior` is null) and (`lote_saldo_resultante` is null)) or ((`lote_id` is not null) and (`lote_saldo_anterior` is not null) and (`lote_saldo_resultante` is not null) and (`lote_saldo_anterior` >= 0) and (`lote_saldo_resultante` >= 0) and ((`lote_saldo_anterior` + `quantidade`) = `lote_saldo_resultante`)))`
 
 ### `compra`
 
@@ -379,6 +412,21 @@ Convenções: dinheiro em `DECIMAL(10,2)`; datas e horas em horário local de S�
 | `subtotal` | `decimal(12,2)` | sim |  |  | coluna gerada |
 
 - **Regra** `ck_item_compra_qtd`: `(`quantidade` > 0)`
+
+### `item_compra_lote`
+
+| Coluna | Tipo | Nulo | Chave | Padrão | Referência / observação |
+|---|---|---|---|---|---|
+| `id` | `bigint` | não | PK |  | auto incremento |
+| `item_compra_id` | `bigint` | não | índice |  | FK → `item_compra.id` |
+| `lote_id` | `bigint` | sim | índice |  | FK → `lote_estoque.id`; Preenchido quando o recebimento é efetivado (etapa 03). |
+| `codigo_lote` | `varchar(50)` | não |  |  |  |
+| `validade` | `date` | sim |  |  |  |
+| `quantidade` | `int` | não |  |  |  |
+
+- **Único** `uk_item_compra_lote`: (item_compra_id,codigo_lote)
+- **Regra** `ck_item_compra_lote_codigo`: `(char_length(trim(`codigo_lote`)) > 0)`
+- **Regra** `ck_item_compra_lote_qtd`: `(`quantidade` > 0)`
 
 ## Vendas
 
@@ -422,6 +470,18 @@ Convenções: dinheiro em `DECIMAL(10,2)`; datas e horas em horário local de S�
 | `subtotal` | `decimal(12,2)` | sim |  |  | coluna gerada |
 
 - **Regra** `ck_item_venda_qtd`: `(`quantidade` > 0)`
+
+### `item_venda_lote`
+
+| Coluna | Tipo | Nulo | Chave | Padrão | Referência / observação |
+|---|---|---|---|---|---|
+| `id` | `bigint` | não | PK |  | auto incremento |
+| `item_venda_id` | `bigint` | não | índice |  | FK → `item_venda.id` |
+| `lote_id` | `bigint` | não | índice |  | FK → `lote_estoque.id` |
+| `quantidade` | `int` | não |  |  |  |
+
+- **Único** `uk_item_venda_lote`: (item_venda_id,lote_id)
+- **Regra** `ck_item_venda_lote_qtd`: `(`quantidade` > 0)`
 
 ## Financeiro e caixa
 

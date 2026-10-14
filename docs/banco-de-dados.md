@@ -4,6 +4,7 @@ Fonte da verdade: [`backend/src/main/resources/db/migration`](../backend/src/mai
 
 - `V1__schema_inicial.sql`: todas as tabelas.
 - `V2__dados_referencia.sql`: catálogos (papéis, espécies, raças, categorias, serviços, preço por porte, vacinas).
+- `V11__lotes_estoque.sql`: núcleo de lote e validade (etapa 02 do plano de lotes; contrato em [implementacao/01_DECISOES_LOTES.md](implementacao/01_DECISOES_LOTES.md)). **Aditiva**: `produto` ganha `controla_lote`, `permite_sem_validade` (ambos FALSE) e `dias_bloqueio_validade` (nulo = margem global); tabela `lote_estoque` (UNIQUE `produto_id + codigo_lote`, saldo materializado ≥ 0, `validade DATE`, status DISPONIVEL/BLOQUEADO, custo da primeira entrada, índice FEFO `produto_id, status, validade, id`); `movimentacao_estoque` ganha `lote_id`, `lote_saldo_anterior`, `lote_saldo_resultante` e `operacao_id` (CHECK de coerência: lote e saldos andam juntos e a conta fecha) e o CHECK de tipo aceita `PERDA`, `VENCIMENTO` e `REGULARIZACAO_LOTE`; tabelas `item_venda_lote` (alocação FEFO da venda) e `item_compra_lote` (lotes do recebimento). Nenhuma linha existente muda e nenhum lote ou validade é inventado. Rollback: [implementacao/02_DOMINIO_E_BANCO.md](implementacao/02_DOMINIO_E_BANCO.md).
 - `V10__migracao_legado.sql`: controle da migração do PHP (etapa 08). `migracao_legado_execucao` guarda o histórico (modo DRY_RUN/REAL, status, totais, mensagem sem dado pessoal). `migracao_legado_mapa` guarda entidade, id legado, id novo, situação MIGRADO/AJUSTADO/IGNORADO e códigos de motivo, com UNIQUE (entidade, id_legado), que é a base da idempotência. O backfill de contas a pagar ignora compras que estão nesse mapa.
 - `V9__indices_relatorios.sql`: índices para os relatórios: `servico_realizado (data_servico)` e `conta_pagar (status, paga_em)`. Os demais filtros por período já tinham índice (V6–V8).
 - `V8__financeiro_caixa_contas.sql`: tabelas `caixa` (um ABERTO por usuário via coluna gerada `usuario_aberto_id` + UNIQUE; esperado/contado/diferença por forma gravados no fechamento), `caixa_movimento` (sangria/suprimento) e `conta_pagar` (uma por compra, pagamento integral). `venda.caixa_id`. Em `movimentacao_financeira`: `forma_pagamento`, `usuario_id`, `caixa_id`, `conta_pagar_id`, `estorno_de_id` (UNIQUE: um estorno por lançamento), `chave_origem` (UNIQUE: `VENDA:id`, `VENDA_ESTORNO:id`, `SERVICO:id`, `CONTA_PAGAR:id`, `MANUAL:uuid`, `MANUAL_ESTORNO:id`, `CAIXA_SANGRIA:id`, `CAIXA_SUPRIMENTO:id`) e `motivo_estorno`, com índices por tipo/categoria/forma/data, caixa e origem. Sem backfill na migration: o histórico é gerado por `FinanceiroBackfillRunner` (`--petconnect.financeiro.backfill=true`, idempotente).
@@ -83,10 +84,19 @@ erDiagram
     compra |o--o{ movimentacao_estoque : ""
     venda |o--o{ movimentacao_estoque : ""
     usuario ||--o{ movimentacao_estoque : ""
+    produto ||--o{ lote_estoque : "opt-in por produto"
+    lote_estoque |o--o{ movimentacao_estoque : "saldo por lote"
+    compra |o--o{ lote_estoque : "origem"
+    fornecedor |o--o{ lote_estoque : "origem"
+    usuario ||--o{ lote_estoque : "cadastrou"
+    item_venda ||--o{ item_venda_lote : "alocação FEFO"
+    lote_estoque ||--o{ item_venda_lote : ""
+    item_compra ||--o{ item_compra_lote : "recebimento"
+    lote_estoque |o--o{ item_compra_lote : ""
     migracao_legado_execucao ||--o{ migracao_legado_mapa : ""
 ```
 
-O diagrama cobre as **30 tabelas** (os atributos estão no [dicionário de dados](dicionario-de-dados.md), gerado do banco real). Os grupos:
+O diagrama cobre as **33 tabelas** (os atributos estão no [dicionário de dados](dicionario-de-dados.md), gerado do banco real). Os grupos:
 acesso, pessoas e endereço, pets, serviços e agenda, produtos/estoque/compras, vendas, financeiro/caixa e migração do legado.
 
 ## MongoDB

@@ -52,8 +52,8 @@ GRUPOS = [
     ("Pessoas e endereço", ["endereco", "cliente", "funcionario", "fornecedor"]),
     ("Pets", ["especie", "raca", "pet", "vacina", "carteira_vacina", "historico_consulta"]),
     ("Serviços e agenda", ["servico", "preco_servico_porte", "agendamento", "servico_realizado"]),
-    ("Produtos, estoque e compras", ["categoria_produto", "produto", "movimentacao_estoque", "compra", "item_compra"]),
-    ("Vendas", ["venda", "item_venda"]),
+    ("Produtos, estoque e compras", ["categoria_produto", "produto", "lote_estoque", "movimentacao_estoque", "compra", "item_compra", "item_compra_lote"]),
+    ("Vendas", ["venda", "item_venda", "item_venda_lote"]),
     ("Financeiro e caixa", ["caixa", "caixa_movimento", "conta_pagar", "movimentacao_financeira"]),
     ("Migração do legado", ["migracao_legado_execucao", "migracao_legado_mapa"]),
 ]

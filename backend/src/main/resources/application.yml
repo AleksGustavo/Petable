@@ -102,3 +102,9 @@ petconnect:
       timeout-ms: ${PETCONNECT_MIGRACAO_VIACEP_TIMEOUT_MS:1500}
     backfill-servico-forma: ${PETCONNECT_MIGRACAO_BACKFILL_SERVICO_FORMA:}
     encerrar-ao-final: ${PETCONNECT_MIGRACAO_ENCERRAR:true}
+  # Controle de lote e validade (docs/implementacao/01_DECISOES_LOTES.md). Desligado por padrao (D22):
+  # desligado, o sistema se comporta como antes dos lotes.
+  estoque:
+    lotes:
+      habilitado: ${PETCONNECT_ESTOQUE_LOTES:false}
+      dias-bloqueio-antes-validade: ${PETCONNECT_ESTOQUE_LOTES_DIAS_BLOQUEIO:0}
