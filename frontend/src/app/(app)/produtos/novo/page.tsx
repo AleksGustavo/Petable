@@ -6,15 +6,19 @@ import { apiFetch } from "@/lib/api";
 import type { CategoriaProduto, FornecedorOpcao } from "@/lib/estoque";
 import { podeEditarProdutos } from "@/lib/permissoes";
 import { exigirSessao } from "@/lib/session";
+import { carregarCapacidades } from "@/lib/modulos";
+import { temModulo } from "@/lib/capacidades";
+
 
 export const metadata: Metadata = { title: "Novo produto" };
 
 export default async function NovoProdutoPage() {
   const sessao = await exigirSessao();
   if (!podeEditarProdutos(sessao.papel)) redirect("/produtos");
+  const caps = await carregarCapacidades();
   const [categorias, fornecedores] = await Promise.all([
     apiFetch<CategoriaProduto[]>("/api/v1/categorias-produto"),
-    apiFetch<FornecedorOpcao[]>("/api/v1/fornecedores/opcoes"),
+    temModulo(caps, "compras") ? apiFetch<FornecedorOpcao[]>("/api/v1/fornecedores/opcoes") : Promise.resolve([] as FornecedorOpcao[]),
   ]);
   return (
     <div className="space-y-6">

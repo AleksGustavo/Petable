@@ -6,6 +6,8 @@ import { getSessao } from "@/lib/session";
 /** Corpo de erro RFC 9457 devolvido pela API Spring (409 de estoque traz produtoId/disponivel/solicitado). */
 export type Problem = {
   title?: string;
+  /** `MODULO_INDISPONIVEL`: 403 uniforme de recurso que esta instalação não contratou (etapa 07). */
+  codigo?: string;
   detail?: string;
   status: number;
   errors?: Record<string, string>;

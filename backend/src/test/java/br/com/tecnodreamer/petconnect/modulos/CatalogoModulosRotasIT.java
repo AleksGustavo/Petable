@@ -36,25 +36,23 @@ class CatalogoModulosRotasIT extends IntegrationTest {
 
     @Test
     void todaRotaDaApiTemExatamenteUmDonoNoCatalogo() {
-        List<CatalogoModulos.Entrada> entradas = catalogo.entradasDeRotas();
+        // Usa o MESMO resolvedor que o filtro de módulos usa em produção (shared.modulos.CatalogoModulos).
+        var producao = br.com.tecnodreamer.petconnect.shared.modulos.CatalogoModulos.carregar();
         List<String> semDono = new ArrayList<>();
         List<String> ambiguas = new ArrayList<>();
-        Set<String> padroesUsados = new HashSet<>();
         int total = 0;
         for (Map.Entry<RequestMappingInfo, HandlerMethod> e : mapeamento.getHandlerMethods().entrySet()) {
             Set<String> metodos = e.getKey().getMethodsCondition().getMethods().stream().map(Enum::name).collect(Collectors.toSet());
             for (String caminho : e.getKey().getPathPatternsCondition().getPatternValues()) {
-                total++;
-                Map<String, Object> r = catalogo.resolver(metodos, caminho, entradas);
-                @SuppressWarnings("unchecked")
-                Set<CatalogoModulos.Dono> donos = (Set<CatalogoModulos.Dono>) r.get("donos");
-                String rotulo = metodos + " " + caminho + " (" + e.getValue().getBeanType().getSimpleName() + ")";
-                if (donos.isEmpty()) {
-                    semDono.add(rotulo);
-                } else if (donos.size() > 1) {
-                    ambiguas.add(rotulo + " -> " + donos);
-                } else {
-                    padroesUsados.add(String.valueOf(r.get("padrao")));
+                for (String metodo : metodos.isEmpty() ? Set.of("GET") : metodos) {
+                    total++;
+                    var r = producao.resolver(metodo, caminho);
+                    String rotulo = metodo + " " + caminho + " (" + e.getValue().getBeanType().getSimpleName() + ")";
+                    if (r.semDono()) {
+                        semDono.add(rotulo);
+                    } else if (r.donos().size() > 1) {
+                        ambiguas.add(rotulo + " -> " + r.donos());
+                    }
                 }
             }
         }

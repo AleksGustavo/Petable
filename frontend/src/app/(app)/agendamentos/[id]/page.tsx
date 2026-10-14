@@ -14,6 +14,7 @@ import { podeAgendar } from "@/lib/permissoes";
 import { rotuloPorte, type VacinaCatalogo } from "@/lib/pets";
 import type { FuncionarioResumo } from "@/lib/usuarios";
 import { exigirSessao } from "@/lib/session";
+import { moduloAtivo } from "@/lib/modulos";
 
 export const metadata: Metadata = { title: "Agendamento" };
 
@@ -41,7 +42,7 @@ export default async function AgendamentoPage(props: PageProps<"/agendamentos/[i
   const { ok } = await props.searchParams;
   const [sessao, a] = await Promise.all([exigirSessao(), carregar(id)]);
   const podeEditar = podeAgendar(sessao.papel) && editavel(a.status);
-  const concluindoVacinacao = a.status === "EM_ANDAMENTO" && a.servico.vacinacao;
+  const concluindoVacinacao = a.status === "EM_ANDAMENTO" && a.servico.vacinacao && (await moduloAtivo("clinica"));
 
   const [servicos, vacinas, funcionarios] = await Promise.all([
     podeEditar ? apiFetch<Servico[]>("/api/v1/servicos?ativo=true") : Promise.resolve([]),

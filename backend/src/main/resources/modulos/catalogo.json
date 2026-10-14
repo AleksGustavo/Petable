@@ -28,7 +28,8 @@
       "/api/v1/funcionarios",
       "/api/v1/funcionarios/**",
       "GET /api/v1/auditoria",
-      "GET /api/v1/estoque/configuracao"
+      "GET /api/v1/estoque/configuracao",
+      "GET /api/v1/modulos"
     ],
     "telas": ["/", "/login", "/esqueci-senha", "/redefinir-senha", "/dashboard", "/perfil", "/usuarios", "/usuarios/**"],
     "bff": [],
@@ -36,8 +37,8 @@
       "entrar", "sair", "criarUsuario", "atualizarContaUsuario", "alterarPapelUsuario", "alternarAtivoUsuario", "salvarFuncionario",
       "atualizarMinhaConta", "atualizarMeuFuncionario", "trocarMinhaSenha", "solicitarRedefinicao", "redefinirSenha"
     ],
-    "tabelas": ["usuario", "papel", "token_redefinicao_senha", "funcionario", "endereco"],
-    "jobs": ["AdminBootstrap (cria o ADMIN inicial no primeiro boot)"]
+    "tabelas": ["usuario", "papel", "token_redefinicao_senha", "funcionario", "endereco", "modulo_instalacao_historico"],
+    "jobs": ["AdminBootstrap (cria o ADMIN inicial no primeiro boot)", "RegistroDeModulos (valida remoção e dependências condicionais de módulos e registra a lista efetiva, a cada partida)"]
   },
   "modulos": [
     {
@@ -199,7 +200,7 @@
       "status": "EXISTE",
       "requer": ["pets", "caixa"],
       "recomenda": [],
-      "condicionais": [{"quando": "serviço de vacinação ativo", "requer": "clinica"}],
+      "condicionais": [{"quando": "serviço de vacinação ativo", "requer": "clinica", "verificacao": "select count(*) from servico where ativo = true and nome = 'Vacinação'"}],
       "rotas": ["/api/v1/agendamentos", "/api/v1/agendamentos/**", "/api/v1/servicos", "/api/v1/servicos/**", "/api/v1/pets/*/agendamentos/**"],
       "telas": ["/agendamentos", "/agendamentos/**", "/servicos", "/servicos/**"],
       "bff": ["/api/agendamentos/preco"],
@@ -297,7 +298,7 @@
     {"modulo": "compras", "motivo": "pedido de compra em aberto", "verificacao": "select count(*) from compra where status = 'PEDIDO'"},
     {"modulo": "financeiro", "motivo": "contas a pagar em aberto (obrigação financeira)", "verificacao": "select count(*) from conta_pagar where status = 'ABERTA'"},
     {"modulo": "agenda", "motivo": "agendamentos pendentes", "verificacao": "select count(*) from agendamento where status in ('AGENDADO','CONFIRMADO','EM_ANDAMENTO')"},
-    {"modulo": "clinica", "motivo": "serviço de vacinação ativo na agenda", "verificacao": "select count(*) from servico where ativo = true and vacinacao = true"},
+    {"modulo": "clinica", "motivo": "serviço de vacinação ativo na agenda", "verificacao": "select count(*) from servico where ativo = true and nome = 'Vacinação'"},
     {"modulo": "pets", "motivo": "agenda ou clínica ativas dependem de pets", "verificacao": "dependência (requer), não por dado"},
     {"modulo": "clientes", "motivo": "pets ativos dependem de clientes", "verificacao": "dependência (requer), não por dado"},
     {"modulo": "produtos", "motivo": "estoque, pdv ou compras dependem de produtos", "verificacao": "dependência (requer), não por dado"}

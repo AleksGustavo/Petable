@@ -18,6 +18,9 @@ import { formatarData, mascaraTelefone } from "@/lib/format";
 import { podeAgendar, podeEditarPets } from "@/lib/permissoes";
 import { rotuloPorte, type Consulta, type LancamentoVacina, type Pet, type VacinaCatalogo } from "@/lib/pets";
 import { exigirSessao } from "@/lib/session";
+import { carregarCapacidades } from "@/lib/modulos";
+import { temModulo } from "@/lib/capacidades";
+
 
 export const metadata: Metadata = { title: "Pet" };
 
@@ -56,12 +59,16 @@ function Info({ rotulo, valor }: { rotulo: string; valor: React.ReactNode }) {
 export default async function PetPage(props: PageProps<"/pets/[id]">) {
   const { id } = await props.params;
   const sp = await props.searchParams;
-  const aba: Aba = ABAS.some((a) => a.id === sp.aba) ? (sp.aba as Aba) : "dados";
-  const [sessao, pet] = await Promise.all([exigirSessao(), carregar(id)]);
+  const [sessao, pet, caps] = await Promise.all([exigirSessao(), carregar(id), carregarCapacidades()]);
+  const temClinica = temModulo(caps, "clinica");
+  // Sem o módulo de clínica a carteira e as consultas não existem na instalação: só a aba de dados.
+  const abas = ABAS.filter((a) => a.id === "dados" || temClinica);
+  const aba: Aba = abas.some((a) => a.id === sp.aba) ? (sp.aba as Aba) : "dados";
+  const temAgenda = temModulo(caps, "agenda");
   const editavel = podeEditarPets(sessao.papel);
 
   const [proximos, especies, carteira, catalogoVacinas, consultas] = await Promise.all([
-    apiFetch<Agendamento[]>(`/api/v1/pets/${pet.id}/agendamentos/proximos?limit=5`),
+    temAgenda ? apiFetch<Agendamento[]>(`/api/v1/pets/${pet.id}/agendamentos/proximos?limit=5`) : Promise.resolve([] as Agendamento[]),
     aba === "dados" && editavel ? especiesComRacas() : Promise.resolve([]),
     aba === "vacinas" ? apiFetch<LancamentoVacina[]>(`/api/v1/pets/${pet.id}/vacinas`) : Promise.resolve([]),
     aba === "vacinas" && editavel
@@ -108,14 +115,14 @@ export default async function PetPage(props: PageProps<"/pets/[id]">) {
         )}
       </header>
 
-      <ProximosAgendamentos petId={pet.id} agendamentos={proximos} podeAgendar={podeAgendar(sessao.papel)} />
+      {temAgenda && <ProximosAgendamentos petId={pet.id} agendamentos={proximos} podeAgendar={podeAgendar(sessao.papel)} />}
 
       {sp.salvo && <Aviso>Dados do pet salvos.</Aviso>}
       {sp.foto === "erro" && <Aviso tipo="erro">O pet foi salvo, mas a foto não pôde ser enviada. Tente de novo em “Dados”.</Aviso>}
       {ok && <Aviso>{ok}</Aviso>}
 
       <nav aria-label="Seções do pet" className="flex gap-1 rounded-xl border border-border bg-surface p-1">
-        {ABAS.map((a) => (
+        {abas.map((a) => (
           <Link
             key={a.id}
             href={`/pets/${pet.id}?aba=${a.id}`}
@@ -143,7 +150,7 @@ export default async function PetPage(props: PageProps<"/pets/[id]">) {
           </dl>
         ))}
 
-      {aba === "vacinas" && (
+      {temClinica && aba === "vacinas" && (
         <section className="space-y-4" aria-label="Carteira de vacinação">
           {editavel && (
             <details className="cartao group p-4 sm:p-6" open={Boolean(sp.registrar)}>
@@ -191,7 +198,7 @@ export default async function PetPage(props: PageProps<"/pets/[id]">) {
         </section>
       )}
 
-      {aba === "consultas" && (
+      {temClinica && aba === "consultas" && (
         <section className="space-y-4" aria-label="Histórico de consultas">
           <details className="cartao p-4 sm:p-6">
             <summary className="botao-primario w-full cursor-pointer list-none sm:w-auto">Registrar consulta</summary>

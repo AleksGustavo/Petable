@@ -84,6 +84,8 @@ services:
       MANAGEMENT_PORT: "9090"              # health e /actuator/prometheus só na rede interna (DA-12)
       PETCONNECT_MIGRACAO_LEGADO: "false"  # ferramenta offline, desligada em produção (R-19)
       # Controle de lote e validade: DESLIGADO por padrão. Ligar por instalação só depois do guia docs/runbooks/lotes-liberacao.md.
+      # Etapa 07: módulos contratados, sem padrão em produção (omitir recusaria o boot em vez de abrir tudo sem querer)
+      PETCONNECT_MODULOS: ${PETCONNECT_MODULOS:?defina PETCONNECT_MODULOS (ex.: todos ou pdv,produtos)}
       PETCONNECT_ESTOQUE_LOTES: ${PETCONNECT_ESTOQUE_LOTES:-false}
       PETCONNECT_ESTOQUE_LOTES_DIAS_BLOQUEIO: ${PETCONNECT_ESTOQUE_LOTES_DIAS_BLOQUEIO:-0}
       PETCONNECT_ESTOQUE_LOTES_FAIXAS_ALERTA: ${PETCONNECT_ESTOQUE_LOTES_FAIXAS_ALERTA:-30,60,90}

@@ -86,6 +86,9 @@ app:
     password: ${ADMIN_PASSWORD:}
 
 petconnect:
+  # Módulos contratados desta instalação (etapa 07, docs/implementacao/06_CATALOGO_MODULOS.md). 'todos' = todos os módulos existentes
+  # (padrão das instalações já existentes). Em instalação de cliente, liste os ids: pdv,caixa,produtos,estoque. O que não está na lista é negado.
+  modulos: ${PETCONNECT_MODULOS:todos}
   storage:
     # Fotos dos pets. No Docker é o volume /data/uploads; nos testes, um diretório em target/.
     pets: ${PETS_STORAGE_DIR:./data/uploads/pets}

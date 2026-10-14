@@ -10,6 +10,8 @@ import type { ResumoCaixaAtual, ResumoFinanceiroDia } from "@/lib/financeiro";
 import type { AlertasEstoque, ConfiguracaoLotes } from "@/lib/lotes";
 import { podeAdministrarFinanceiro, podeVender, podeVerLotes } from "@/lib/permissoes";
 import { getSessao } from "@/lib/session";
+import { temModulo } from "@/lib/capacidades";
+import { carregarCapacidades } from "@/lib/modulos";
 import type { ResumoDia } from "@/lib/vendas";
 
 export const metadata: Metadata = { title: "Início" };
@@ -20,20 +22,23 @@ const MODULOS = [
 
 export default async function DashboardPage() {
   const sessao = await getSessao();
-  const vende = sessao ? podeVender(sessao.papel) : false;
+  // Cada card depende do módulo contratado E do papel; sem o módulo nem chama o endpoint (a API barra de qualquer forma).
+  const caps = await carregarCapacidades();
+  const tem = (m: string) => temModulo(caps, m);
+  const vende = sessao ? podeVender(sessao.papel) && tem("pdv") : false;
   // SERVICO não acessa vendas: nem chama o resumo do dia.
-  const admin = sessao ? podeAdministrarFinanceiro(sessao.papel) : false;
+  const admin = sessao ? podeAdministrarFinanceiro(sessao.papel) && tem("financeiro") : false;
   // Cada card só chama o endpoint que o papel pode acessar.
   const [clientes, estoque, vendasHoje, meuCaixa, financeiro] = await Promise.all([
-    apiFetch<Pagina<Cliente>>("/api/v1/clientes?size=1"),
-    apiFetch<{ produtosAbaixoDoMinimo: number }>("/api/v1/produtos/resumo-estoque"),
+    tem("clientes") ? apiFetch<Pagina<Cliente>>("/api/v1/clientes?size=1") : Promise.resolve(null),
+    tem("estoque") ? apiFetch<{ produtosAbaixoDoMinimo: number }>("/api/v1/produtos/resumo-estoque") : Promise.resolve(null),
     vende ? apiFetch<ResumoDia>("/api/v1/vendas/resumo-dia") : Promise.resolve(null),
-    apiFetch<ResumoCaixaAtual>("/api/v1/caixas/resumo-atual"),
+    tem("caixa") ? apiFetch<ResumoCaixaAtual>("/api/v1/caixas/resumo-atual") : Promise.resolve(null),
     admin ? apiFetch<ResumoFinanceiroDia>("/api/v1/financeiro/resumo-dia") : Promise.resolve(null),
   ]);
 
   // Lotes (etapa 04): o card só existe com o controle ligado e para quem pode ver lotes.
-  const config = sessao && podeVerLotes(sessao.papel) ? await apiFetch<ConfiguracaoLotes>("/api/v1/estoque/configuracao") : null;
+  const config = sessao && tem("lotes") && podeVerLotes(sessao.papel) ? await apiFetch<ConfiguracaoLotes>("/api/v1/estoque/configuracao") : null;
   const validade = config?.lotesHabilitado ? await apiFetch<AlertasEstoque>("/api/v1/estoque/alertas") : null;
 
   return (
@@ -44,21 +49,25 @@ export default async function DashboardPage() {
       </header>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Link href="/clientes" className="cartao group p-5 transition hover:border-brand">
-          <p className="text-sm text-muted">Clientes ativos</p>
-          <p className="mt-1 text-4xl font-semibold tabular-nums">{clientes.totalElements}</p>
-          <p className="mt-3 text-sm font-medium text-brand group-hover:underline">Ver clientes →</p>
-        </Link>
-        <MeuCaixa resumo={meuCaixa} />
+        {clientes && (
+          <Link href="/clientes" className="cartao group p-5 transition hover:border-brand">
+            <p className="text-sm text-muted">Clientes ativos</p>
+            <p className="mt-1 text-4xl font-semibold tabular-nums">{clientes.totalElements}</p>
+            <p className="mt-3 text-sm font-medium text-brand group-hover:underline">Ver clientes →</p>
+          </Link>
+        )}
+        {meuCaixa && <MeuCaixa resumo={meuCaixa} />}
         {vendasHoje && <DashboardVendas resumo={vendasHoje} />}
         {financeiro && <DashboardFinanceiro resumo={financeiro} />}
-        <DashboardEstoque produtosAbaixoDoMinimo={estoque.produtosAbaixoDoMinimo} />
+        {estoque && <DashboardEstoque produtosAbaixoDoMinimo={estoque.produtosAbaixoDoMinimo} />}
         {validade && <DashboardValidade alertas={validade} />}
-        <Link href="/clientes/novo" className="cartao flex flex-col justify-between border-dashed p-5 transition hover:border-brand">
-          <p className="text-sm text-muted">Atalho</p>
-          <p className="mt-1 text-lg font-semibold">Cadastrar novo cliente</p>
-          <p className="mt-3 text-sm font-medium text-brand">Abrir formulário →</p>
-        </Link>
+        {clientes && (
+          <Link href="/clientes/novo" className="cartao flex flex-col justify-between border-dashed p-5 transition hover:border-brand">
+            <p className="text-sm text-muted">Atalho</p>
+            <p className="mt-1 text-lg font-semibold">Cadastrar novo cliente</p>
+            <p className="mt-3 text-sm font-medium text-brand">Abrir formulário →</p>
+          </Link>
+        )}
       </section>
 
       <section>

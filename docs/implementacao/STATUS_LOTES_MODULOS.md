@@ -12,8 +12,8 @@
 | 03 | Movimentações, FEFO e concorrência | **concluída** (mesclada, PR #29) | [03_MOVIMENTACOES_FEFO.md](03_MOVIMENTACOES_FEFO.md) |
 | 04 | Telas, alertas e operação | **concluída** (PR #30 e #31 mesclados; operação clínica, opção A) | [04_TELAS_ALERTAS.md](04_TELAS_ALERTAS.md) |
 | 05 | Testes de lotes e homologação | **concluída** (PR #32 mesclado, `ace982e`) | [05_RELATORIO_HOMOLOGACAO.md](05_RELATORIO_HOMOLOGACAO.md), [../runbooks/lotes-liberacao.md](../runbooks/lotes-liberacao.md) |
-| 06 | Catálogo de módulos e dependências | **implementada, aguardando CI/merge do PR** | [06_CATALOGO_MODULOS.md](06_CATALOGO_MODULOS.md), `backend/src/main/resources/modulos/catalogo.json` |
-| 07 | Autorização e isolamento modular | pendente | — |
+| 06 | Catálogo de módulos e dependências | **concluída** (PR #33 mesclado) | [06_CATALOGO_MODULOS.md](06_CATALOGO_MODULOS.md), `backend/src/main/resources/modulos/catalogo.json` |
+| 07 | Autorização e isolamento modular | **implementada, aguardando CI/merge do PR** | [07_AUTORIZACAO_MODULAR.md](07_AUTORIZACAO_MODULAR.md), [07_MATRIZ_ACESSO.md](07_MATRIZ_ACESSO.md), [../runbooks/modulos-por-cliente.md](../runbooks/modulos-por-cliente.md) |
 | 08 | Provisionamento e operação por cliente | pendente | — |
 | 09 | Testes modulares e go-live | pendente | — |
 | 10 (futura) | Unidade de medida e quantidade decimal (granel) | planejada, **pré-requisito do pacote agropecuário**; fora deste plano de 9 etapas | D24 em [01_DECISOES_LOTES.md](01_DECISOES_LOTES.md) |
@@ -136,8 +136,19 @@ Sem pontos abertos bloqueadores para a etapa 02.
 - [x] Ausências declaradas (multiempresa, NF-e, venda a prazo, granel, prontuário completo, notificações, offline)
 - [x] Rastreabilidade por teste: 132 rotas, 33 tabelas, 47 telas, 7 rotas do BFF, 45 Server Actions e o menu, cada um com um único dono
 - [x] Achado para a 07: 39 rotas exigem só estar logado; o módulo precisa cobrir toda rota, inclusive leitura
-- [ ] Merge do PR da etapa 06
+- [x] Merge do PR da etapa 06 (PR #33)
+
+## Etapa 07 — checklist
+
+- [x] `PETCONNECT_MODULOS` carregada e validada no boot (lista inválida, dependência faltando e remoção com pendência recusam a partida); histórico em `modulo_instalacao_historico` (V13) e auditoria `MODULOS_ALTERADOS`
+- [x] `ModulosFilter` antes do RBAC: 403 uniforme `MODULO_INDISPONIVEL`, caminho normalizado, sem confiar em payload/cabeçalho/token; sem hot reload (reiniciar)
+- [x] Regras de URL centralizadas em `RegrasDeAcesso`; matriz endpoint → módulo → papel versionada e verificada por teste (136 rotas)
+- [x] `GET /api/v1/modulos` (capacidades autenticadas, sem cache)
+- [x] Testes de negação e regressão: sem estoque com PDV, sem lotes com FEFO, sem financeiro com PDV, papel insuficiente, curl/cabeçalho/claim, relatório/CSV de origem desligada, downgrade
+- [x] Frontend: menu por módulo+papel, guardas por segmento, cards/abas/consultas condicionais, mensagem amigável de recurso indisponível
+- [x] `compose.prod.yaml` exige `PETCONNECT_MODULOS`; runbook de módulos por cliente
+- [ ] Merge do PR da etapa 07
 
 ## Próximo passo
 
-Merge do PR da etapa 06 (autorização do dono, ou CI verde conforme a regra permanente). Depois, `07_AUTORIZACAO_E_ISOLAMENTO_MODULAR.md`: filtro de módulo na API a partir de `PETCONNECT_MODULOS` e do catálogo, validação de boot, `GET /api/v1/modulos`, e testes de que rota de módulo desligado não responde.
+Merge do PR da etapa 07 (CI verde, regra permanente). Depois, `08_PROVISIONAMENTO_E_OPERACAO_CLIENTES.md`.

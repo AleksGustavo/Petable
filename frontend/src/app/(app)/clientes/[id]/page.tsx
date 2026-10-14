@@ -11,6 +11,7 @@ import type { Cliente, Pagina } from "@/lib/clientes";
 import { podeAnonimizarClientes, podeEditarClientes, podeEditarPets } from "@/lib/permissoes";
 import type { Pet } from "@/lib/pets";
 import { exigirSessao } from "@/lib/session";
+import { moduloAtivo } from "@/lib/modulos";
 
 export const metadata: Metadata = { title: "Cliente" };
 
@@ -28,7 +29,8 @@ export default async function ClientePage(props: PageProps<"/clientes/[id]">) {
   const { id } = await props.params;
   const { salvo } = await props.searchParams;
   const [sessao, cliente] = await Promise.all([exigirSessao(), carregar(id)]);
-  const pets = await apiFetch<Pagina<Pet>>(`/api/v1/pets?clienteId=${cliente.id}&size=100`);
+  const temPets = await moduloAtivo("pets");
+  const pets = temPets ? await apiFetch<Pagina<Pet>>(`/api/v1/pets?clienteId=${cliente.id}&size=100`) : null;
   const editavel = podeEditarClientes(sessao.papel);
 
   return (
@@ -47,7 +49,7 @@ export default async function ClientePage(props: PageProps<"/clientes/[id]">) {
 
       {salvo && <Aviso>Dados salvos.</Aviso>}
 
-      <ClientePets clienteId={cliente.id} pets={pets.content} podeEditar={podeEditarPets(sessao.papel)} />
+      {pets && <ClientePets clienteId={cliente.id} pets={pets.content} podeEditar={podeEditarPets(sessao.papel)} />}
 
       {editavel ? (
         <ClienteForm key={cliente.updatedAt} cliente={cliente} />

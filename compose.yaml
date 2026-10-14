@@ -88,6 +88,7 @@ services:
       # Base dos links enviados por e-mail (redefinição de senha).
       APP_FRONTEND_URL: ${APP_FRONTEND_URL:-http://localhost:3000}
       # Controle de lote e validade (docs/implementacao): DESLIGADO por padrão. Só ligue depois da homologação da instalação.
+      PETCONNECT_MODULOS: ${PETCONNECT_MODULOS:-todos}
       PETCONNECT_ESTOQUE_LOTES: ${PETCONNECT_ESTOQUE_LOTES:-false}
       PETCONNECT_ESTOQUE_LOTES_DIAS_BLOQUEIO: ${PETCONNECT_ESTOQUE_LOTES_DIAS_BLOQUEIO:-0}
       PETCONNECT_ESTOQUE_LOTES_FAIXAS_ALERTA: ${PETCONNECT_ESTOQUE_LOTES_FAIXAS_ALERTA:-30,60,90}
