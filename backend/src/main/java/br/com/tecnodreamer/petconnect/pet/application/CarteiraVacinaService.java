@@ -8,6 +8,9 @@ import br.com.tecnodreamer.petconnect.pet.infrastructure.PetRepository;
 import br.com.tecnodreamer.petconnect.pet.infrastructure.VacinaRepository;
 import br.com.tecnodreamer.petconnect.pet.web.LancamentoVacinaResponse;
 import br.com.tecnodreamer.petconnect.pet.web.VacinaLancamentoRequest;
+import br.com.tecnodreamer.petconnect.produto.application.EstoqueLoteService;
+import br.com.tecnodreamer.petconnect.produto.domain.LoteEstoque;
+import br.com.tecnodreamer.petconnect.shared.security.UsuarioAtual;
 import br.com.tecnodreamer.petconnect.shared.audit.AuditoriaService;
 import br.com.tecnodreamer.petconnect.shared.error.CampoInvalidoException;
 import br.com.tecnodreamer.petconnect.shared.error.ConflictException;
@@ -28,9 +31,11 @@ public class CarteiraVacinaService {
     private final VacinaRepository vacinas;
     private final AuditoriaService auditoria;
     private final Clock clock;
+    private final EstoqueLoteService estoqueLotes;
 
     public CarteiraVacinaService(PetRepository pets, CarteiraVacinaRepository carteira, VacinaRepository vacinas,
-            AuditoriaService auditoria, Clock clock) {
+            AuditoriaService auditoria, Clock clock, EstoqueLoteService estoqueLotes) {
+        this.estoqueLotes = estoqueLotes;
         this.pets = pets;
         this.carteira = carteira;
         this.vacinas = vacinas;
@@ -46,8 +51,19 @@ public class CarteiraVacinaService {
                 .map(l -> LancamentoVacinaResponse.of(l, hoje)).toList();
     }
 
+    /** Usa o usuário da requisição (JWT) quando a aplicação baixa estoque. */
     @Transactional
     public LancamentoVacinaResponse registrar(Long petId, VacinaLancamentoRequest req) {
+        return registrar(petId, req, UsuarioAtual.id().orElse(null));
+    }
+
+    /**
+     * Registra a dose. Vacina ligada a um produto com controle de lote (e a flag de lotes ligada) baixa UMA unidade do lote
+     * que vence primeiro e grava esse lote físico na carteira: o lote digitado à mão deixa de valer (o estoque é a fonte).
+     * Sem lote disponível, 409 e nada é gravado. Vacina sem produto ligado segue como antes.
+     */
+    @Transactional
+    public LancamentoVacinaResponse registrar(Long petId, VacinaLancamentoRequest req, Long usuarioId) {
         Pet pet = petAtivo(petId);
         Vacina vacina = vacinas.findById(req.vacinaId())
                 .orElseThrow(() -> new CampoInvalidoException("vacinaId", "Vacina não encontrada."));
@@ -64,10 +80,27 @@ public class CarteiraVacinaService {
         if (req.dataProxima() != null && req.dataProxima().isBefore(req.dataAplicacao())) {
             throw new CampoInvalidoException("dataProxima", "A próxima dose não pode ser anterior à aplicação.");
         }
+        boolean baixaEstoque = estoqueLotes.consumoClinicoAtivo(vacina.getProduto());
+        if (baixaEstoque && Textos.limpo(req.lote()) != null) {
+            throw new CampoInvalidoException("lote", "O lote desta vacina é escolhido pelo estoque: deixe o campo em branco.");
+        }
+        if (baixaEstoque && usuarioId == null) {
+            throw new CampoInvalidoException("usuario", "Não foi possível identificar o usuário que aplicou a vacina.");
+        }
         CarteiraVacina salvo = carteira.save(new CarteiraVacina(pet, vacina, req.dataAplicacao(), req.dataProxima(),
                 Textos.limpo(req.veterinario()), Textos.limpo(req.lote()), Textos.limpo(req.observacoes())));
-        auditoria.registrar("VACINA_PET_REGISTRADA", PetService.ENTIDADE, petId,
-                Map.of("lancamentoId", String.valueOf(salvo.getId()), "vacina", vacina.getNome()));
+        Map<String, Object> detalhes = new java.util.LinkedHashMap<>();
+        detalhes.put("lancamentoId", String.valueOf(salvo.getId()));
+        detalhes.put("vacina", vacina.getNome());
+        if (baixaEstoque) {
+            // O movimento cita só o número do lançamento: nada do pet nem do tutor vai para o estoque.
+            LoteEstoque lote = estoqueLotes.baixarConsumoClinico(vacina.getProduto().getId(),
+                    "Aplicação de vacina (lançamento " + salvo.getId() + ")", usuarioId);
+            salvo.registrarLoteFisico(lote);
+            detalhes.put("loteId", String.valueOf(lote.getId()));
+            detalhes.put("codigoLote", lote.getCodigoLote());
+        }
+        auditoria.registrar("VACINA_PET_REGISTRADA", PetService.ENTIDADE, petId, detalhes);
         return LancamentoVacinaResponse.of(salvo, hoje);
     }
 
@@ -78,8 +111,15 @@ public class CarteiraVacinaService {
                 .filter(l -> l.pertenceAoPet(petId))
                 .orElseThrow(() -> new NotFoundException("Lançamento de vacina", lancamentoId));
         carteira.delete(lancamento);
-        auditoria.registrar("VACINA_PET_REMOVIDA", PetService.ENTIDADE, petId,
-                Map.of("lancamentoId", String.valueOf(lancamentoId), "vacina", lancamento.getVacina().getNome()));
+        Map<String, Object> detalhes = new java.util.LinkedHashMap<>();
+        detalhes.put("lancamentoId", String.valueOf(lancamentoId));
+        detalhes.put("vacina", lancamento.getVacina().getNome());
+        if (lancamento.getLoteEstoque() != null) {
+            // Corrigir o registro na carteira não devolve a dose ao estoque: ela foi fisicamente usada. Fica dito na auditoria.
+            detalhes.put("loteId", String.valueOf(lancamento.getLoteEstoque().getId()));
+            detalhes.put("estoqueNaoRestituido", true);
+        }
+        auditoria.registrar("VACINA_PET_REMOVIDA", PetService.ENTIDADE, petId, detalhes);
     }
 
     private Pet petAtivo(Long petId) {

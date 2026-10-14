@@ -59,7 +59,7 @@ class CarteiraVacinaServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new CarteiraVacinaService(pets, carteira, vacinas, auditoria, CLOCK);
+        service = new CarteiraVacinaService(pets, carteira, vacinas, auditoria, CLOCK, org.mockito.Mockito.mock(br.com.tecnodreamer.petconnect.produto.application.EstoqueLoteService.class));
         when(pets.findById(1L)).thenReturn(Optional.of(rex));
         when(vacinas.findById(4L)).thenReturn(Optional.of(raiva));
         when(carteira.save(any())).thenAnswer(inv -> inv.getArgument(0));

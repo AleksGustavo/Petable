@@ -10,5 +10,7 @@ public enum TipoMovimentacao {
      * Move saldo legado "sem lote" para um lote (D11): o total do produto não muda, só o saldo do lote.
      * Por isso conta em I2 (saldo do lote) mas fica fora de I1 (soma por produto).
      */
-    REGULARIZACAO_LOTE
+    REGULARIZACAO_LOTE,
+    /** Saída de lote por consumo clínico (ex.: dose de vacina aplicada). Não guarda dado do paciente nem do tutor. */
+    CONSUMO_CLINICO
 }

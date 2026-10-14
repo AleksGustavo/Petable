@@ -1,6 +1,6 @@
 # Dicionário de dados — PetConnect Web (MySQL)
 
-> **Gerado a partir do banco real** (`information_schema`) com as migrations Flyway aplicadas até a V11. A fonte da verdade continua sendo [`backend/src/main/resources/db/migration`](../backend/src/main/resources/db/migration). Para regenerar: `python scripts/gerar-dicionario.py` com o MySQL de desenvolvimento no ar.
+> **Gerado a partir do banco real** (`information_schema`) com as migrations Flyway aplicadas até a V12. A fonte da verdade continua sendo [`backend/src/main/resources/db/migration`](../backend/src/main/resources/db/migration). Para regenerar: `python scripts/gerar-dicionario.py` com o MySQL de desenvolvimento no ar.
 
 Convenções: dinheiro em `DECIMAL(10,2)`; datas e horas em horário local de São Paulo; enums como `VARCHAR` + `CHECK`; sem exclusão física (campo `ativo`). Veja o diagrama em [banco-de-dados.md](banco-de-dados.md).
 
@@ -19,6 +19,7 @@ Convenções: dinheiro em `DECIMAL(10,2)`; datas e horas em horário local de S�
 | V9 | indices relatorios |
 | V10 | migracao legado |
 | V11 | lotes estoque |
+| V12 | consumo clinico vacina |
 
 **33 tabelas** em 8 grupos.
 
@@ -204,6 +205,7 @@ Convenções: dinheiro em `DECIMAL(10,2)`; datas e horas em horário local de S�
 | `ativo` | `tinyint(1)` | não |  | 1 |  |
 | `created_at` | `datetime(6)` | não |  | CURRENT_TIMESTAMP(6) | coluna gerada |
 | `updated_at` | `datetime(6)` | não |  | CURRENT_TIMESTAMP(6) | coluna gerada |
+| `produto_id` | `bigint` | sim | índice |  | FK → `produto.id`; Produto de estoque desta vacina. Nulo = a aplicação não baixa estoque (comportamento anterior). |
 
 - **Único** `uk_vacina_especie_nome`: (especie_id,nome)
 
@@ -220,6 +222,7 @@ Convenções: dinheiro em `DECIMAL(10,2)`; datas e horas em horário local de S�
 | `lote` | `varchar(50)` | sim |  |  |  |
 | `observacoes` | `text` | sim |  |  |  |
 | `created_at` | `datetime(6)` | não |  | CURRENT_TIMESTAMP(6) | coluna gerada |
+| `lote_id` | `bigint` | sim | índice |  | FK → `lote_estoque.id`; Lote físico do estoque usado nesta dose (FEFO). Nulo = lote digitado à mão (coluna lote). |
 
 ### `historico_consulta`
 
@@ -380,7 +383,7 @@ Convenções: dinheiro em `DECIMAL(10,2)`; datas e horas em horário local de S�
 
 - **Regra** `chk_mov_estoque_quantidade`: `(`quantidade` <> 0)`
 - **Regra** `chk_mov_estoque_saldos`: `((`saldo_anterior` >= 0) and (`saldo_resultante` >= 0))`
-- **Regra** `chk_mov_estoque_tipo`: `(`tipo` in (_utf8mb4\\'ENTRADA_COMPRA\\',_utf8mb4\\'SAIDA_VENDA\\',_utf8mb4\\'AJUSTE\\',_utf8mb4\\'ESTORNO_VENDA\\',_utf8mb4\\'PERDA\\',_utf8mb4\\'VENCIMENTO\\',_utf8mb4\\'REGULARIZACAO_LOTE\\'))`
+- **Regra** `chk_mov_estoque_tipo`: `(`tipo` in (_utf8mb4\\'ENTRADA_COMPRA\\',_utf8mb4\\'SAIDA_VENDA\\',_utf8mb4\\'AJUSTE\\',_utf8mb4\\'ESTORNO_VENDA\\',_utf8mb4\\'PERDA\\',_utf8mb4\\'VENCIMENTO\\',_utf8mb4\\'REGULARIZACAO_LOTE\\',_utf8mb4\\'CONSUMO_CLINICO\\'))`
 - **Regra** `ck_mov_estoque_lote`: `(((`lote_id` is null) and (`lote_saldo_anterior` is null) and (`lote_saldo_resultante` is null)) or ((`lote_id` is not null) and (`lote_saldo_anterior` is not null) and (`lote_saldo_resultante` is not null) and (`lote_saldo_anterior` >= 0) and (`lote_saldo_resultante` >= 0) and ((`lote_saldo_anterior` + `quantidade`) = `lote_saldo_resultante`)))`
 
 ### `compra`

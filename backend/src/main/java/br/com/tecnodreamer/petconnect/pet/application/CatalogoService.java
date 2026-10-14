@@ -5,6 +5,7 @@ import br.com.tecnodreamer.petconnect.pet.infrastructure.RacaRepository;
 import br.com.tecnodreamer.petconnect.pet.infrastructure.VacinaRepository;
 import br.com.tecnodreamer.petconnect.pet.web.CatalogoItem;
 import br.com.tecnodreamer.petconnect.pet.web.VacinaCatalogoResponse;
+import br.com.tecnodreamer.petconnect.produto.application.EstoqueLoteService;
 import br.com.tecnodreamer.petconnect.shared.error.NotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,8 +19,10 @@ public class CatalogoService {
     private final EspecieRepository especies;
     private final RacaRepository racas;
     private final VacinaRepository vacinas;
+    private final EstoqueLoteService estoqueLotes;
 
-    public CatalogoService(EspecieRepository especies, RacaRepository racas, VacinaRepository vacinas) {
+    public CatalogoService(EspecieRepository especies, RacaRepository racas, VacinaRepository vacinas, EstoqueLoteService estoqueLotes) {
+        this.estoqueLotes = estoqueLotes;
         this.especies = especies;
         this.racas = racas;
         this.vacinas = vacinas;
@@ -35,10 +38,11 @@ public class CatalogoService {
                 .map(r -> new CatalogoItem(r.getId(), r.getNome())).toList();
     }
 
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public List<VacinaCatalogoResponse> vacinas(Long especieId) {
         exigirEspecie(especieId);
         return vacinas.findByEspecieIdAndAtivoTrueOrderByNomeAsc(especieId).stream()
-                .map(VacinaCatalogoResponse::of).toList();
+                .map(v -> VacinaCatalogoResponse.of(v, estoqueLotes.consumoClinicoAtivo(v.getProduto()))).toList();
     }
 
     private void exigirEspecie(Long especieId) {

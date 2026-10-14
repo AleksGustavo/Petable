@@ -9,6 +9,7 @@ import { acoesPermitidas, moeda, type Agendamento } from "@/lib/agendamentos";
 import type { FormState } from "@/lib/clientes";
 import { hojeISO } from "@/lib/datas";
 import type { Papel } from "@/lib/jwt";
+import { LoteDaVacina } from "@/components/lote-da-vacina";
 import type { VacinaCatalogo } from "@/lib/pets";
 import { FORMAS_PAGAMENTO } from "@/lib/vendas";
 
@@ -128,7 +129,7 @@ export function AcoesStatus({
               <Campo rotulo="Data de aplicação" name="dataAplicacao" type="date" max={hojeISO()} defaultValue={state.valores?.dataAplicacao ?? hojeISO()} erro={erros.dataAplicacao} />
               <Campo rotulo="Próxima dose" name="dataProxima" type="date" defaultValue={state.valores?.dataProxima} erro={erros.dataProxima} />
               <Campo rotulo="Veterinário" name="veterinario" maxLength={100} defaultValue={state.valores?.veterinario} erro={erros.veterinario} />
-              <Campo rotulo="Lote" name="lote" maxLength={50} defaultValue={state.valores?.lote} erro={erros.lote} />
+              <LoteDaVacina vacinas={vacinas} selectId="campo-conclusao-vacina" valorInicial={state.valores?.lote} erro={erros.lote} />
               <div className="sm:col-span-2">
                 <label htmlFor="campo-obs-vacina-conclusao" className="mb-1 block text-sm font-medium">Observações da vacina</label>
                 <textarea id="campo-obs-vacina-conclusao" name="observacoesVacina" rows={2} maxLength={2000} className="campo" defaultValue={state.valores?.observacoesVacina} />

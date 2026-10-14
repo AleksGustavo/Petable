@@ -120,6 +120,30 @@ export async function acaoSobreLote(produtoId: number, loteId: number, acao: Aca
   redirect(`/produtos/${produtoId}?aba=lotes&ok=${acao}`);
 }
 
+/** Liga uma vacina do catálogo a este produto: aplicar a vacina passa a baixar uma dose do lote que vence primeiro. */
+export async function vincularVacina(produtoId: number, _prev: FormState, formData: FormData): Promise<FormState> {
+  const valores = valoresDo(formData);
+  const vacinaId = /^\d+$/.test(valores.vacinaId ?? "") ? Number(valores.vacinaId) : null;
+  if (!vacinaId) return { erros: { vacinaId: "Selecione a vacina" }, valores };
+  try {
+    await apiFetch(`/api/v1/vacinas/${vacinaId}/produto`, { method: "PUT", body: { produtoId } });
+  } catch (e) {
+    return falha(e, valores, "Vacina");
+  }
+  revalidatePath(`/produtos/${produtoId}`);
+  redirect(`/produtos/${produtoId}?aba=lotes&ok=vacina`);
+}
+
+export async function desvincularVacina(produtoId: number, vacinaId: number): Promise<FormState> {
+  try {
+    await apiFetch(`/api/v1/vacinas/${vacinaId}/produto`, { method: "DELETE" });
+  } catch (e) {
+    return falha(e, {}, "Vacina");
+  }
+  revalidatePath(`/produtos/${produtoId}`);
+  redirect(`/produtos/${produtoId}?aba=lotes&ok=vacinaRemovida`);
+}
+
 // ------------------------------------------------------------------ fornecedores
 
 export async function salvarFornecedor(id: number | null, _prev: FormState, formData: FormData): Promise<FormState> {

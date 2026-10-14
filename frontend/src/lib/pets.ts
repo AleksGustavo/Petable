@@ -6,7 +6,8 @@ export type StatusVacina = "VENCIDA" | "VENCE_EM_30_DIAS" | "EM_DIA" | "SEM_PROX
 
 export type CatalogoItem = { id: number; nome: string };
 export type EspecieComRacas = CatalogoItem & { racas: CatalogoItem[] };
-export type VacinaCatalogo = CatalogoItem & { doencaProtecao: string | null; validadePadraoMeses: number };
+/** `baixaEstoque`: aplicar esta vacina tira uma dose do estoque (o lote vem do estoque, não é digitado). */
+export type VacinaCatalogo = CatalogoItem & { doencaProtecao: string | null; validadePadraoMeses: number; baixaEstoque?: boolean };
 export type Idade = { anos: number; meses: number; descricao: string };
 
 export type Pet = {
@@ -37,6 +38,8 @@ export type LancamentoVacina = {
   observacoes: string | null;
   status: StatusVacina;
   statusDescricao: string;
+  /** Lote físico do estoque que saiu nesta dose (quando a vacina baixa estoque). */
+  loteEstoqueId?: number | null;
 };
 
 export type Consulta = {

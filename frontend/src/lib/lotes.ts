@@ -59,6 +59,8 @@ export type RastreioLote = {
   totalMovimentos: number;
 };
 
+export type VacinaEstoque = { id: number; nome: string; especie: string; produto: CatalogoItem | null };
+
 export type ConfiguracaoLotes = { lotesHabilitado: boolean; faixasAlertaDias: number[] };
 
 export type DestinoEstoque = "RETORNAR" | "DESCARTAR";

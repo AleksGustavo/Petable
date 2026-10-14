@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { registrarVacina } from "@/app/actions/pets";
+import { LoteDaVacina } from "@/components/lote-da-vacina";
 import { Campo } from "@/components/campo";
 import type { FormState } from "@/lib/clientes";
 import { hojeISO, somarMeses } from "@/lib/datas";
@@ -82,7 +83,7 @@ export function VacinaForm({ petId, vacinas }: { petId: number; vacinas: VacinaC
         ajuda="Sugerida pela validade da vacina. Deixe vazio se não houver."
       />
       <Campo rotulo="Veterinário" name="veterinario" maxLength={100} defaultValue={state.valores?.veterinario} erro={erros.veterinario} />
-      <Campo rotulo="Lote" name="lote" maxLength={50} defaultValue={state.valores?.lote} erro={erros.lote} />
+      <LoteDaVacina vacinas={vacinas} selectId="campo-vacina" valorInicial={state.valores?.lote} erro={erros.lote} />
       <div className="sm:col-span-2">
         <label htmlFor="campo-obs-vacina" className="mb-1 block text-sm font-medium">Observações</label>
         <textarea id="campo-obs-vacina" name="observacoes" rows={2} maxLength={2000} className="campo" defaultValue={state.valores?.observacoes} />

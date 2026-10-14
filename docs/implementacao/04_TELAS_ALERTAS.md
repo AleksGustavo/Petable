@@ -12,7 +12,7 @@
 | 4. PDV | FEFO continua **invisível**: o balcão manda produto e quantidade. A busca rápida e o carrinho passam a usar o saldo **vendável** (`quantidadeVendavel`): lote vencido, bloqueado ou dentro da margem não conta. Sem lote vendável: "não tem lote disponível para venda (vencido ou bloqueado)". A prévia devolve a alocação que a venda faria (mesmo `AlocadorFefo`). A venda mostra de quais lotes cada item saiu |
 | 5. Alertas | `GET /api/v1/estoque/alertas`, **calculado na hora** a partir dos lotes reais: vencidos com saldo, faixas **30/60/90 dias (configuráveis em `petconnect.estoque.lotes.faixas-alerta-dias`)**, bloqueados com saldo, produtos abaixo do mínimo e produtos com saldo sem controle de lote. Não existe tabela de alerta nem envio de notificação, então **nada dispara duas vezes** a cada atualização. Aparece na página de lotes e como card no painel |
 | 6. Ações de lote | Bloquear/liberar (quarentena), perda/descarte e baixa de lote vencido, ajuste por lote, relatório de rastreabilidade. Botões só para ADMIN; **a API confere o papel** (testado: VENDAS e SERVICO recebem 403 em todas) |
-| 7. Operação clínica | **Não implementado, por inexistência do fluxo**: hoje a aplicação de vacina/medicamento **não baixa estoque** (a carteira de vacina guarda o lote como texto livre, sem ligação com produto, D20). Ligar aplicação ↔ lote físico exige uma decisão do dono sobre o cadastro (ver §5) |
+| 7. Operação clínica | **Opção A (decidida pelo dono)**: cada vacina do catálogo pode ser **ligada a um produto de estoque** (aba Lotes do produto, só ADMIN; o produto precisa controlar lote). Aplicar a vacina, pela carteira do pet ou pela conclusão do agendamento de vacinação, **baixa uma dose do lote que vence primeiro** (FEFO, mesmas regras: vencido, bloqueado, sem saldo e dentro da margem ficam fora), grava o **lote físico** na carteira (`carteira_vacina.lote_id` e o texto do lote) e o movimento `CONSUMO_CLINICO`. Sem lote disponível, **409 e nada é gravado** (dose, serviço realizado, financeiro e estoque voltam juntos). Quando a vacina baixa estoque, a tela **não pede o lote** (ele vem do estoque; lote digitado é recusado). Vacina sem produto ligado segue como antes. Detalhes em §5 |
 
 Regras de UX atendidas: soma dos lotes nunca diverge do recebido; vencimento em **DD/MM/AAAA** (persistido como data, "hoje" no fuso de São Paulo); erros do servidor aparecem na tela; consultas paginadas e sem N+1 (`join fetch` do produto na lista, uma consulta para os lotes de uma venda/compra); rótulos ligados aos campos (`label for`), `fieldset`/`legend` na grade e nas opções de destino, soma e erros em `role="status"`/`role="alert"`, **situação sempre em ícone + texto** (nunca só cor), layout em cartões no celular e tabela a partir de `md`.
 
@@ -42,13 +42,16 @@ Novos: `lib/lotes.ts` (tipos, validação da grade, schemas, situação/prazo), 
 | Notificação por e-mail/WhatsApp de vencimento | Fora do escopo ("alertas derivados do dado real"); o painel e a página mostram o estado atual |
 | Captura de tela automatizada | Não há ferramenta de teste visual de componentes no repositório (só Playwright E2E, que roda com a flag desligada). Veja §6 |
 
-## 5. Pendência que precisa do dono (operação clínica)
+## 5. Operação clínica (opção A, implementada)
 
-A aplicação de vacina e o uso de medicamento hoje **não consomem estoque**: vacina é um catálogo próprio (`vacina`), e `carteira_vacina.lote` é texto livre. Para "registrar a ligação ao lote físico quando a vacina sai do estoque" é preciso decidir **como a vacina vira produto de estoque**:
-- **A.** cada vacina do catálogo aponta para um `produto` (controlado por lote); aplicar vacina baixa 1 unidade FEFO e grava o lote físico na carteira (recomendado);
-- **B.** a clínica escolhe o lote na hora da aplicação, a partir de uma lista de lotes do produto;
-- **C.** manter como está (lote em texto livre, sem baixa).
-Nada foi criado para isso nesta etapa.
+Decisão do dono: **A**. Migration `V12__consumo_clinico_vacina.sql` (aditiva).
+
+- **Vínculo** (`PUT/DELETE /api/v1/vacinas/{id}/produto`, só ADMIN; `GET /api/v1/vacinas/estoque` ADMIN; `GET /api/v1/produtos/{id}/vacinas` ADMIN e VENDAS): exige a flag de lotes ligada, produto ativo e **com controle de lote**. Auditoria `VACINA_PRODUTO_VINCULADO`/`DESVINCULADO`.
+- **Aplicação** (`CarteiraVacinaService.registrar`, usada pela carteira e pela conclusão do agendamento): se a vacina tem produto controlado e a flag está ligada, trava o produto (mesma ordem de travas das vendas: produto, depois caixa), escolhe o primeiro lote vendável, tira 1 unidade (`CONSUMO_CLINICO`), grava o lote na carteira e audita `ESTOQUE_CONSUMO_CLINICO`.
+- **Privacidade:** o movimento de estoque e a auditoria do estoque citam só o número do lançamento (`Aplicação de vacina (lançamento N)`), **sem pet nem tutor**; a rastreabilidade do lote não traz dado de cliente.
+- **Corrigir a carteira não devolve a dose:** remover um lançamento que baixou estoque **não restitui** a unidade (ela foi usada); a auditoria `VACINA_PET_REMOVIDA` registra `estoqueNaoRestituido`. Devolver ao estoque seria um ajuste manual com motivo.
+- **Uma dose = 1 unidade** (quantidade inteira neste ciclo, D7); frascos com várias doses ou frações dependem da etapa futura de unidade/decimal (D24).
+- **Outros medicamentos** (não vacina): ainda sem fluxo de consumo; o mesmo `baixarConsumoClinico` serve de base quando houver o cadastro clínico correspondente.
 
 ## 6. Testes
 
@@ -60,5 +63,7 @@ Nada foi criado para isso nesta etapa.
 | `compra-lotes.test.tsx` | grade só no item controlado; soma divergente e lote vencido bloqueiam; vários lotes por item; compra recebida mostra os lotes |
 | `venda-lotes.test.tsx` | destino sem opção pré-marcada e envio bloqueado; confirmação descreve RETORNAR e DESCARTAR; venda sem lote inalterada |
 | `lotes-telas.test.tsx` | alertas, card do painel, lista, grade |
+| `VacinaEstoqueIT` (8) e `AgendamentoVacinaEstoqueIT` (3), backend | vínculo (papéis, produto precisa controlar lote), catálogo informa `baixaEstoque`, aplicação tira a dose do lote que vence primeiro e grava o lote na carteira, FEFO entre lotes, sem lote disponível nada é gravado, lote digitado recusado, vacina sem vínculo como antes, remoção não devolve a dose, **duas aplicações da última dose: só uma confirma**, conclusão de agendamento baixa a dose e falha sem lote desfaz tudo |
+| `vacina-estoque.test.tsx` | campo de lote some quando a vacina baixa estoque; tela de vínculo por papel |
 
 Comandos: `cd backend && ./mvnw verify` e `cd frontend && npm run lint && npm run typecheck && npm test && npm run build`.

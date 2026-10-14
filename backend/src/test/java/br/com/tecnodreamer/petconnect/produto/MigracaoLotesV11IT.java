@@ -51,7 +51,8 @@ class MigracaoLotesV11IT {
         assertThat(movimentosAntes).hasSize(3);
         assertThat(versaoAplicada()).isEqualTo("10");
 
-        flyway(null).migrate();
+        // Este teste é da V11: para na V11 (a V12 tem o seu próprio teste de compatibilidade abaixo).
+        flyway("11").migrate();
 
         assertThat(versaoAplicada()).isEqualTo("11");
         // Nada do que existia mudou.
@@ -85,12 +86,24 @@ class MigracaoLotesV11IT {
         assertThat(jdbc.queryForObject("select controla_lote from produto where id = ?", Boolean.class, novo)).isFalse();
 
         // Reprocessar a inicialização: nada a aplicar, checksums válidos, histórico preservado.
-        var segundaRodada = flyway(null).migrate();
+        var segundaRodada = flyway("11").migrate();
         assertThat(segundaRodada.migrationsExecuted).isZero();
-        flyway(null).validate();
+        flyway("11").validate();
         assertThat(jdbc.queryForObject("select count(*) from flyway_schema_history where success = 0", Integer.class)).isZero();
         assertThat(jdbc.queryForList("select version from flyway_schema_history where version is not null order by installed_rank", String.class))
                 .containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11");
+
+        // V12 (vacina ligada ao estoque): sobe por cima da V11, aditiva, sem alterar nenhum dado e sem vínculo nenhum.
+        List<Map<String, Object>> produtosV11 = jdbc.queryForList("select * from produto order by id");
+        List<Map<String, Object>> vacinasV11 = jdbc.queryForList("select id, especie_id, nome, ativo from vacina order by id");
+        flyway(null).migrate();
+        assertThat(versaoAplicada()).isEqualTo("12");
+        assertThat(jdbc.queryForList("select * from produto order by id")).isEqualTo(produtosV11);
+        assertThat(jdbc.queryForList("select id, especie_id, nome, ativo from vacina order by id")).isEqualTo(vacinasV11);
+        assertThat(jdbc.queryForObject("select count(*) from vacina where produto_id is not null", Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from carteira_vacina where lote_id is not null", Integer.class)).isZero();
+        assertThat(flyway(null).migrate().migrationsExecuted).isZero();
+        flyway(null).validate();
     }
 
     private static String versaoAplicada() {

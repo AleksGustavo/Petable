@@ -6,11 +6,12 @@ import { BadgeAtivo, BadgeEstoque } from "@/components/estoque-badges";
 import { AjusteEstoqueForm, HistoricoEstoque, ProdutoAcoes, ProdutoDados, ResumoEstoque } from "@/components/produto-detalhes";
 import { ProdutoForm } from "@/components/produto-form";
 import { ProdutoLotes } from "@/components/produto-lotes";
+import { ProdutoVacinas } from "@/components/produto-vacinas";
 import { ApiError, apiFetch } from "@/lib/api";
 import type { Pagina } from "@/lib/clientes";
 import { TIPOS_MOVIMENTACAO, type CategoriaProduto, type FornecedorOpcao, type Movimentacao, type Produto } from "@/lib/estoque";
 import { hojeISO } from "@/lib/datas";
-import type { ConfiguracaoLotes, Lote } from "@/lib/lotes";
+import type { ConfiguracaoLotes, Lote, VacinaEstoque } from "@/lib/lotes";
 import { podeAjustarEstoque, podeEditarProdutos, podeGerenciarLotes, podeReativarProdutos, podeVerLotes } from "@/lib/permissoes";
 import { exigirSessao } from "@/lib/session";
 
@@ -34,6 +35,8 @@ const AVISOS: Record<string, string> = {
   desbloquear: "Lote liberado para venda.",
   perdas: "Perda registrada no lote.",
   vencimentos: "Baixa do lote vencido registrada.",
+  vacina: "Vacina vinculada: aplicar essa vacina passa a baixar uma dose do lote que vence primeiro.",
+  vacinaRemovida: "Vacina desvinculada deste produto.",
 };
 
 async function carregar(id: string): Promise<Produto> {
@@ -63,7 +66,10 @@ export default async function ProdutoPage(props: PageProps<"/produtos/[id]">) {
   const tipo = TIPOS_MOVIMENTACAO.some((t) => t.valor === texto("tipo")) ? texto("tipo") : "";
   const pagina = Math.max(0, Number(texto("page")) || 0);
   const precisaLotes = mostraLotes && (aba === "lotes" || (aba === "estoque" && produto.controlaLote === true)) && produto.controlaLote === true;
-  const [categorias, fornecedores, historico, lotes] = await Promise.all([
+  // Vacinas ligadas a este produto (o ADMIN também recebe o catálogo para poder vincular outra).
+  const vacinasAba = precisaLotes && aba === "lotes";
+  const admin = podeGerenciarLotes(sessao.papel);
+  const [categorias, fornecedores, historico, lotes, vacinasDoProduto, catalogoVacinas] = await Promise.all([
     aba === "dados" && editavel ? apiFetch<CategoriaProduto[]>("/api/v1/categorias-produto") : Promise.resolve([]),
     aba === "dados" && editavel ? apiFetch<FornecedorOpcao[]>("/api/v1/fornecedores/opcoes") : Promise.resolve([]),
     aba === "estoque"
@@ -72,6 +78,8 @@ export default async function ProdutoPage(props: PageProps<"/produtos/[id]">) {
         )
       : Promise.resolve(null),
     precisaLotes ? apiFetch<Lote[]>(`/api/v1/produtos/${produto.id}/lotes`) : Promise.resolve([] as Lote[]),
+    vacinasAba ? apiFetch<VacinaEstoque[]>(`/api/v1/produtos/${produto.id}/vacinas`) : Promise.resolve([] as VacinaEstoque[]),
+    vacinasAba && admin ? apiFetch<VacinaEstoque[]>("/api/v1/vacinas/estoque") : Promise.resolve([] as VacinaEstoque[]),
   ]);
   const linkHistorico = (p: number) => `/produtos/${produto.id}?${new URLSearchParams({ aba: "estoque", ...(tipo && { tipo }), page: String(p) })}`;
 
@@ -122,6 +130,9 @@ export default async function ProdutoPage(props: PageProps<"/produtos/[id]">) {
           podeGerenciar={podeGerenciarLotes(sessao.papel)}
           hoje={hojeISO()}
         />
+      )}
+      {aba === "lotes" && produto.controlaLote && (
+        <ProdutoVacinas produtoId={produto.id} vinculadas={vacinasDoProduto} catalogo={catalogoVacinas} podeGerenciar={admin} />
       )}
 
       {aba === "estoque" && historico && (
