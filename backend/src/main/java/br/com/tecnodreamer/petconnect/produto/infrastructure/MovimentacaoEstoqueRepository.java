@@ -21,4 +21,10 @@ public interface MovimentacaoEstoqueRepository extends JpaRepository<Movimentaca
     Page<MovimentacaoEstoque> historico(Long produtoId, TipoMovimentacao tipo, Pageable pageable);
 
     List<MovimentacaoEstoque> findByCompraIdOrderByIdAsc(Long compraId);
+
+    /** Movimentos de um lote em ordem cronológica, limitados pelo {@code Pageable} (rastreabilidade). */
+    @EntityGraph(attributePaths = {"usuario", "compra"})
+    List<MovimentacaoEstoque> findByLoteIdOrderByIdAsc(Long loteId, Pageable pageable);
+
+    long countByLoteId(Long loteId);
 }

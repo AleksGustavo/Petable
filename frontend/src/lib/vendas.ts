@@ -22,7 +22,15 @@ export const STATUS_VENDA: { valor: StatusVenda; rotulo: string }[] = [
   { valor: "CANCELADA", rotulo: "Cancelada" },
 ];
 
-export type ItemVenda = { id: number; produto: CatalogoItem; quantidade: number; precoUnitario: number; subtotal: number };
+export type ItemVenda = {
+  id: number;
+  produto: CatalogoItem;
+  quantidade: number;
+  precoUnitario: number;
+  subtotal: number;
+  /** De quais lotes o item saiu (vazio em produto sem controle de lote). */
+  lotes?: { loteId: number | null; codigoLote: string; validade: string | null; quantidade: number }[];
+};
 
 export type Venda = {
   id: number;
@@ -90,14 +98,21 @@ const paraCentavosNumero = (valor: number) => Math.round(valor * 100);
 
 /** Adiciona 1 unidade (ou soma +1 se já estiver no carrinho), respeitando o saldo conhecido. */
 export function adicionarAoCarrinho(itens: ItemCarrinho[], p: ProdutoRapido): { itens: ItemCarrinho[]; erro?: string } {
-  if (p.quantidadeEstoque <= 0) return { itens, erro: `${p.nome} está sem estoque.` };
+  // Produto com lote: vale o saldo VENDÁVEL (lotes liberados e dentro da validade), não o total da prateleira.
+  const saldo = p.quantidadeVendavel ?? p.quantidadeEstoque;
+  if (saldo <= 0) {
+    return { itens, erro: p.controlaLote ? `${p.nome} não tem lote disponível para venda (vencido ou bloqueado).` : `${p.nome} está sem estoque.` };
+  }
   const existente = itens.find((i) => i.produtoId === p.id);
   if (existente) {
-    if (existente.quantidade >= p.quantidadeEstoque) {
-      return { itens, erro: `Só há ${p.quantidadeEstoque} unidade(s) de ${p.nome} em estoque.` };
+    if (existente.quantidade >= saldo) {
+      return {
+        itens,
+        erro: p.controlaLote ? `Só há ${saldo} unidade(s) de ${p.nome} disponível(is) para venda.` : `Só há ${saldo} unidade(s) de ${p.nome} em estoque.`,
+      };
     }
     return {
-      itens: itens.map((i) => (i.produtoId === p.id ? { ...i, quantidade: i.quantidade + 1, disponivel: p.quantidadeEstoque } : i)),
+      itens: itens.map((i) => (i.produtoId === p.id ? { ...i, quantidade: i.quantidade + 1, disponivel: saldo } : i)),
     };
   }
   if (itens.length >= MAX_ITENS_VENDA) return { itens, erro: `A venda pode ter no máximo ${MAX_ITENS_VENDA} itens.` };
@@ -110,7 +125,7 @@ export function adicionarAoCarrinho(itens: ItemCarrinho[], p: ProdutoRapido): { 
         codigoBarras: p.codigoBarras,
         precoCentavos: paraCentavosNumero(p.precoVenda),
         quantidade: 1,
-        disponivel: p.quantidadeEstoque,
+        disponivel: saldo,
       },
     ],
   };

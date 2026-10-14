@@ -18,6 +18,8 @@ import {
   type Fornecedor,
   type Produto,
 } from "@/lib/estoque";
+import { baixaLoteSchema, lotesDoRecebimento, motivoLoteSchema, paraPayload, regularizacaoSchema, validarLinhas } from "@/lib/lotes";
+import { hojeISO } from "@/lib/datas";
 
 function valoresDo(formData: FormData): Record<string, string> {
   return Object.fromEntries([...formData.entries()].filter(([, v]) => typeof v === "string")) as Record<string, string>;
@@ -82,6 +84,42 @@ export async function ajustarEstoque(id: number, _prev: FormState, formData: For
   redirect(`/produtos/${id}?aba=estoque&ok=ajuste`);
 }
 
+// ------------------------------------------------------------------ lotes (etapa 04)
+
+/** Liga o controle de lote e distribui o saldo atual pelos lotes informados (soma exata). */
+export async function ativarControleLote(id: number, saldo: number, _prev: FormState, formData: FormData): Promise<FormState> {
+  const valores = valoresDo(formData);
+  const parsed = regularizacaoSchema(saldo).safeParse(valores);
+  if (!parsed.success) return { erros: errosPorCaminho(parsed.error), mensagem: "Confira os lotes informados.", valores };
+  try {
+    await apiFetch(`/api/v1/produtos/${id}/controle-lote`, { method: "POST", body: parsed.data });
+  } catch (e) {
+    return falha(e, valores, "Produto");
+  }
+  revalidatePath("/produtos");
+  revalidatePath(`/produtos/${id}`);
+  redirect(`/produtos/${id}?aba=lotes&ok=controle`);
+}
+
+export type AcaoLote = "bloquear" | "desbloquear" | "perdas" | "vencimentos";
+
+/** Bloquear/desbloquear (só motivo) e perda/baixa por vencimento (quantidade + motivo). A API confere o papel ADMIN. */
+export async function acaoSobreLote(produtoId: number, loteId: number, acao: AcaoLote, _prev: FormState, formData: FormData): Promise<FormState> {
+  const valores = valoresDo(formData);
+  const comQuantidade = acao === "perdas" || acao === "vencimentos";
+  const parsed = (comQuantidade ? baixaLoteSchema : motivoLoteSchema).safeParse(valores);
+  if (!parsed.success) return { erros: errosDoZod(parsed.error), valores };
+  try {
+    await apiFetch(`/api/v1/produtos/${produtoId}/lotes/${loteId}/${acao}`, { method: "POST", body: parsed.data });
+  } catch (e) {
+    return falha(e, valores, "Lote");
+  }
+  revalidatePath("/produtos");
+  revalidatePath(`/produtos/${produtoId}`);
+  revalidatePath("/estoque/lotes");
+  redirect(`/produtos/${produtoId}?aba=lotes&ok=${acao}`);
+}
+
 // ------------------------------------------------------------------ fornecedores
 
 export async function salvarFornecedor(id: number | null, _prev: FormState, formData: FormData): Promise<FormState> {
@@ -144,8 +182,34 @@ export async function receberCompra(id: number, _prev: FormState, formData: Form
   if (dataVencimento < dataEntrega) {
     return { erros: { dataVencimento: "O vencimento não pode ser anterior à entrega." }, valores };
   }
+  // Lotes (etapa 04): uma grade por item de produto controlado. A soma de cada grade tem de bater com a quantidade do item
+  // (conferida na tela, aqui e na API); o servidor é quem decide, e a mensagem dele aparece sem ser escondida.
+  const porProduto = lotesDoRecebimento(String(formData.get("lotes") ?? ""));
+  // "produtoId:quantidade:exigeValidade" por item controlado.
+  const itens = new Map<number, { esperado: number; exigeValidade: boolean }>(
+    String(formData.get("quantidades") ?? "")
+      .split(",")
+      .filter(Boolean)
+      .map((par) => {
+        const [produtoId, esperado, exige] = par.split(":").map(Number);
+        return [produtoId, { esperado, exigeValidade: exige !== 0 }] as [number, { esperado: number; exigeValidade: boolean }];
+      }),
+  );
+  const erros: Record<string, string> = {};
+  for (const grade of porProduto) {
+    const item = itens.get(grade.produtoId) ?? { esperado: 0, exigeValidade: true };
+    const e = validarLinhas(grade.linhas, { ...item, recebimento: true }, hojeISO());
+    for (const [campo, mensagem] of Object.entries(e)) erros[`lotes.${grade.produtoId}.${campo}`] = mensagem;
+  }
+  if (Object.keys(erros).length > 0) {
+    return { erros, mensagem: "Confira os lotes informados: a soma de cada item precisa ser igual à quantidade comprada.", valores };
+  }
+  const lotes = porProduto.map((g) => ({ produtoId: g.produtoId, lotes: paraPayload(g.linhas) }));
   try {
-    await apiFetch(`/api/v1/compras/${id}/receber`, { method: "POST", body: { dataEntrega, dataVencimento } });
+    await apiFetch(`/api/v1/compras/${id}/receber`, {
+      method: "POST",
+      body: lotes.length > 0 ? { dataEntrega, dataVencimento, lotes } : { dataEntrega, dataVencimento },
+    });
   } catch (e) {
     return falha(e, valores, "Compra");
   }

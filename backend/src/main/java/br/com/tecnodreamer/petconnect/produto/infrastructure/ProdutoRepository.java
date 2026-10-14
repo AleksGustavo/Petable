@@ -52,6 +52,10 @@ public interface ProdutoRepository extends JpaRepository<Produto, Long> {
     @Query("select count(p) from Produto p where p.ativo = true and p.quantidadeEstoque <= p.estoqueMinimo")
     long contarAbaixoDoMinimo();
 
+    /** Produtos ativos com saldo que ainda não controlam lote (candidatos à regularização; só informativo). */
+    @Query("select count(p) from Produto p where p.ativo = true and p.controlaLote = false and p.quantidadeEstoque > 0")
+    long contarComSaldoSemControleDeLote();
+
     boolean existsByCodigoBarras(String codigoBarras);
 
     boolean existsByCodigoBarrasAndIdNot(String codigoBarras, Long id);

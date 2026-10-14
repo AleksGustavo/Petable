@@ -4,6 +4,7 @@ import br.com.tecnodreamer.petconnect.compra.domain.Compra;
 import br.com.tecnodreamer.petconnect.compra.domain.ItemCompra;
 import br.com.tecnodreamer.petconnect.compra.domain.StatusCompra;
 import br.com.tecnodreamer.petconnect.compra.infrastructure.CompraRepository;
+import br.com.tecnodreamer.petconnect.compra.infrastructure.ItemCompraLoteRepository;
 import br.com.tecnodreamer.petconnect.compra.web.CompraRequest;
 import br.com.tecnodreamer.petconnect.compra.web.CompraResponse;
 import br.com.tecnodreamer.petconnect.financeiro.application.FinanceiroService;
@@ -51,12 +52,13 @@ public class CompraService {
     private final ProdutoRepository produtos;
     private final EstoqueService estoque;
     private final EstoqueLoteService estoqueLotes;
+    private final ItemCompraLoteRepository itensCompraLote;
     private final AuditoriaService auditoria;
     private final FinanceiroService financeiro;
     private final Clock clock;
 
     public CompraService(CompraRepository compras, FornecedorRepository fornecedores, FuncionarioRepository funcionarios,
-            ProdutoRepository produtos, EstoqueService estoque, EstoqueLoteService estoqueLotes, AuditoriaService auditoria,
+            ProdutoRepository produtos, EstoqueService estoque, EstoqueLoteService estoqueLotes, ItemCompraLoteRepository itensCompraLote, AuditoriaService auditoria,
             FinanceiroService financeiro, Clock clock) {
         this.compras = compras;
         this.fornecedores = fornecedores;
@@ -64,6 +66,7 @@ public class CompraService {
         this.produtos = produtos;
         this.estoque = estoque;
         this.estoqueLotes = estoqueLotes;
+        this.itensCompraLote = itensCompraLote;
         this.auditoria = auditoria;
         this.financeiro = financeiro;
         this.clock = clock;
@@ -79,8 +82,20 @@ public class CompraService {
 
     @Transactional(readOnly = true)
     public CompraResponse buscar(Long id) {
-        CompraResponse r = CompraResponse.of(compras.findWithItensById(id).orElseThrow(() -> new NotFoundException("Compra", id)));
+        Compra compra = compras.findWithItensById(id).orElseThrow(() -> new NotFoundException("Compra", id));
+        CompraResponse r = CompraResponse.of(compra).comLotes(lotesRecebidos(compra));
         return r.comConta(ContaPagarResponse.Resumo.of(financeiro.contaDaCompra(id).orElse(null)));
+    }
+
+    /** Lotes recebidos em cada item (uma consulta só; vazio em compra sem produto controlado ou ainda em PEDIDO). */
+    private Map<Long, List<CompraResponse.LoteRecebido>> lotesRecebidos(Compra compra) {
+        List<Long> itemIds = compra.getItens().stream().map(ItemCompra::getId).toList();
+        if (itemIds.isEmpty()) {
+            return Map.of();
+        }
+        return itensCompraLote.dosItens(itemIds).stream().collect(Collectors.groupingBy(l -> l.getItemCompra().getId(),
+                Collectors.mapping(l -> new CompraResponse.LoteRecebido(l.getLote() == null ? null : l.getLote().getId(),
+                        l.getCodigoLote(), l.getValidade(), l.getQuantidade()), Collectors.toList())));
     }
 
     /** Cria o PEDIDO. Não mexe no estoque (regra 22); o total vem da soma dos itens. */

@@ -57,6 +57,10 @@ public class ItemCompra {
         return id;
     }
 
+    public Compra getCompra() {
+        return compra;
+    }
+
     public Produto getProduto() {
         return produto;
     }

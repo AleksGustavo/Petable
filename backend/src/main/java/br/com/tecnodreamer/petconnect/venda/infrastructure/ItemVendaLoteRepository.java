@@ -13,6 +13,14 @@ public interface ItemVendaLoteRepository extends JpaRepository<ItemVendaLote, Lo
 
     boolean existsByItemVendaId(Long itemVendaId);
 
+    /** Alocações dos itens de uma venda, com o lote junto (detalhe da venda). */
+    @Query("select a from ItemVendaLote a join fetch a.lote where a.itemVenda.id in :itemIds order by a.id")
+    List<ItemVendaLote> dosItens(java.util.Collection<Long> itemIds);
+
+    /** Saídas de um lote com a venda junto (rastreabilidade). */
+    @Query("select a from ItemVendaLote a join fetch a.itemVenda iv join fetch iv.venda where a.lote.id = :loteId order by a.id")
+    List<ItemVendaLote> rastreio(Long loteId);
+
     /** Rastreio lote → vendas (recolhimento). */
     List<ItemVendaLote> findByLoteIdOrderByIdAsc(Long loteId);
 

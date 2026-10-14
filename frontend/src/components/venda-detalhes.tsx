@@ -1,23 +1,40 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { cancelarVenda } from "@/app/actions/vendas";
 import { Aviso } from "@/components/aviso";
 import { BadgeStatusVenda } from "@/components/vendas-lista";
 import { moeda } from "@/lib/agendamentos";
 import type { FormState } from "@/lib/clientes";
 import { formatarDataHora } from "@/lib/datas";
+import { formatarData } from "@/lib/format";
+import { DESTINOS_ESTOQUE } from "@/lib/lotes";
 import { rotuloForma, type Venda } from "@/lib/vendas";
 
 function CancelarVendaForm({ venda }: { venda: Venda }) {
   const [state, action, pending] = useActionState<FormState, FormData>(cancelarVenda.bind(null, venda.id), {});
+  const [destino, setDestino] = useState("");
+  const [erroLocal, setErroLocal] = useState("");
+  const temLote = (venda.itens ?? []).some((i) => (i.lotes?.length ?? 0) > 0);
   return (
     <form
       action={action}
       onSubmit={(e) => {
+        // Venda com lote: o destino do produto é obrigatório e não vem marcado (o dinheiro é devolvido nos dois casos).
+        if (temLote && !destino) {
+          e.preventDefault();
+          setErroLocal("Escolha o que fazer com o produto devolvido.");
+          return;
+        }
+        setErroLocal("");
         const itens = venda.itens?.reduce((s, i) => s + i.quantidade, 0) ?? 0;
-        if (!window.confirm(`Cancelar a venda #${venda.id} de ${moeda(venda.valorTotal)}? ${itens} unidade(s) voltarão ao estoque. Esta ação não pode ser desfeita.`)) {
+        const destinoTexto = !temLote
+          ? `${itens} unidade(s) voltarão ao estoque.`
+          : destino === "DESCARTAR"
+            ? `${itens} unidade(s) serão registradas como perda nos lotes de origem.`
+            : `${itens} unidade(s) voltarão aos lotes de origem.`;
+        if (!window.confirm(`Cancelar a venda #${venda.id} de ${moeda(venda.valorTotal)}? ${destinoTexto} O valor é estornado. Esta ação não pode ser desfeita.`)) {
           e.preventDefault();
         }
       }}
@@ -26,6 +43,33 @@ function CancelarVendaForm({ venda }: { venda: Venda }) {
       <h2 className="text-sm font-semibold">Cancelar venda</h2>
       <p className="text-sm text-muted">O estoque de todos os itens será estornado. O cancelamento fica registrado com o seu usuário.</p>
       {state.mensagem && <Aviso tipo="erro">{state.mensagem}</Aviso>}
+      {temLote && (
+        <fieldset className="space-y-2" aria-describedby={erroLocal || state.erros?.destinoEstoque ? "erro-destino" : undefined}>
+          <legend className="text-sm font-medium">
+            O que fazer com o produto devolvido?<span className="text-danger"> *</span>
+          </legend>
+          <input type="hidden" name="temLote" value="1" />
+          {DESTINOS_ESTOQUE.map((d) => (
+            <label key={d.valor} className="flex items-start gap-2 rounded-lg border border-border p-3 text-sm">
+              <input
+                type="radio"
+                name="destinoEstoque"
+                value={d.valor}
+                checked={destino === d.valor}
+                onChange={() => setDestino(d.valor)}
+                className="mt-1"
+              />
+              <span>
+                <span className="block font-medium">{d.rotulo}</span>
+                <span className="text-muted">{d.ajuda}</span>
+              </span>
+            </label>
+          ))}
+          {(erroLocal || state.erros?.destinoEstoque) && (
+            <p id="erro-destino" className="text-xs text-danger">{erroLocal || state.erros?.destinoEstoque}</p>
+          )}
+        </fieldset>
+      )}
       <div>
         <label htmlFor="campo-motivo-venda" className="mb-1 block text-sm font-medium">
           Motivo<span className="text-danger"> *</span>
@@ -99,6 +143,11 @@ export function VendaDetalhes({ venda, podeCancelar }: { venda: Venda; podeCance
                 <span className="block text-muted tabular-nums">
                   {i.quantidade} × {moeda(i.precoUnitario)}
                 </span>
+                {(i.lotes?.length ?? 0) > 0 && (
+                  <span className="block text-xs text-muted">
+                    Lote(s): {i.lotes!.map((l) => `${l.codigoLote}${l.validade ? ` (val. ${formatarData(l.validade)})` : ""} × ${l.quantidade}`).join(" · ")}
+                  </span>
+                )}
               </span>
               <span className="font-medium tabular-nums">{moeda(i.subtotal)}</span>
             </li>

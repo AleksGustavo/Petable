@@ -23,6 +23,10 @@ export type Produto = {
   ativo: boolean;
   createdAt: string;
   updatedAt: string;
+  /** Lotes (etapa 04): opcionais para a API antiga e para os testes que não conhecem lote. */
+  controlaLote?: boolean;
+  permiteSemValidade?: boolean;
+  diasBloqueioValidade?: number | null;
 };
 
 export type ProdutoRapido = {
@@ -32,9 +36,19 @@ export type ProdutoRapido = {
   precoVenda: number;
   quantidadeEstoque: number;
   disponivel: boolean;
+  /** O que o balcão pode vender agora (produto com lote: só lotes liberados e dentro da validade). Ausente = igual ao saldo. */
+  quantidadeVendavel?: number;
+  controlaLote?: boolean;
 };
 
-export type TipoMovimentacao = "ENTRADA_COMPRA" | "SAIDA_VENDA" | "AJUSTE";
+export type TipoMovimentacao =
+  | "ENTRADA_COMPRA"
+  | "SAIDA_VENDA"
+  | "AJUSTE"
+  | "ESTORNO_VENDA"
+  | "PERDA"
+  | "VENCIMENTO"
+  | "REGULARIZACAO_LOTE";
 
 export type Movimentacao = {
   id: number;
@@ -48,12 +62,21 @@ export type Movimentacao = {
   usuario: CatalogoItem;
   motivo: string | null;
   createdAt: string;
+  loteId?: number | null;
+  codigoLote?: string | null;
+  loteSaldoAnterior?: number | null;
+  loteSaldoResultante?: number | null;
+  operacaoId?: string | null;
 };
 
 export const TIPOS_MOVIMENTACAO: { valor: TipoMovimentacao; rotulo: string }[] = [
   { valor: "ENTRADA_COMPRA", rotulo: "Entrada por compra" },
   { valor: "SAIDA_VENDA", rotulo: "Saída por venda" },
   { valor: "AJUSTE", rotulo: "Ajuste manual" },
+  { valor: "ESTORNO_VENDA", rotulo: "Estorno de venda" },
+  { valor: "PERDA", rotulo: "Perda de lote" },
+  { valor: "VENCIMENTO", rotulo: "Baixa por vencimento" },
+  { valor: "REGULARIZACAO_LOTE", rotulo: "Regularização em lotes" },
 ];
 
 export const rotuloMovimentacao = (t: TipoMovimentacao) => TIPOS_MOVIMENTACAO.find((x) => x.valor === t)?.rotulo ?? t;
@@ -85,7 +108,19 @@ export const STATUS_COMPRA: { valor: StatusCompra; rotulo: string }[] = [
 
 export const rotuloStatusCompra = (s: StatusCompra) => STATUS_COMPRA.find((x) => x.valor === s)?.rotulo ?? s;
 
-export type ItemCompra = { id: number; produto: CatalogoItem; quantidade: number; precoCustoUnitario: number; subtotal: number };
+export type ItemCompra = {
+  id: number;
+  produto: CatalogoItem;
+  quantidade: number;
+  precoCustoUnitario: number;
+  subtotal: number;
+  /** O recebimento deste item exige lotes. */
+  controlaLote?: boolean;
+  /** Todo lote deste produto exige validade (padrão). Falso quando o produto permite lote sem validade. */
+  exigeValidade?: boolean;
+  /** Lotes recebidos (compra já recebida). */
+  lotes?: { loteId: number | null; codigoLote: string; validade: string | null; quantidade: number }[];
+};
 
 export type Compra = {
   id: number;
@@ -219,6 +254,20 @@ export const produtoSchema = z
 export const produtoAtualizacaoSchema = z.object(camposProduto).transform(payloadProduto);
 
 export const ajusteEstoqueSchema = z.object({
+  loteId: z
+    .string()
+    .optional()
+    .transform((v) => (v && /^\d+$/.test(v) ? Number(v) : null)),
+  codigoLote: z
+    .string()
+    .max(50, "Use no máximo 50 caracteres")
+    .optional()
+    .transform((v) => (v?.trim() ? v.trim() : null)),
+  validade: z
+    .string()
+    .optional()
+    .transform((v) => (v?.trim() ? v.trim() : null))
+    .refine((v) => v === null || /^\d{4}-\d{2}-\d{2}$/.test(v), "Data inválida"),
   quantidade: z
     .string({ error: "Informe a quantidade" })
     .trim()
@@ -231,7 +280,14 @@ export const ajusteEstoqueSchema = z.object({
     .trim()
     .min(5, "O motivo deve ter entre 5 e 500 caracteres")
     .max(500, "O motivo deve ter entre 5 e 500 caracteres"),
-});
+})
+  // Sem lote o payload é o de sempre (quantidade e motivo); os campos de lote só vão quando preenchidos.
+  .transform(({ loteId, codigoLote, validade, ...resto }) => ({
+    ...resto,
+    ...(loteId !== null && { loteId }),
+    ...(codigoLote !== null && { codigoLote }),
+    ...(validade !== null && { validade }),
+  }));
 
 export const fornecedorSchema = z
   .object({

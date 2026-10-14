@@ -59,6 +59,52 @@ public interface LoteEstoqueRepository extends JpaRepository<LoteEstoque, Long> 
 
     List<LoteEstoque> findByProdutoIdOrderByIdAsc(Long produtoId);
 
+    /**
+     * Consulta de lotes (tela de estoque): produto junto (sem N+1), busca por nome do produto, código de barras ou código do
+     * lote, e filtros opcionais. Ordem: validade mais próxima primeiro, sem validade por último.
+     */
+    @Query(value = """
+            select l from LoteEstoque l join fetch l.produto p
+            where (:produtoId is null or p.id = :produtoId)
+              and (:busca is null or lower(p.nome) like :busca or lower(l.codigoLote) like :busca or p.codigoBarras like :buscaCodigo)
+              and (:status is null or l.status = :status)
+              and (:comSaldo = false or l.saldo > 0)
+              and (:validadeDe is null or l.validade >= :validadeDe)
+              and (:validadeAte is null or l.validade <= :validadeAte)
+            order by case when l.validade is null then 1 else 0 end, l.validade, l.id
+            """, countQuery = """
+            select count(l) from LoteEstoque l join l.produto p
+            where (:produtoId is null or p.id = :produtoId)
+              and (:busca is null or lower(p.nome) like :busca or lower(l.codigoLote) like :busca or p.codigoBarras like :buscaCodigo)
+              and (:status is null or l.status = :status)
+              and (:comSaldo = false or l.saldo > 0)
+              and (:validadeDe is null or l.validade >= :validadeDe)
+              and (:validadeAte is null or l.validade <= :validadeAte)
+            """)
+    org.springframework.data.domain.Page<LoteEstoque> consultar(Long produtoId, String busca, String buscaCodigo,
+            br.com.tecnodreamer.petconnect.produto.domain.StatusLote status, boolean comSaldo, LocalDate validadeDe,
+            LocalDate validadeAte, org.springframework.data.domain.Pageable pageable);
+
+    interface Totais {
+        Long getLotes();
+
+        Long getUnidades();
+    }
+
+    /** Lotes com saldo e validade no intervalo (ambos inclusivos; nulo = sem limite). Base dos alertas de vencimento. */
+    @Query("""
+            select count(l) as lotes, coalesce(sum(l.saldo), 0) as unidades from LoteEstoque l
+            where l.saldo > 0 and l.validade is not null
+              and (:de is null or l.validade >= :de) and (:ate is null or l.validade <= :ate)
+            """)
+    Totais totaisPorValidade(LocalDate de, LocalDate ate);
+
+    @Query("""
+            select count(l) as lotes, coalesce(sum(l.saldo), 0) as unidades from LoteEstoque l
+            where l.saldo > 0 and l.status = br.com.tecnodreamer.petconnect.produto.domain.StatusLote.BLOQUEADO
+            """)
+    Totais totaisBloqueados();
+
     /** Soma dos saldos dos lotes do produto (I3). */
     @Query("select coalesce(sum(l.saldo), 0) from LoteEstoque l where l.produto.id = :produtoId")
     long somaSaldos(Long produtoId);

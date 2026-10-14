@@ -26,6 +26,7 @@ import br.com.tecnodreamer.petconnect.venda.domain.ItemVenda;
 import br.com.tecnodreamer.petconnect.venda.domain.ItemVendaLote;
 import br.com.tecnodreamer.petconnect.venda.domain.StatusVenda;
 import br.com.tecnodreamer.petconnect.venda.domain.Venda;
+import br.com.tecnodreamer.petconnect.venda.infrastructure.ItemVendaLoteRepository;
 import br.com.tecnodreamer.petconnect.venda.infrastructure.VendaRepository;
 import br.com.tecnodreamer.petconnect.venda.web.PreviaVendaResponse;
 import br.com.tecnodreamer.petconnect.venda.web.ResumoDiaResponse;
@@ -75,6 +76,7 @@ public class VendaService {
     private final UsuarioRepository usuarios;
     private final EstoqueService estoque;
     private final EstoqueLoteService estoqueLotes;
+    private final ItemVendaLoteRepository itensVendaLote;
     private final AuditoriaService auditoria;
     private final VendasProperties propriedades;
     private final CaixaService caixas;
@@ -83,7 +85,7 @@ public class VendaService {
 
     public VendaService(VendaRepository vendas, ProdutoRepository produtos, ClienteRepository clientes,
             FuncionarioRepository funcionarios, UsuarioRepository usuarios, EstoqueService estoque,
-            EstoqueLoteService estoqueLotes, AuditoriaService auditoria, VendasProperties propriedades, CaixaService caixas, FinanceiroService financeiro,
+            EstoqueLoteService estoqueLotes, ItemVendaLoteRepository itensVendaLote, AuditoriaService auditoria, VendasProperties propriedades, CaixaService caixas, FinanceiroService financeiro,
             Clock clock) {
         this.vendas = vendas;
         this.produtos = produtos;
@@ -92,6 +94,7 @@ public class VendaService {
         this.usuarios = usuarios;
         this.estoque = estoque;
         this.estoqueLotes = estoqueLotes;
+        this.itensVendaLote = itensVendaLote;
         this.auditoria = auditoria;
         this.propriedades = propriedades;
         this.caixas = caixas;
@@ -118,7 +121,19 @@ public class VendaService {
 
     /** Resposta com o id da ENTRADA financeira da venda (nulo em vendas anteriores à V8 sem backfill). */
     private VendaResponse comLancamento(Venda v) {
-        return VendaResponse.of(v).comLancamento(financeiro.porChave("VENDA:" + v.getId()).map(Lancamento::getId).orElse(null));
+        VendaResponse r = VendaResponse.of(v).comLancamento(financeiro.porChave("VENDA:" + v.getId()).map(Lancamento::getId).orElse(null));
+        return r.comLotes(alocacoes(v));
+    }
+
+    /** Lotes de onde saiu cada item da venda (uma consulta só; vazio quando nenhum produto da venda controla lote). */
+    private Map<Long, List<VendaResponse.LoteAlocado>> alocacoes(Venda v) {
+        List<Long> itemIds = v.getItens().stream().map(ItemVenda::getId).toList();
+        if (itemIds.isEmpty()) {
+            return Map.of();
+        }
+        return itensVendaLote.dosItens(itemIds).stream().collect(Collectors.groupingBy(a -> a.getItemVenda().getId(),
+                Collectors.mapping(a -> new VendaResponse.LoteAlocado(a.getLote().getId(), a.getLote().getCodigoLote(),
+                        a.getLote().getValidade(), a.getQuantidade()), Collectors.toList())));
     }
 
     @Transactional(readOnly = true)

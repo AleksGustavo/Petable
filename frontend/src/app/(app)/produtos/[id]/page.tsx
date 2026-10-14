@@ -5,10 +5,13 @@ import { Aviso } from "@/components/aviso";
 import { BadgeAtivo, BadgeEstoque } from "@/components/estoque-badges";
 import { AjusteEstoqueForm, HistoricoEstoque, ProdutoAcoes, ProdutoDados, ResumoEstoque } from "@/components/produto-detalhes";
 import { ProdutoForm } from "@/components/produto-form";
+import { ProdutoLotes } from "@/components/produto-lotes";
 import { ApiError, apiFetch } from "@/lib/api";
 import type { Pagina } from "@/lib/clientes";
 import { TIPOS_MOVIMENTACAO, type CategoriaProduto, type FornecedorOpcao, type Movimentacao, type Produto } from "@/lib/estoque";
-import { podeAjustarEstoque, podeEditarProdutos, podeReativarProdutos } from "@/lib/permissoes";
+import { hojeISO } from "@/lib/datas";
+import type { ConfiguracaoLotes, Lote } from "@/lib/lotes";
+import { podeAjustarEstoque, podeEditarProdutos, podeGerenciarLotes, podeReativarProdutos, podeVerLotes } from "@/lib/permissoes";
 import { exigirSessao } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Produto" };
@@ -16,6 +19,7 @@ export const metadata: Metadata = { title: "Produto" };
 const ABAS = [
   { id: "dados", rotulo: "Dados" },
   { id: "estoque", rotulo: "Estoque" },
+  { id: "lotes", rotulo: "Lotes" },
 ] as const;
 type Aba = (typeof ABAS)[number]["id"];
 
@@ -25,6 +29,11 @@ const AVISOS: Record<string, string> = {
   desativado: "Produto desativado. Saldo e histórico foram preservados.",
   ativado: "Produto reativado.",
   ajuste: "Ajuste de estoque registrado no histórico.",
+  controle: "Controle de lote ligado. O saldo foi distribuído nos lotes informados.",
+  bloquear: "Lote bloqueado: não será vendido até ser liberado.",
+  desbloquear: "Lote liberado para venda.",
+  perdas: "Perda registrada no lote.",
+  vencimentos: "Baixa do lote vencido registrada.",
 };
 
 async function carregar(id: string): Promise<Produto> {
@@ -42,13 +51,19 @@ export default async function ProdutoPage(props: PageProps<"/produtos/[id]">) {
   const sp = await props.searchParams;
   const texto = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : "");
   const [sessao, produto] = await Promise.all([exigirSessao(), carregar(id)]);
-  const aba: Aba = ABAS.some((a) => a.id === texto("aba")) ? (texto("aba") as Aba) : "dados";
+  // Lotes (etapa 04): a aba só existe com o controle ligado na instalação ou no produto; desligado, a tela é a de sempre.
+  const verLotes = podeVerLotes(sessao.papel);
+  const config = verLotes ? await apiFetch<ConfiguracaoLotes>("/api/v1/estoque/configuracao") : null;
+  const mostraLotes = verLotes && (config?.lotesHabilitado === true || produto.controlaLote === true);
+  const abas = ABAS.filter((a) => a.id !== "lotes" || mostraLotes);
+  const aba: Aba = abas.some((a) => a.id === texto("aba")) ? (texto("aba") as Aba) : "dados";
   const editavel = podeEditarProdutos(sessao.papel);
   const aviso = AVISOS[texto("ok")];
 
   const tipo = TIPOS_MOVIMENTACAO.some((t) => t.valor === texto("tipo")) ? texto("tipo") : "";
   const pagina = Math.max(0, Number(texto("page")) || 0);
-  const [categorias, fornecedores, historico] = await Promise.all([
+  const precisaLotes = mostraLotes && (aba === "lotes" || (aba === "estoque" && produto.controlaLote === true)) && produto.controlaLote === true;
+  const [categorias, fornecedores, historico, lotes] = await Promise.all([
     aba === "dados" && editavel ? apiFetch<CategoriaProduto[]>("/api/v1/categorias-produto") : Promise.resolve([]),
     aba === "dados" && editavel ? apiFetch<FornecedorOpcao[]>("/api/v1/fornecedores/opcoes") : Promise.resolve([]),
     aba === "estoque"
@@ -56,6 +71,7 @@ export default async function ProdutoPage(props: PageProps<"/produtos/[id]">) {
           `/api/v1/produtos/${produto.id}/movimentacoes?${new URLSearchParams({ ...(tipo && { tipo }), page: String(pagina), size: "20" })}`,
         )
       : Promise.resolve(null),
+    precisaLotes ? apiFetch<Lote[]>(`/api/v1/produtos/${produto.id}/lotes`) : Promise.resolve([] as Lote[]),
   ]);
   const linkHistorico = (p: number) => `/produtos/${produto.id}?${new URLSearchParams({ aba: "estoque", ...(tipo && { tipo }), page: String(p) })}`;
 
@@ -77,7 +93,7 @@ export default async function ProdutoPage(props: PageProps<"/produtos/[id]">) {
       {aviso && <Aviso>{aviso}</Aviso>}
 
       <nav aria-label="Seções do produto" className="flex gap-1 overflow-x-auto rounded-lg border border-border bg-surface p-1">
-        {ABAS.map((a) => (
+        {abas.map((a) => (
           <Link
             key={a.id}
             href={`/produtos/${produto.id}?aba=${a.id}`}
@@ -98,10 +114,20 @@ export default async function ProdutoPage(props: PageProps<"/produtos/[id]">) {
           <ProdutoDados produto={produto} />
         ))}
 
+      {aba === "lotes" && (
+        <ProdutoLotes
+          produto={produto}
+          lotes={lotes}
+          habilitado={config?.lotesHabilitado === true}
+          podeGerenciar={podeGerenciarLotes(sessao.papel)}
+          hoje={hojeISO()}
+        />
+      )}
+
       {aba === "estoque" && historico && (
         <div className="space-y-4">
           <ResumoEstoque produto={produto} />
-          {podeAjustarEstoque(sessao.papel) && <AjusteEstoqueForm key={produto.quantidadeEstoque} produto={produto} />}
+          {podeAjustarEstoque(sessao.papel) && <AjusteEstoqueForm key={produto.quantidadeEstoque} produto={produto} lotes={lotes} />}
           <div className="flex flex-wrap items-end justify-between gap-2">
             <h2 className="text-sm font-semibold text-muted">Histórico ({historico.totalElements})</h2>
             <form className="flex gap-2">
