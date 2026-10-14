@@ -37,6 +37,7 @@ jobs:
             echo "ADMIN_PASSWORD=$senha_admin"
             echo "WEB_PORT=3000"
             echo "API_PORT=8081"
+            echo "PETCONNECT_ESTOQUE_LOTES=true"
           } > .env
           {
             echo "E2E_ADMIN_USERNAME=admin.ci"

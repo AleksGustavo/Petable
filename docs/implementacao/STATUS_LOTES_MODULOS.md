@@ -10,8 +10,8 @@
 | 01 | Diagnóstico e contratos | **concluída** (mesclada, PR #14) | [01_MAPA_ATUAL.md](01_MAPA_ATUAL.md), [01_DECISOES_LOTES.md](01_DECISOES_LOTES.md) |
 | 02 | Domínio e banco de lotes (`V11`) | **concluída** (mesclada, PR #28) | [02_DOMINIO_E_BANCO.md](02_DOMINIO_E_BANCO.md), `V11__lotes_estoque.sql` |
 | 03 | Movimentações, FEFO e concorrência | **concluída** (mesclada, PR #29) | [03_MOVIMENTACOES_FEFO.md](03_MOVIMENTACOES_FEFO.md) |
-| 04 | Telas, alertas e operação | **concluída** (PR #30 mesclado; item 7, operação clínica, opção A, em PR de continuação) | [04_TELAS_ALERTAS.md](04_TELAS_ALERTAS.md) |
-| 05 | Testes de lotes e homologação | pendente | — |
+| 04 | Telas, alertas e operação | **concluída** (PR #30 e #31 mesclados; operação clínica, opção A) | [04_TELAS_ALERTAS.md](04_TELAS_ALERTAS.md) |
+| 05 | Testes de lotes e homologação | **implementada, aguardando CI/merge do PR** | [05_RELATORIO_HOMOLOGACAO.md](05_RELATORIO_HOMOLOGACAO.md), [../runbooks/lotes-liberacao.md](../runbooks/lotes-liberacao.md) |
 | 06 | Catálogo de módulos e dependências | pendente | — |
 | 07 | Autorização e isolamento modular | pendente | — |
 | 08 | Provisionamento e operação por cliente | pendente | — |
@@ -100,7 +100,7 @@ Sem pontos abertos bloqueadores para a etapa 02.
 - [x] Flag desligada = interface idêntica à anterior (aba, menu, card e perguntas só aparecem com a flag)
 - [x] Merge do PR da etapa 04 (PR #30, `76d7ea3`)
 - [x] **Operação clínica (item 7), opção A decidida pelo dono**: vacina ligada a produto controlado baixa 1 dose pelo FEFO e grava o lote na carteira (`V12`); ver `04_TELAS_ALERTAS.md` §5
-- [ ] Merge do PR da opção A
+- [x] Merge do PR da opção A (PR #31, `c07e01d`)
 
 ## Evidências da etapa 04
 
@@ -112,6 +112,20 @@ Sem pontos abertos bloqueadores para a etapa 02.
 | `npm run build` | compilou; rotas `/estoque/lotes` e `/estoque/lotes/[id]` geradas |
 | Correção de teste da etapa 03 | o padrão de `quantidadeEstoque` em `EscritaDeSaldoSoNoEstoqueTest` usava `` simples (backspace) e não pegava nada; corrigido |
 
+## Etapa 05 — checklist
+
+- [x] Os 8 cenários mínimos de bloqueio de liberação com teste e resultado (ver relatório): **todos PASS**
+- [x] Concorrência ampliada (20 caixas sobre 12 unidades; vendas com produtos em ordem oposta, sem deadlock)
+- [x] Falha forçada: após o débito do saldo (venda) e na conta a pagar do recebimento; caixa e financeiro idênticos
+- [x] Sequência aleatória de 60 operações com invariantes conferidas a cada passo
+- [x] Reconciliação em lote (`GET /api/v1/estoque/reconciliacao`, I1/I2/I3/I5/I7) com testes de detecção
+- [x] Desempenho com 30.000 lotes: FEFO p95 19 ms; reconciliação 320 ms
+- [x] Erros seguros nas rotas de lote (achado A1: `size=5000` dava 500, corrigido)
+- [x] E2E no navegador: fluxo completo de produto controlado, produto sem lote e estoque legado (12 PASS com a flag ligada; 6 antigos + verificação de UI limpa com a flag desligada)
+- [x] Guia de liberação: backup, migração controlada, monitoramento, reversão operacional (`docs/runbooks/lotes-liberacao.md`)
+- [x] Achado A2: a flag governa só ligar o controle e vincular vacina; produto já controlado segue íntegro
+- [ ] Merge do PR da etapa 05 (autorização do dono)
+
 ## Próximo passo
 
-Merge do PR da opção A (operação clínica). Depois, `05_TESTES_LOTES_HOMOLOGACAO.md`: testes e liberação controlada. **A flag de lotes só pode ser ligada em produção depois da etapa 05.**
+Merge do PR da etapa 05. **O controle de lote está homologado, mas continua desligado**: ligar em produção só seguindo `docs/runbooks/lotes-liberacao.md` e com autorização do dono. Depois, `06_CATALOGO_DE_MODULOS_E_DEPENDENCIAS.md` (modularização).
