@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { sair } from "@/app/actions/auth";
 import { Logo } from "@/components/logo";
+import { moduloDaRota, temModulo, type Capacidades } from "@/lib/capacidades";
 
 /** `papeis`: só esses papéis veem o item (a API barra de qualquer forma). `secao`: título antes do item. */
 type Item = { href: string; rotulo: string; icone: string; emBreve?: boolean; papeis?: string[]; secao?: string };
@@ -42,11 +43,15 @@ function Icone({ d }: { d: string }) {
   );
 }
 
-function Navegacao({ onNavigate, papel, lotes }: { onNavigate?: () => void; papel: string; lotes: boolean }) {
+function Navegacao({ onNavigate, papel, lotes, capacidades }: { onNavigate?: () => void; papel: string; lotes: boolean; capacidades: Capacidades }) {
   const pathname = usePathname();
   const aposProdutos = NAV.findIndex((i) => i.href === "/produtos") + 1;
   const itens = lotes ? [...NAV.slice(0, aposProdutos), ITEM_LOTES, ...NAV.slice(aposProdutos)] : NAV;
-  const visiveis = itens.filter((item) => !item.papeis || item.papeis.includes(papel));
+  // Papel e módulo são independentes: o item precisa dos dois. É só conveniência de menu; a API confere de novo.
+  const visiveis = itens.filter((item) => {
+    const modulo = moduloDaRota(item.href);
+    return (!modulo || temModulo(capacidades, modulo)) && (!item.papeis || item.papeis.includes(papel));
+  });
   const ativoHref = visiveis
     .filter((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))
     .sort((a, b) => b.href.length - a.href.length)[0]?.href;
@@ -111,7 +116,7 @@ function Usuario({ username, papel }: { username: string; papel: string }) {
   );
 }
 
-export function AppShell({ username, papel, lotesHabilitado = false, children }: { username: string; papel: string; lotesHabilitado?: boolean; children: ReactNode }) {
+export function AppShell({ username, papel, lotesHabilitado = false, capacidades, children }: { username: string; papel: string; lotesHabilitado?: boolean; capacidades: Capacidades; children: ReactNode }) {
   const [aberto, setAberto] = useState(false);
   const pathname = usePathname();
 
@@ -130,7 +135,7 @@ export function AppShell({ username, papel, lotesHabilitado = false, children }:
           <Logo />
         </Link>
         <div className="flex-1 overflow-y-auto [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin]">
-          <Navegacao papel={papel} lotes={lotesHabilitado} />
+          <Navegacao papel={papel} lotes={lotesHabilitado} capacidades={capacidades} />
         </div>
         <Usuario username={username} papel={papel} />
       </aside>
@@ -163,7 +168,7 @@ export function AppShell({ username, papel, lotesHabilitado = false, children }:
               </button>
             </div>
             <div className="flex-1 overflow-y-auto [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin]">
-              <Navegacao key={pathname} papel={papel} lotes={lotesHabilitado} onNavigate={() => setAberto(false)} />
+              <Navegacao key={pathname} papel={papel} lotes={lotesHabilitado} capacidades={capacidades} onNavigate={() => setAberto(false)} />
             </div>
             <Usuario username={username} papel={papel} />
           </div>

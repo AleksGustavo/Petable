@@ -14,6 +14,8 @@ import { hojeISO } from "@/lib/datas";
 import type { ConfiguracaoLotes, Lote, VacinaEstoque } from "@/lib/lotes";
 import { podeAjustarEstoque, podeEditarProdutos, podeGerenciarLotes, podeReativarProdutos, podeVerLotes } from "@/lib/permissoes";
 import { exigirSessao } from "@/lib/session";
+import { temIntegracao, temModulo } from "@/lib/capacidades";
+import { carregarCapacidades } from "@/lib/modulos";
 
 export const metadata: Metadata = { title: "Produto" };
 
@@ -53,12 +55,15 @@ export default async function ProdutoPage(props: PageProps<"/produtos/[id]">) {
   const { id } = await props.params;
   const sp = await props.searchParams;
   const texto = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : "");
-  const [sessao, produto] = await Promise.all([exigirSessao(), carregar(id)]);
+  const [sessao, produto, caps] = await Promise.all([exigirSessao(), carregar(id), carregarCapacidades()]);
+  // Cada aba e cada consulta de outro módulo só existe com o módulo contratado (a API barra de qualquer forma).
+  const temEstoque = temModulo(caps, "estoque");
+  const temCompras = temModulo(caps, "compras");
   // Lotes (etapa 04): a aba só existe com o controle ligado na instalação ou no produto; desligado, a tela é a de sempre.
-  const verLotes = podeVerLotes(sessao.papel);
+  const verLotes = podeVerLotes(sessao.papel) && temModulo(caps, "lotes");
   const config = verLotes ? await apiFetch<ConfiguracaoLotes>("/api/v1/estoque/configuracao") : null;
   const mostraLotes = verLotes && (config?.lotesHabilitado === true || produto.controlaLote === true);
-  const abas = ABAS.filter((a) => a.id !== "lotes" || mostraLotes);
+  const abas = ABAS.filter((a) => (a.id !== "lotes" || mostraLotes) && (a.id !== "estoque" || temEstoque));
   const aba: Aba = abas.some((a) => a.id === texto("aba")) ? (texto("aba") as Aba) : "dados";
   const editavel = podeEditarProdutos(sessao.papel);
   const aviso = AVISOS[texto("ok")];
@@ -67,11 +72,11 @@ export default async function ProdutoPage(props: PageProps<"/produtos/[id]">) {
   const pagina = Math.max(0, Number(texto("page")) || 0);
   const precisaLotes = mostraLotes && (aba === "lotes" || (aba === "estoque" && produto.controlaLote === true)) && produto.controlaLote === true;
   // Vacinas ligadas a este produto (o ADMIN também recebe o catálogo para poder vincular outra).
-  const vacinasAba = precisaLotes && aba === "lotes";
+  const vacinasAba = precisaLotes && aba === "lotes" && temIntegracao(caps, "vacina-estoque");
   const admin = podeGerenciarLotes(sessao.papel);
   const [categorias, fornecedores, historico, lotes, vacinasDoProduto, catalogoVacinas] = await Promise.all([
     aba === "dados" && editavel ? apiFetch<CategoriaProduto[]>("/api/v1/categorias-produto") : Promise.resolve([]),
-    aba === "dados" && editavel ? apiFetch<FornecedorOpcao[]>("/api/v1/fornecedores/opcoes") : Promise.resolve([]),
+    aba === "dados" && editavel && temCompras ? apiFetch<FornecedorOpcao[]>("/api/v1/fornecedores/opcoes") : Promise.resolve([]),
     aba === "estoque"
       ? apiFetch<Pagina<Movimentacao>>(
           `/api/v1/produtos/${produto.id}/movimentacoes?${new URLSearchParams({ ...(tipo && { tipo }), page: String(pagina), size: "20" })}`,
@@ -131,7 +136,7 @@ export default async function ProdutoPage(props: PageProps<"/produtos/[id]">) {
           hoje={hojeISO()}
         />
       )}
-      {aba === "lotes" && produto.controlaLote && (
+      {aba === "lotes" && produto.controlaLote && temIntegracao(caps, "vacina-estoque") && (
         <ProdutoVacinas produtoId={produto.id} vinculadas={vacinasDoProduto} catalogo={catalogoVacinas} podeGerenciar={admin} />
       )}
 

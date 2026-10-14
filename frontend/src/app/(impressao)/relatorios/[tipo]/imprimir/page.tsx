@@ -7,6 +7,9 @@ import { formatarData } from "@/lib/format";
 import { definicao, podeVerRelatorio } from "@/lib/relatorios";
 import { carregarRelatorio, lerPeriodo } from "@/lib/relatorios-server";
 import { exigirSessao } from "@/lib/session";
+import { RecursoIndisponivel } from "@/components/modulo-exigido";
+import { temRelatorio } from "@/lib/capacidades";
+import { carregarCapacidades } from "@/lib/modulos";
 
 export const metadata: Metadata = { title: "Imprimir relatório" };
 
@@ -16,6 +19,7 @@ export default async function ImprimirRelatorioPage(props: PageProps<"/relatorio
   const def = definicao(tipo);
   if (!def) notFound();
   if (!podeVerRelatorio(sessao.papel, def.tipo)) redirect("/relatorios");
+  if (!temRelatorio(await carregarCapacidades(), def.tipo)) return <RecursoIndisponivel />;
   const { dataInicio, dataFim, erro } = lerPeriodo(await props.searchParams, hojeISO());
   if (erro) redirect(`/relatorios/${def.tipo}`);
   const relatorio = await carregarRelatorio(def.tipo, dataInicio, dataFim);

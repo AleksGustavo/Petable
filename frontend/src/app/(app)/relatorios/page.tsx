@@ -4,12 +4,16 @@ import { RelatoriosHub } from "@/components/relatorio-filtros";
 import { hojeISO } from "@/lib/datas";
 import { relatoriosDoPapel } from "@/lib/relatorios";
 import { exigirSessao } from "@/lib/session";
+import { temRelatorio } from "@/lib/capacidades";
+import { carregarCapacidades } from "@/lib/modulos";
 
 export const metadata: Metadata = { title: "Relatórios" };
 
 export default async function RelatoriosPage() {
   const sessao = await exigirSessao();
-  const relatorios = relatoriosDoPapel(sessao.papel);
+  const caps = await carregarCapacidades();
+  // Papel e origem dos dados são independentes: o relatório precisa dos dois (a API barra de qualquer forma).
+  const relatorios = relatoriosDoPapel(sessao.papel).filter((r) => temRelatorio(caps, r.tipo));
   if (relatorios.length === 0) redirect("/dashboard");
   return (
     <div className="space-y-6">

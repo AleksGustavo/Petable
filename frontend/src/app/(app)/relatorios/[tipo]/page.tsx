@@ -8,6 +8,9 @@ import { formatarData } from "@/lib/format";
 import { definicao, podeVerRelatorio } from "@/lib/relatorios";
 import { carregarRelatorio, lerPeriodo } from "@/lib/relatorios-server";
 import { exigirSessao } from "@/lib/session";
+import { RecursoIndisponivel } from "@/components/modulo-exigido";
+import { temRelatorio } from "@/lib/capacidades";
+import { carregarCapacidades } from "@/lib/modulos";
 
 export async function generateMetadata(props: PageProps<"/relatorios/[tipo]">): Promise<Metadata> {
   const { tipo } = await props.params;
@@ -20,6 +23,7 @@ export default async function RelatorioPage(props: PageProps<"/relatorios/[tipo]
   const def = definicao(tipo);
   if (!def) notFound();
   if (!podeVerRelatorio(sessao.papel, def.tipo)) redirect("/relatorios");
+  if (!temRelatorio(await carregarCapacidades(), def.tipo)) return <RecursoIndisponivel />;
   const hoje = hojeISO();
   const { dataInicio, dataFim, erro } = lerPeriodo(await props.searchParams, hoje);
   const relatorio = erro ? null : await carregarRelatorio(def.tipo, dataInicio, dataFim);

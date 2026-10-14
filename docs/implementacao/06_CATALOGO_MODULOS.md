@@ -1,6 +1,6 @@
 # Etapa 06 — Catálogo de módulos e dependências
 
-> **Desenho**, não imposição: nada aqui bloqueia rota ainda (isso é a etapa 07). O que existe de código nesta etapa é o **catálogo legível por máquina** ([`modulos/catalogo.json`](../../backend/src/main/resources/modulos/catalogo.json)) e os **testes que o mantêm honesto**: toda rota da API, tabela do banco, tela, rota do BFF, Server Action e item de menu tem **exatamente um dono**, e o catálogo não promete nada que não exista. Base: etapas 01 a 05 (lotes) e o código da `main` em `ace982e`.
+> **Desenho** (imposição aplicada na [etapa 07](07_AUTORIZACAO_MODULAR.md)). O que existe de código nesta etapa é o **catálogo legível por máquina** ([`modulos/catalogo.json`](../../backend/src/main/resources/modulos/catalogo.json)) e os **testes que o mantêm honesto**: toda rota da API, tabela do banco, tela, rota do BFF, Server Action e item de menu tem **exatamente um dono**, e o catálogo não promete nada que não exista. Base: etapas 01 a 05 (lotes) e o código da `main` em `ace982e`.
 
 ## 1. Princípios
 
@@ -109,7 +109,7 @@ Uma tela pode misturar módulos; a etapa 07 esconde a **seção** e a API recusa
 | Tabela no banco do cliente | depois: exige tela de administração, bootstrap e proteção contra edição indevida; a tabela **geral** de histórico (abaixo) já prepara o caminho |
 | Licença assinada | depois, quando houver cobrança recorrente automatizada; troca a *fonte* da lista, não o modelo |
 
-Regras (**a implementar na etapa 07**; validadas no boot, com erro que explica):
+Regras (**implementadas na etapa 07**; validadas no boot, com erro que explica):
 1. **Padrão para instalação existente = todos os módulos** (nenhum cliente atual perde funcionalidade ao atualizar). Instalação nova do pacote comercial define a lista explicitamente.
 2. **Id desconhecido recusa o boot** (digitação errada não vira módulo faltando em silêncio).
 3. **Fecho de dependências:** todo `requer` precisa estar na lista, com a mensagem "o módulo X exige Y". `relatorios` só publica os relatórios cujo módulo de origem está ativo.

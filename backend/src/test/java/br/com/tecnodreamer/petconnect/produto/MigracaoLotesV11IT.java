@@ -97,7 +97,8 @@ class MigracaoLotesV11IT {
         List<Map<String, Object>> produtosV11 = jdbc.queryForList("select * from produto order by id");
         List<Map<String, Object>> vacinasV11 = jdbc.queryForList("select id, especie_id, nome, ativo from vacina order by id");
         flyway(null).migrate();
-        assertThat(versaoAplicada()).isEqualTo("12");
+        // V13 (histórico de módulos, etapa 07) também é aditiva e aplica junto; este teste só afirma a V12 sobre a V11.
+        assertThat(versaoAplicada()).isEqualTo("13");
         assertThat(jdbc.queryForList("select * from produto order by id")).isEqualTo(produtosV11);
         assertThat(jdbc.queryForList("select id, especie_id, nome, ativo from vacina order by id")).isEqualTo(vacinasV11);
         assertThat(jdbc.queryForObject("select count(*) from vacina where produto_id is not null", Integer.class)).isZero();
