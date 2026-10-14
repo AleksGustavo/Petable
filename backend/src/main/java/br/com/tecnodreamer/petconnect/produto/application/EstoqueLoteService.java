@@ -182,6 +182,34 @@ public class EstoqueLoteService {
         }
     }
 
+    // ------------------------------------------------------------- consumo clínico
+
+    /** A aplicação clínica deste produto baixa estoque: controle de lote ligado na instalação e no produto. */
+    public boolean consumoClinicoAtivo(Produto produto) {
+        return produto != null && loteService.habilitado() && produto.isControlaLote();
+    }
+
+    /**
+     * Tira UMA unidade do lote que o FEFO escolheria (D6): é a dose de vacina aplicada. O produto é travado aqui, então a
+     * regra de concorrência é a das vendas. Sem lote vendável (vencido, bloqueado, sem saldo ou dentro da margem), 409 e nada
+     * é gravado. O movimento e a auditoria não guardam dado do paciente nem do tutor.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public LoteEstoque baixarConsumoClinico(Long produtoId, String motivo, Long usuarioId) {
+        Produto p = produtos.travar(produtoId).orElseThrow(() -> new NotFoundException("Produto", produtoId));
+        if (!p.isControlaLote()) {
+            throw new ConflictException("O produto " + p.getNome() + " não controla lote.");
+        }
+        List<LoteEstoque> vendaveis = loteService.vendaveisTravados(p);
+        if (vendaveis.isEmpty()) {
+            throw new ConflictException("Não há lote disponível de " + p.getNome() + " para aplicação (vencido, bloqueado ou sem saldo).");
+        }
+        LoteEstoque lote = vendaveis.get(0);
+        MovimentacaoEstoque m = mover(p, lote, TipoMovimentacao.CONSUMO_CLINICO, -1, null, null, usuario(usuarioId), motivo, null, true);
+        auditoria.registrar("ESTOQUE_CONSUMO_CLINICO", "produto", produtoId, detalhesMovimento(m, motivo));
+        return lote;
+    }
+
     // ----------------------------------------------------- ajuste, perda, vencimento
 
     /**

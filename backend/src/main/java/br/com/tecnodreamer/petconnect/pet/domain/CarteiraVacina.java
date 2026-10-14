@@ -39,6 +39,11 @@ public class CarteiraVacina {
 
     private String veterinario;
     private String lote;
+
+    /** Lote físico do estoque que saiu nesta dose (nulo quando o lote foi digitado à mão). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lote_id")
+    private br.com.tecnodreamer.petconnect.produto.domain.LoteEstoque loteEstoque;
     private String observacoes;
 
     @CreationTimestamp
@@ -57,6 +62,16 @@ public class CarteiraVacina {
         this.veterinario = veterinario;
         this.lote = lote;
         this.observacoes = observacoes;
+    }
+
+    /** Registra o lote físico que saiu do estoque; o texto do lote passa a ser o código dele. */
+    public void registrarLoteFisico(br.com.tecnodreamer.petconnect.produto.domain.LoteEstoque lote) {
+        this.loteEstoque = lote;
+        this.lote = lote.getCodigoLote();
+    }
+
+    public br.com.tecnodreamer.petconnect.produto.domain.LoteEstoque getLoteEstoque() {
+        return loteEstoque;
     }
 
     public boolean pertenceAoPet(Long petId) {

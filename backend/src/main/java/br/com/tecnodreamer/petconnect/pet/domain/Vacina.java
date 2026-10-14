@@ -33,6 +33,11 @@ public class Vacina {
 
     private boolean ativo;
 
+    /** Produto de estoque desta vacina; nulo = a aplicação não baixa estoque. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "produto_id")
+    private br.com.tecnodreamer.petconnect.produto.domain.Produto produto;
+
     protected Vacina() {
     }
 
@@ -62,5 +67,14 @@ public class Vacina {
 
     public boolean isAtivo() {
         return ativo;
+    }
+
+    public br.com.tecnodreamer.petconnect.produto.domain.Produto getProduto() {
+        return produto;
+    }
+
+    /** Liga (ou, com nulo, desliga) o produto de estoque desta vacina. */
+    public void vincularProduto(br.com.tecnodreamer.petconnect.produto.domain.Produto produto) {
+        this.produto = produto;
     }
 }

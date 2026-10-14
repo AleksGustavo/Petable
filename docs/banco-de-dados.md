@@ -4,6 +4,7 @@ Fonte da verdade: [`backend/src/main/resources/db/migration`](../backend/src/mai
 
 - `V1__schema_inicial.sql`: todas as tabelas.
 - `V2__dados_referencia.sql`: catálogos (papéis, espécies, raças, categorias, serviços, preço por porte, vacinas).
+- `V12__consumo_clinico_vacina.sql`: opção A da operação clínica (etapa 04 de lotes). **Aditiva**: `vacina.produto_id` (FK nula: o produto de estoque da vacina), `carteira_vacina.lote_id` (FK nula: o lote físico usado na dose) e o CHECK de tipo de `movimentacao_estoque` passa a aceitar `CONSUMO_CLINICO`. Vacina sem produto e lançamento sem lote seguem como antes. Ver [implementacao/04_TELAS_ALERTAS.md](implementacao/04_TELAS_ALERTAS.md) §5.
 - `V11__lotes_estoque.sql`: núcleo de lote e validade (etapa 02 do plano de lotes; contrato em [implementacao/01_DECISOES_LOTES.md](implementacao/01_DECISOES_LOTES.md)). **Aditiva**: `produto` ganha `controla_lote`, `permite_sem_validade` (ambos FALSE) e `dias_bloqueio_validade` (nulo = margem global); tabela `lote_estoque` (UNIQUE `produto_id + codigo_lote`, saldo materializado ≥ 0, `validade DATE`, status DISPONIVEL/BLOQUEADO, custo da primeira entrada, índice FEFO `produto_id, status, validade, id`); `movimentacao_estoque` ganha `lote_id`, `lote_saldo_anterior`, `lote_saldo_resultante` e `operacao_id` (CHECK de coerência: lote e saldos andam juntos e a conta fecha) e o CHECK de tipo aceita `PERDA`, `VENCIMENTO` e `REGULARIZACAO_LOTE`; tabelas `item_venda_lote` (alocação FEFO da venda) e `item_compra_lote` (lotes do recebimento). Nenhuma linha existente muda e nenhum lote ou validade é inventado. Rollback: [implementacao/02_DOMINIO_E_BANCO.md](implementacao/02_DOMINIO_E_BANCO.md).
 - `V10__migracao_legado.sql`: controle da migração do PHP (etapa 08). `migracao_legado_execucao` guarda o histórico (modo DRY_RUN/REAL, status, totais, mensagem sem dado pessoal). `migracao_legado_mapa` guarda entidade, id legado, id novo, situação MIGRADO/AJUSTADO/IGNORADO e códigos de motivo, com UNIQUE (entidade, id_legado), que é a base da idempotência. O backfill de contas a pagar ignora compras que estão nesse mapa.
 - `V9__indices_relatorios.sql`: índices para os relatórios: `servico_realizado (data_servico)` e `conta_pagar (status, paga_em)`. Os demais filtros por período já tinham índice (V6–V8).
@@ -85,6 +86,8 @@ erDiagram
     venda |o--o{ movimentacao_estoque : ""
     usuario ||--o{ movimentacao_estoque : ""
     produto ||--o{ lote_estoque : "opt-in por produto"
+    produto |o--o{ vacina : "estoque da vacina"
+    lote_estoque |o--o{ carteira_vacina : "lote da dose"
     lote_estoque |o--o{ movimentacao_estoque : "saldo por lote"
     compra |o--o{ lote_estoque : "origem"
     fornecedor |o--o{ lote_estoque : "origem"

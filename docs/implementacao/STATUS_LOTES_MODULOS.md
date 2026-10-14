@@ -10,7 +10,7 @@
 | 01 | Diagnóstico e contratos | **concluída** (mesclada, PR #14) | [01_MAPA_ATUAL.md](01_MAPA_ATUAL.md), [01_DECISOES_LOTES.md](01_DECISOES_LOTES.md) |
 | 02 | Domínio e banco de lotes (`V11`) | **concluída** (mesclada, PR #28) | [02_DOMINIO_E_BANCO.md](02_DOMINIO_E_BANCO.md), `V11__lotes_estoque.sql` |
 | 03 | Movimentações, FEFO e concorrência | **concluída** (mesclada, PR #29) | [03_MOVIMENTACOES_FEFO.md](03_MOVIMENTACOES_FEFO.md) |
-| 04 | Telas, alertas e operação | **implementada, aguardando CI/merge do PR** (item 7, operação clínica, depende de decisão do dono) | [04_TELAS_ALERTAS.md](04_TELAS_ALERTAS.md) |
+| 04 | Telas, alertas e operação | **concluída** (PR #30 mesclado; item 7, operação clínica, opção A, em PR de continuação) | [04_TELAS_ALERTAS.md](04_TELAS_ALERTAS.md) |
 | 05 | Testes de lotes e homologação | pendente | — |
 | 06 | Catálogo de módulos e dependências | pendente | — |
 | 07 | Autorização e isolamento modular | pendente | — |
@@ -98,8 +98,9 @@ Sem pontos abertos bloqueadores para a etapa 02.
 - [x] Alertas derivados do dado real (vencidos, 30/60/90 dias configuráveis, bloqueados, mínimo, sem controle), página e card do painel
 - [x] Permissões conferidas na API (SERVICO 403; VENDAS só lê; ações só ADMIN)
 - [x] Flag desligada = interface idêntica à anterior (aba, menu, card e perguntas só aparecem com a flag)
-- [ ] **Operação clínica (item 7)**: aplicação de vacina/medicamento não baixa estoque hoje; precisa da decisão A/B/C em `04_TELAS_ALERTAS.md` §5
-- [ ] Merge do PR da etapa 04
+- [x] Merge do PR da etapa 04 (PR #30, `76d7ea3`)
+- [x] **Operação clínica (item 7), opção A decidida pelo dono**: vacina ligada a produto controlado baixa 1 dose pelo FEFO e grava o lote na carteira (`V12`); ver `04_TELAS_ALERTAS.md` §5
+- [ ] Merge do PR da opção A
 
 ## Evidências da etapa 04
 
@@ -113,4 +114,4 @@ Sem pontos abertos bloqueadores para a etapa 02.
 
 ## Próximo passo
 
-Merge do PR da etapa 04 e decisão do dono sobre a operação clínica (A/B/C). Depois, `05_TESTES_LOTES_HOMOLOGACAO.md`: testes e liberação controlada. **A flag de lotes só pode ser ligada em produção depois da etapa 05.**
+Merge do PR da opção A (operação clínica). Depois, `05_TESTES_LOTES_HOMOLOGACAO.md`: testes e liberação controlada. **A flag de lotes só pode ser ligada em produção depois da etapa 05.**

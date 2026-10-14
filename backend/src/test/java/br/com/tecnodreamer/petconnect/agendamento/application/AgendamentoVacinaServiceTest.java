@@ -107,7 +107,7 @@ class AgendamentoVacinaServiceTest {
 
         service.alterarStatus(10L, concluir(dose), Set.of("SERVICO"), 1L);
 
-        verify(carteira).registrar(1L, dose);
+        verify(carteira).registrar(1L, dose, 1L);
         verify(realizados).saveAndFlush(any());
         assertThat(a.getStatus()).isEqualTo(CONCLUIDO);
     }
@@ -124,7 +124,7 @@ class AgendamentoVacinaServiceTest {
     @Test
     void deveFalharQuandoVacinaNaoPertenceAEspecie() {
         Agendamento a = emAndamento(vacinacao());
-        when(carteira.registrar(1L, dose))
+        when(carteira.registrar(1L, dose, 1L))
                 .thenThrow(new ConflictException("A vacina selecionada não é indicada para a espécie deste pet."));
 
         assertThatThrownBy(() -> service.alterarStatus(10L, concluir(dose), Set.of("VENDAS"), 1L))
@@ -135,7 +135,7 @@ class AgendamentoVacinaServiceTest {
     @Test
     void deveDesfazerConclusaoQuandoLancamentoDaVacinaFalhar() {
         Agendamento a = emAndamento(vacinacao());
-        when(carteira.registrar(1L, dose))
+        when(carteira.registrar(1L, dose, 1L))
                 .thenThrow(new CampoInvalidoException("dataAplicacao", "A data de aplicação não pode ser futura."));
 
         assertThatThrownBy(() -> service.alterarStatus(10L, concluir(dose), Set.of("VENDAS"), 1L))
@@ -152,6 +152,6 @@ class AgendamentoVacinaServiceTest {
 
         assertThatThrownBy(() -> service.alterarStatus(10L, concluir(dose), Set.of("ADMIN"), 1L))
                 .isInstanceOf(CampoInvalidoException.class).extracting("campo").isEqualTo("vacina");
-        verify(carteira, never()).registrar(anyLong(), any());
+        verify(carteira, never()).registrar(anyLong(), any(), any());
     }
 }

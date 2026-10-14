@@ -232,7 +232,7 @@ public class AgendamentoService {
         }
         if (vacinacao) {
             // Mesma regra (e mesma auditoria) do módulo de pets: catálogo, espécie e datas.
-            carteira.registrar(a.getPet().getId(), req.vacina());
+            carteira.registrar(a.getPet().getId(), req.vacina(), usuarioId);
         }
         BigDecimal valor = req.valorFinal() != null ? req.valorFinal() : a.getTotalEstimado();
         ServicoRealizado realizado = realizados.saveAndFlush(
