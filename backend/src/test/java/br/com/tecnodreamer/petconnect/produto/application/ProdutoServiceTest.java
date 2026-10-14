@@ -49,7 +49,7 @@ class ProdutoServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ProdutoService(produtos, categorias, fornecedores, auditoria);
+        service = new ProdutoService(produtos, categorias, fornecedores, auditoria, org.mockito.Mockito.mock(EstoqueLoteService.class));
         when(categorias.findById(1L)).thenReturn(Optional.of(categoria(1, "Ração")));
         when(produtos.saveAndFlush(any())).thenAnswer(inv -> inv.getArgument(0));
     }

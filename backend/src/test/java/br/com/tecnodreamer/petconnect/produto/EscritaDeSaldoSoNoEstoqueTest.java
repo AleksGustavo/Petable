@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class EscritaDeSaldoSoNoEstoqueTest {
 
     private static final Pattern MOVIMENTAR = Pattern.compile("\\.movimentar\\(");
-    private static final Pattern SALDO_DIRETO = Pattern.compile("\bquantidadeEstoque\s*=[^=]");
+    private static final Pattern SALDO_DIRETO = Pattern.compile("\\bquantidadeEstoque\\s*=[^=]");
 
     @Test
     void soOPacoteDeEstoqueChamaMovimentarNoSaldo() throws IOException {

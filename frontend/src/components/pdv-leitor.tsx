@@ -126,7 +126,7 @@ export function PdvLeitor({
               <span className="min-w-0">
                 <span className="block truncate font-medium">{p.nome}</span>
                 <span className="text-xs text-muted tabular-nums">
-                  {moeda(p.precoVenda)} · {p.codigoBarras ?? "sem código"} · saldo {p.quantidadeEstoque}
+                  {moeda(p.precoVenda)} · {p.codigoBarras ?? "sem código"} · saldo {p.quantidadeVendavel ?? p.quantidadeEstoque}{p.controlaLote ? " (lotes válidos)" : ""}
                 </span>
               </span>
               <button

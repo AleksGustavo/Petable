@@ -108,3 +108,4 @@ petconnect:
     lotes:
       habilitado: ${PETCONNECT_ESTOQUE_LOTES:false}
       dias-bloqueio-antes-validade: ${PETCONNECT_ESTOQUE_LOTES_DIAS_BLOQUEIO:0}
+      faixas-alerta-dias: ${PETCONNECT_ESTOQUE_LOTES_FAIXAS_ALERTA:30,60,90}

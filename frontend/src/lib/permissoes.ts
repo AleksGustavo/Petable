@@ -14,6 +14,9 @@ export const podeAjustarEstoque = (papel: Papel) => papel === "ADMIN";
 export const podeVerFornecedoresECompras = (papel: Papel) => papel === "ADMIN" || papel === "VENDAS";
 export const podeAdministrarFornecedores = (papel: Papel) => papel === "ADMIN";
 export const podeAdministrarCompras = (papel: Papel) => papel === "ADMIN";
+/** Lotes (etapa 04): ler é de ADMIN e VENDAS; bloquear, dar baixa, regularizar e ajustar é só ADMIN. A API confere de novo. */
+export const podeVerLotes = (papel: Papel) => papel === "ADMIN" || papel === "VENDAS";
+export const podeGerenciarLotes = (papel: Papel) => papel === "ADMIN";
 export const podeVender = (papel: Papel) => papel === "ADMIN" || papel === "VENDAS";
 export const podeCancelarVendas = (papel: Papel) => papel === "ADMIN";
 export const podeAdministrarFinanceiro = (papel: Papel) => papel === "ADMIN";

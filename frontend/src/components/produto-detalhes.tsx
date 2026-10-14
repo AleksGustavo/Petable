@@ -12,6 +12,7 @@ import { moeda } from "@/lib/agendamentos";
 import type { FormState } from "@/lib/clientes";
 import { formatarInstante } from "@/lib/datas";
 import { ajusteEstoqueSchema, rotuloMovimentacao, type Movimentacao, type Produto } from "@/lib/estoque";
+import type { Lote } from "@/lib/lotes";
 
 /** Dados somente leitura (SERVICO, ou quem não edita produtos). */
 export function ProdutoDados({ produto }: { produto: Produto }) {
@@ -132,9 +133,12 @@ export function HistoricoEstoque({ movimentacoes }: { movimentacoes: Movimentaca
 }
 
 /** Ajuste manual (só ADMIN): positivo entra, negativo sai. Pede confirmação com o saldo resultante. */
-export function AjusteEstoqueForm({ produto }: { produto: Produto }) {
+export function AjusteEstoqueForm({ produto, lotes = [] }: { produto: Produto; lotes?: Lote[] }) {
   const [state, action, pending] = useActionState<FormState, FormData>(ajustarEstoque.bind(null, produto.id), {});
   const [errosLocais, setErrosLocais] = useState<Record<string, string>>({});
+  const controla = produto.controlaLote === true;
+  const [loteEscolhido, setLoteEscolhido] = useState("");
+  const novoLote = loteEscolhido === "novo";
   const erros = { ...(state.erros ?? {}), ...errosLocais };
 
   function validar(e: React.FormEvent<HTMLFormElement>) {
@@ -149,6 +153,25 @@ export function AjusteEstoqueForm({ produto }: { produto: Produto }) {
       return;
     }
     setErrosLocais({});
+    if (controla) {
+      // Produto com lote: o ajuste é sempre sobre um lote identificável; saída nunca passa do saldo do lote.
+      if (!loteEscolhido) {
+        e.preventDefault();
+        setErrosLocais({ loteId: "Escolha o lote do ajuste." });
+        return;
+      }
+      if (novoLote && (!r.data.codigoLote || r.data.quantidade < 0)) {
+        e.preventDefault();
+        setErrosLocais(r.data.quantidade < 0 ? { quantidade: "Lote novo só recebe entrada (quantidade positiva)." } : { codigoLote: "Informe o código do lote novo." });
+        return;
+      }
+      const lote = lotes.find((l) => String(l.id) === loteEscolhido);
+      if (lote && lote.saldo + r.data.quantidade < 0) {
+        e.preventDefault();
+        setErrosLocais({ quantidade: `O lote ${lote.codigoLote} tem ${lote.saldo}: a saída não pode passar disso.` });
+        return;
+      }
+    }
     const resultante = produto.quantidadeEstoque + r.data.quantidade;
     if (resultante < 0) {
       e.preventDefault();
@@ -166,6 +189,37 @@ export function AjusteEstoqueForm({ produto }: { produto: Produto }) {
       {state.mensagem && (
         <div className="sm:col-span-3">
           <Aviso tipo="erro">{state.mensagem}</Aviso>
+        </div>
+      )}
+      {controla && (
+        <div className="sm:col-span-3 grid gap-4 sm:grid-cols-[1fr_1fr_11rem]">
+          <div>
+            <label htmlFor="campo-loteId" className="mb-1 block text-sm font-medium">Lote<span className="text-danger"> *</span></label>
+            <select
+              id="campo-loteId"
+              name={novoLote ? "loteNovo" : "loteId"}
+              className="campo"
+              value={loteEscolhido}
+              onChange={(e) => setLoteEscolhido(e.target.value)}
+              aria-invalid={erros.loteId ? true : undefined}
+              aria-describedby={erros.loteId ? "campo-loteId-erro" : undefined}
+            >
+              <option value="">Selecione o lote</option>
+              {lotes.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.codigoLote} · saldo {l.saldo}
+                </option>
+              ))}
+              <option value="novo">+ Lote novo (só entrada)</option>
+            </select>
+            {erros.loteId && <p id="campo-loteId-erro" className="mt-1 text-xs text-danger">{erros.loteId}</p>}
+          </div>
+          {novoLote && (
+            <>
+              <Campo rotulo="Código do lote novo" name="codigoLote" maxLength={50} defaultValue={state.valores?.codigoLote ?? ""} erro={erros.codigoLote} required />
+              <Campo rotulo="Validade" name="validade" type="date" defaultValue={state.valores?.validade ?? ""} erro={erros.validade} required={!produto.permiteSemValidade} />
+            </>
+          )}
         </div>
       )}
       <Campo rotulo="Quantidade" name="quantidade" inputMode="numeric" placeholder="Ex.: 5 ou -3" defaultValue={state.valores?.quantidade ?? ""} erro={erros.quantidade} required />

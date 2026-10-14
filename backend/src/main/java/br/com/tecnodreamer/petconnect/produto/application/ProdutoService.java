@@ -34,9 +34,11 @@ public class ProdutoService {
     private final CategoriaProdutoRepository categorias;
     private final FornecedorRepository fornecedores;
     private final AuditoriaService auditoria;
+    private final EstoqueLoteService estoqueLotes;
 
     public ProdutoService(ProdutoRepository produtos, CategoriaProdutoRepository categorias,
-            FornecedorRepository fornecedores, AuditoriaService auditoria) {
+            FornecedorRepository fornecedores, AuditoriaService auditoria, EstoqueLoteService estoqueLotes) {
+        this.estoqueLotes = estoqueLotes;
         this.produtos = produtos;
         this.categorias = categorias;
         this.fornecedores = fornecedores;
@@ -65,7 +67,8 @@ public class ProdutoService {
             return List.of();
         }
         return produtos.buscaRapida(termo, PageRequest.of(0, LIMITE_BUSCA_RAPIDA)).stream()
-                .map(ProdutoRapidoResponse::of).toList();
+                .map(p -> p.isControlaLote() ? ProdutoRapidoResponse.of(p, estoqueLotes.disponivelParaVenda(p)) : ProdutoRapidoResponse.of(p))
+                .toList();
     }
 
     @Transactional(readOnly = true)

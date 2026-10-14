@@ -9,8 +9,8 @@
 |---|---|---|---|
 | 01 | Diagnóstico e contratos | **concluída** (mesclada, PR #14) | [01_MAPA_ATUAL.md](01_MAPA_ATUAL.md), [01_DECISOES_LOTES.md](01_DECISOES_LOTES.md) |
 | 02 | Domínio e banco de lotes (`V11`) | **concluída** (mesclada, PR #28) | [02_DOMINIO_E_BANCO.md](02_DOMINIO_E_BANCO.md), `V11__lotes_estoque.sql` |
-| 03 | Movimentações, FEFO e concorrência | **implementada, aguardando revisão/merge do PR** | [03_MOVIMENTACOES_FEFO.md](03_MOVIMENTACOES_FEFO.md) |
-| 04 | Telas, alertas e operação | pendente | — |
+| 03 | Movimentações, FEFO e concorrência | **concluída** (mesclada, PR #29) | [03_MOVIMENTACOES_FEFO.md](03_MOVIMENTACOES_FEFO.md) |
+| 04 | Telas, alertas e operação | **implementada, aguardando CI/merge do PR** (item 7, operação clínica, depende de decisão do dono) | [04_TELAS_ALERTAS.md](04_TELAS_ALERTAS.md) |
 | 05 | Testes de lotes e homologação | pendente | — |
 | 06 | Catálogo de módulos e dependências | pendente | — |
 | 07 | Autorização e isolamento modular | pendente | — |
@@ -79,7 +79,7 @@ Sem pontos abertos bloqueadores para a etapa 02.
 - [x] Cancelamento com `destinoEstoque` obrigatório (`RETORNAR`/`DESCARTAR`), recompõe o lote original
 - [x] Nenhum caminho ignora lote: `EstoqueService` recusa produto controlado + teste de arquitetura
 - [x] Regularização do saldo legado (soma exata) e D13
-- [ ] Revisão e merge do PR pelo dono
+- [x] Revisão e merge do PR pelo dono (PR #29, `441434f`)
 - Fora do escopo por inexistência (ver `03_MOVIMENTACOES_FEFO.md` §1): local, unidade/fração (etapa 10), recebimento e cancelamento parciais, transferência, consumo clínico, reserva
 
 ## Evidências da etapa 03
@@ -89,6 +89,28 @@ Sem pontos abertos bloqueadores para a etapa 02.
 | Novos: 3 classes unitárias + 4 classes de IT (`LoteFluxoIT` 27, `LoteConcorrenciaIT` 5, `LoteFalhaTransacaoIT` 2, `LotesDesligadosIT` 2) | todos verdes |
 | `./mvnw verify` (suíte completa do backend) | 365 unitários + 326 ITs, BUILD SUCCESS |
 
+## Etapa 04 — checklist
+
+- [x] Aba **Lotes** no produto: ligar o controle, "exigir validade", distribuição exata do saldo legado, ações por lote (bloquear, perda, baixa de vencido) e ajuste por lote
+- [x] Recebimento de compra com grade de lotes (soma = quantidade do item, rascunho preservado, erros do servidor visíveis)
+- [x] Consulta `/estoque/lotes` (nome, código de barras, código do lote, vencimento) e rastreabilidade `/estoque/lotes/[id]`
+- [x] PDV com saldo vendável (FEFO invisível), venda mostra os lotes, cancelamento com destino obrigatório
+- [x] Alertas derivados do dado real (vencidos, 30/60/90 dias configuráveis, bloqueados, mínimo, sem controle), página e card do painel
+- [x] Permissões conferidas na API (SERVICO 403; VENDAS só lê; ações só ADMIN)
+- [x] Flag desligada = interface idêntica à anterior (aba, menu, card e perguntas só aparecem com a flag)
+- [ ] **Operação clínica (item 7)**: aplicação de vacina/medicamento não baixa estoque hoje; precisa da decisão A/B/C em `04_TELAS_ALERTAS.md` §5
+- [ ] Merge do PR da etapa 04
+
+## Evidências da etapa 04
+
+| Verificação | Resultado |
+|---|---|
+| `./mvnw verify` | 365 unitários + 336 ITs (10 novos em `LoteConsultaIT`), BUILD SUCCESS |
+| `npm run lint` / `typecheck` | limpos |
+| `npm test` | 74 arquivos, 295 testes (46 novos) |
+| `npm run build` | compilou; rotas `/estoque/lotes` e `/estoque/lotes/[id]` geradas |
+| Correção de teste da etapa 03 | o padrão de `quantidadeEstoque` em `EscritaDeSaldoSoNoEstoqueTest` usava `` simples (backspace) e não pegava nada; corrigido |
+
 ## Próximo passo
 
-Revisão e merge do PR da etapa 03. Depois, o dono envia `04_TELAS_ALERTAS_E_OPERACAO.md`: PDV mostrando o lote, destino no cancelamento, tela de lotes, alertas de vencimento (30/60/90 dias) e relatórios. **A flag de lotes só pode ser ligada em produção depois das etapas 04 e 05.**
+Merge do PR da etapa 04 e decisão do dono sobre a operação clínica (A/B/C). Depois, `05_TESTES_LOTES_HOMOLOGACAO.md`: testes e liberação controlada. **A flag de lotes só pode ser ligada em produção depois da etapa 05.**

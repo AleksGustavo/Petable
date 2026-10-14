@@ -16,12 +16,29 @@ public record CompraResponse(Long id, CatalogoItem fornecedor, CatalogoItem func
         LocalDate dataEntrega, StatusCompra status, String formaPagamento, String observacoes, BigDecimal valorTotal,
         int quantidadeItens, List<Item> itens, Instant createdAt, ContaPagarResponse.Resumo contaPagar) {
 
-    public record Item(Long id, CatalogoItem produto, int quantidade, BigDecimal precoCustoUnitario, BigDecimal subtotal) {
+    /** {@code controlaLote}: o recebimento deste item exige lotes. {@code lotes}: o que foi recebido (compra já recebida). */
+    public record Item(Long id, CatalogoItem produto, int quantidade, BigDecimal precoCustoUnitario, BigDecimal subtotal,
+            boolean controlaLote, boolean exigeValidade, List<LoteRecebido> lotes) {
 
         static Item of(ItemCompra i) {
             return new Item(i.getId(), new CatalogoItem(i.getProduto().getId(), i.getProduto().getNome()),
-                    i.getQuantidade(), i.getPrecoCustoUnitario(), i.subtotal());
+                    i.getQuantidade(), i.getPrecoCustoUnitario(), i.subtotal(), i.getProduto().isControlaLote(),
+                    !i.getProduto().isPermiteSemValidade(), List.of());
         }
+    }
+
+    public record LoteRecebido(Long loteId, String codigoLote, LocalDate validade, int quantidade) {
+    }
+
+    /** Mesma resposta com os lotes recebidos em cada item (detalhe da compra). */
+    public CompraResponse comLotes(java.util.Map<Long, List<LoteRecebido>> porItem) {
+        if (itens == null || porItem.isEmpty()) {
+            return this;
+        }
+        List<Item> novos = itens.stream().map(i -> new Item(i.id(), i.produto(), i.quantidade(), i.precoCustoUnitario(), i.subtotal(),
+                i.controlaLote(), i.exigeValidade(), porItem.getOrDefault(i.id(), List.of()))).toList();
+        return new CompraResponse(id, fornecedor, funcionario, dataCompra, dataEntrega, status, formaPagamento, observacoes,
+                valorTotal, quantidadeItens, novos, createdAt, contaPagar);
     }
 
     /** Mesma resposta com o resumo da conta a pagar (compra recebida, etapa 06). */

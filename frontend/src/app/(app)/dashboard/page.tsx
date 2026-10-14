@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { DashboardEstoque } from "@/components/dashboard-estoque";
 import { DashboardFinanceiro, MeuCaixa } from "@/components/dashboard-financeiro";
+import { DashboardValidade } from "@/components/dashboard-validade";
 import { DashboardVendas } from "@/components/dashboard-vendas";
 import { apiFetch } from "@/lib/api";
 import type { Cliente, Pagina } from "@/lib/clientes";
 import type { ResumoCaixaAtual, ResumoFinanceiroDia } from "@/lib/financeiro";
-import { podeAdministrarFinanceiro, podeVender } from "@/lib/permissoes";
+import type { AlertasEstoque, ConfiguracaoLotes } from "@/lib/lotes";
+import { podeAdministrarFinanceiro, podeVender, podeVerLotes } from "@/lib/permissoes";
 import { getSessao } from "@/lib/session";
 import type { ResumoDia } from "@/lib/vendas";
 
@@ -30,6 +32,10 @@ export default async function DashboardPage() {
     admin ? apiFetch<ResumoFinanceiroDia>("/api/v1/financeiro/resumo-dia") : Promise.resolve(null),
   ]);
 
+  // Lotes (etapa 04): o card só existe com o controle ligado e para quem pode ver lotes.
+  const config = sessao && podeVerLotes(sessao.papel) ? await apiFetch<ConfiguracaoLotes>("/api/v1/estoque/configuracao") : null;
+  const validade = config?.lotesHabilitado ? await apiFetch<AlertasEstoque>("/api/v1/estoque/alertas") : null;
+
   return (
     <div className="space-y-8">
       <header>
@@ -47,6 +53,7 @@ export default async function DashboardPage() {
         {vendasHoje && <DashboardVendas resumo={vendasHoje} />}
         {financeiro && <DashboardFinanceiro resumo={financeiro} />}
         <DashboardEstoque produtosAbaixoDoMinimo={estoque.produtosAbaixoDoMinimo} />
+        {validade && <DashboardValidade alertas={validade} />}
         <Link href="/clientes/novo" className="cartao flex flex-col justify-between border-dashed p-5 transition hover:border-brand">
           <p className="text-sm text-muted">Atalho</p>
           <p className="mt-1 text-lg font-semibold">Cadastrar novo cliente</p>

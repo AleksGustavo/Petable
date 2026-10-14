@@ -17,11 +17,28 @@ public record VendaResponse(Long id, LocalDateTime dataVenda, StatusVenda status
         BigDecimal troco, String observacoes, LocalDateTime canceladaEm, CatalogoItem canceladaPor,
         String motivoCancelamento, Long caixaId, Long lancamentoFinanceiroId) {
 
-    public record Item(Long id, CatalogoItem produto, int quantidade, BigDecimal precoUnitario, BigDecimal subtotal) {
+    /** {@code lotes}: de quais lotes saiu o item (vazio em produto sem controle de lote). */
+    public record Item(Long id, CatalogoItem produto, int quantidade, BigDecimal precoUnitario, BigDecimal subtotal,
+            List<LoteAlocado> lotes) {
         static Item of(ItemVenda i) {
             return new Item(i.getId(), new CatalogoItem(i.getProduto().getId(), i.getProduto().getNome()),
-                    i.getQuantidade(), i.getPrecoUnitario(), i.subtotal());
+                    i.getQuantidade(), i.getPrecoUnitario(), i.subtotal(), List.of());
         }
+    }
+
+    public record LoteAlocado(Long loteId, String codigoLote, java.time.LocalDate validade, int quantidade) {
+    }
+
+    /** Mesma resposta com as alocações de lote de cada item (detalhe da venda). */
+    public VendaResponse comLotes(java.util.Map<Long, List<LoteAlocado>> porItem) {
+        if (itens == null || porItem.isEmpty()) {
+            return this;
+        }
+        List<Item> novos = itens.stream().map(i -> new Item(i.id(), i.produto(), i.quantidade(), i.precoUnitario(), i.subtotal(),
+                porItem.getOrDefault(i.id(), List.of()))).toList();
+        return new VendaResponse(id, dataVenda, status, cliente, funcionario, operador, novos, quantidadeItens, subtotal,
+                desconto, valorTotal, formaPagamento, valorRecebido, troco, observacoes, canceladaEm, canceladaPor,
+                motivoCancelamento, caixaId, lancamentoFinanceiroId);
     }
 
     /** Detalhe, com itens. */

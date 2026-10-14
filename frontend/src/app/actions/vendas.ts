@@ -7,6 +7,7 @@ import { ApiError, apiFetch, apiRequest } from "@/lib/api";
 import type { FormState } from "@/lib/clientes";
 import { mensagemDeErro } from "@/lib/erros";
 import { cancelamentoSchema, errosPorCaminho } from "@/lib/estoque";
+import { destinoSchema } from "@/lib/lotes";
 import { vendaSchema, type PreviaVenda, type Venda, type VendaEntrada } from "@/lib/vendas";
 
 export type FalhaVenda = {
@@ -67,11 +68,19 @@ export async function finalizarVenda(entrada: VendaEntrada, chave: string): Prom
 }
 
 export async function cancelarVenda(id: number, _prev: FormState, formData: FormData): Promise<FormState> {
-  const valores = { motivo: String(formData.get("motivo") ?? "") };
+  const valores = { motivo: String(formData.get("motivo") ?? ""), destinoEstoque: String(formData.get("destinoEstoque") ?? "") };
   const parsed = cancelamentoSchema.safeParse(valores);
   if (!parsed.success) return { erros: { motivo: parsed.error.issues[0]?.message ?? "Motivo inválido" }, valores };
+  // Venda com item de lote: o destino do produto devolvido é obrigatório e não tem opção pré-marcada (D9).
+  const temLote = String(formData.get("temLote") ?? "") === "1";
+  let destino: z.infer<typeof destinoSchema> | undefined;
+  if (temLote) {
+    const d = destinoSchema.safeParse(valores.destinoEstoque);
+    if (!d.success) return { erros: { destinoEstoque: d.error.issues[0]?.message ?? "Escolha o destino do estoque" }, valores };
+    destino = d.data;
+  }
   try {
-    await apiFetch(`/api/v1/vendas/${id}/cancelar`, { method: "POST", body: parsed.data });
+    await apiFetch(`/api/v1/vendas/${id}/cancelar`, { method: "POST", body: destino ? { ...parsed.data, destinoEstoque: destino } : parsed.data });
   } catch (e) {
     unstable_rethrow(e);
     if (e instanceof ApiError) {

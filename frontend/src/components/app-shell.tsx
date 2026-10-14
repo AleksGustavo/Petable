@@ -9,6 +9,14 @@ import { Logo } from "@/components/logo";
 /** `papeis`: só esses papéis veem o item (a API barra de qualquer forma). `secao`: título antes do item. */
 type Item = { href: string; rotulo: string; icone: string; emBreve?: boolean; papeis?: string[]; secao?: string };
 
+/** Só aparece com o controle de lote ligado na instalação e para quem pode ver lotes (a API confere de novo). */
+const ITEM_LOTES: Item = {
+  href: "/estoque/lotes",
+  rotulo: "Lotes e validade",
+  icone: "M4 6h16M4 12h16M4 18h10M18 16l2 2 3-4",
+  papeis: ["ADMIN", "VENDAS"],
+};
+
 const NAV: Item[] = [
   { href: "/dashboard", rotulo: "Início", icone: "M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z" },
   { href: "/clientes", rotulo: "Clientes", icone: "M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0Zm-12 10a8 8 0 0 1 16 0" },
@@ -34,9 +42,11 @@ function Icone({ d }: { d: string }) {
   );
 }
 
-function Navegacao({ onNavigate, papel }: { onNavigate?: () => void; papel: string }) {
+function Navegacao({ onNavigate, papel, lotes }: { onNavigate?: () => void; papel: string; lotes: boolean }) {
   const pathname = usePathname();
-  const visiveis = NAV.filter((item) => !item.papeis || item.papeis.includes(papel));
+  const aposProdutos = NAV.findIndex((i) => i.href === "/produtos") + 1;
+  const itens = lotes ? [...NAV.slice(0, aposProdutos), ITEM_LOTES, ...NAV.slice(aposProdutos)] : NAV;
+  const visiveis = itens.filter((item) => !item.papeis || item.papeis.includes(papel));
   const ativoHref = visiveis
     .filter((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))
     .sort((a, b) => b.href.length - a.href.length)[0]?.href;
@@ -101,7 +111,7 @@ function Usuario({ username, papel }: { username: string; papel: string }) {
   );
 }
 
-export function AppShell({ username, papel, children }: { username: string; papel: string; children: ReactNode }) {
+export function AppShell({ username, papel, lotesHabilitado = false, children }: { username: string; papel: string; lotesHabilitado?: boolean; children: ReactNode }) {
   const [aberto, setAberto] = useState(false);
   const pathname = usePathname();
 
@@ -120,7 +130,7 @@ export function AppShell({ username, papel, children }: { username: string; pape
           <Logo />
         </Link>
         <div className="flex-1 overflow-y-auto [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin]">
-          <Navegacao papel={papel} />
+          <Navegacao papel={papel} lotes={lotesHabilitado} />
         </div>
         <Usuario username={username} papel={papel} />
       </aside>
@@ -153,7 +163,7 @@ export function AppShell({ username, papel, children }: { username: string; pape
               </button>
             </div>
             <div className="flex-1 overflow-y-auto [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin]">
-              <Navegacao key={pathname} papel={papel} onNavigate={() => setAberto(false)} />
+              <Navegacao key={pathname} papel={papel} lotes={lotesHabilitado} onNavigate={() => setAberto(false)} />
             </div>
             <Usuario username={username} papel={papel} />
           </div>
