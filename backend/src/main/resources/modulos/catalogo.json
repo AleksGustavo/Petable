@@ -1,0 +1,317 @@
+{
+  "versao": 1,
+  "descricao": "Catálogo de módulos do PetConnect: cada rota da API, tela, rota do BFF e Server Action pertence a exatamente um dono (núcleo, módulo, integração ou infraestrutura). Desenho da etapa 06; a imposição em tempo de execução é a etapa 07. Não é configuração do cliente: a configuração é PETCONNECT_MODULOS (ver docs/implementacao/06_CATALOGO_MODULOS.md).",
+  "configuracao": {
+    "variavel": "PETCONNECT_MODULOS",
+    "formato": "lista de ids separados por vírgula, ex.: pdv,caixa,produtos,estoque",
+    "padraoInstalacaoExistente": "todos",
+    "validacao": ["ids desconhecidos recusam o boot", "o fecho de dependências (requer) precisa estar completo", "módulo removido não pode violar os bloqueios de remoção"]
+  },
+  "infra": {
+    "descricao": "Infraestrutura técnica, sem módulo comercial.",
+    "rotas": ["/error", "/v3/api-docs", "/v3/api-docs/**", "/v3/api-docs.yaml", "/swagger-ui.html"],
+    "tabelas": ["migracao_legado_execucao", "migracao_legado_mapa"],
+    "jobs": ["MigracaoLegadoRunner (ferramenta offline de migração do sistema PHP; só com PETCONNECT_MIGRACAO_LEGADO=true, desligada em produção)"]
+  },
+  "nucleo": {
+    "nome": "Núcleo (identidade, acesso, auditoria)",
+    "descricao": "Sempre ativo. Identidade, sessão, papéis, perfil, funcionários, auditoria e a casca do painel.",
+    "rotas": [
+      "POST /api/v1/auth/login",
+      "GET /api/v1/auth/me",
+      "POST /api/v1/auth/esqueci-senha",
+      "POST /api/v1/auth/redefinir-senha",
+      "/api/v1/me",
+      "/api/v1/me/**",
+      "/api/v1/usuarios",
+      "/api/v1/usuarios/**",
+      "/api/v1/funcionarios",
+      "/api/v1/funcionarios/**",
+      "GET /api/v1/auditoria",
+      "GET /api/v1/estoque/configuracao"
+    ],
+    "telas": ["/", "/login", "/esqueci-senha", "/redefinir-senha", "/dashboard", "/perfil", "/usuarios", "/usuarios/**"],
+    "bff": [],
+    "acoes": [
+      "entrar", "sair", "criarUsuario", "atualizarContaUsuario", "alterarPapelUsuario", "alternarAtivoUsuario", "salvarFuncionario",
+      "atualizarMinhaConta", "atualizarMeuFuncionario", "trocarMinhaSenha", "solicitarRedefinicao", "redefinirSenha"
+    ],
+    "tabelas": ["usuario", "papel", "token_redefinicao_senha", "funcionario", "endereco"],
+    "jobs": ["AdminBootstrap (cria o ADMIN inicial no primeiro boot)"]
+  },
+  "modulos": [
+    {
+      "id": "clientes",
+      "nome": "Clientes",
+      "status": "EXISTE",
+      "requer": [],
+      "recomenda": [],
+      "rotas": ["/api/v1/clientes", "/api/v1/clientes/**"],
+      "telas": ["/clientes", "/clientes/**"],
+      "bff": ["/api/clientes", "/api/clientes/[id]/dados-pessoais"],
+      "acoes": ["salvarCliente", "inativarCliente", "anonimizarCliente"],
+      "tabelas": ["cliente"],
+      "jobs": [],
+      "observacoes": "Inclui exportação e anonimização do titular (LGPD), só ADMIN."
+    },
+    {
+      "id": "produtos",
+      "nome": "Cadastro de produtos",
+      "status": "EXISTE",
+      "requer": [],
+      "recomenda": [],
+      "rotas": ["/api/v1/produtos", "/api/v1/produtos/**", "/api/v1/categorias-produto"],
+      "telas": ["/produtos", "/produtos/**"],
+      "bff": ["/api/produtos/busca"],
+      "acoes": ["salvarProduto", "alternarAtivoProduto"],
+      "tabelas": ["produto", "categoria_produto"],
+      "jobs": [],
+      "observacoes": "A tabela produto também guarda o saldo; o saldo só muda pelo serviço interno de estoque (núcleo técnico, sempre ativo)."
+    },
+    {
+      "id": "estoque",
+      "nome": "Gestão de estoque",
+      "status": "EXISTE",
+      "requer": ["produtos"],
+      "recomenda": [],
+      "rotas": [
+        "/api/v1/produtos/*/ajustes-estoque",
+        "/api/v1/produtos/*/movimentacoes",
+        "/api/v1/produtos/resumo-estoque",
+        "GET /api/v1/estoque/reconciliacao"
+      ],
+      "telas": [],
+      "bff": [],
+      "acoes": ["ajustarEstoque"],
+      "tabelas": ["movimentacao_estoque"],
+      "jobs": [],
+      "observacoes": "Exposição gerencial: aba Estoque do produto, ajuste manual, histórico, card de estoque mínimo e reconciliação. A baixa por venda, a entrada por compra e o saldo continuam funcionando sem este módulo."
+    },
+    {
+      "id": "lotes",
+      "nome": "Lotes e validade",
+      "status": "EXISTE",
+      "requer": ["estoque"],
+      "recomenda": [],
+      "rotas": [
+        "/api/v1/lotes",
+        "/api/v1/lotes/**",
+        "GET /api/v1/estoque/alertas",
+        "/api/v1/produtos/*/lotes",
+        "/api/v1/produtos/*/lotes/**",
+        "/api/v1/produtos/*/controle-lote",
+        "/api/v1/produtos/*/controle-lote/**"
+      ],
+      "telas": ["/estoque/lotes", "/estoque/lotes/**"],
+      "bff": [],
+      "acoes": ["ativarControleLote", "acaoSobreLote"],
+      "tabelas": ["lote_estoque", "item_venda_lote", "item_compra_lote"],
+      "jobs": [],
+      "observacoes": "Desligar o ACESSO gerencial não desliga o FEFO: produto que já controla lote continua vendendo e recebendo por lote (regra de serviço interno, sempre ativa)."
+    },
+    {
+      "id": "caixa",
+      "nome": "Caixa",
+      "status": "EXISTE",
+      "requer": [],
+      "recomenda": [],
+      "rotas": ["/api/v1/caixas", "/api/v1/caixas/**"],
+      "telas": ["/caixa", "/caixa/**"],
+      "bff": [],
+      "acoes": ["abrirCaixa", "movimentarCaixa", "fecharCaixa"],
+      "tabelas": ["caixa", "caixa_movimento"],
+      "jobs": [],
+      "observacoes": "Módulo NÃO previsto na hipótese comercial: o código exige caixa aberto para vender, cancelar, concluir serviço e pagar conta, então pdv, agenda e financeiro dependem dele."
+    },
+    {
+      "id": "pdv",
+      "nome": "Ponto de venda",
+      "status": "EXISTE",
+      "requer": ["produtos", "caixa"],
+      "recomenda": ["clientes"],
+      "rotas": ["/api/v1/vendas", "/api/v1/vendas/**"],
+      "telas": ["/pdv", "/vendas", "/vendas/**"],
+      "bff": [],
+      "acoes": ["previaVenda", "finalizarVenda", "cancelarVenda"],
+      "tabelas": ["venda", "item_venda"],
+      "jobs": [],
+      "observacoes": "Cliente é opcional na venda (balcão). O lançamento financeiro da venda é gravado pelo núcleo técnico de financeiro, sempre ativo."
+    },
+    {
+      "id": "compras",
+      "nome": "Compras e fornecedores",
+      "status": "EXISTE",
+      "requer": ["produtos"],
+      "recomenda": ["estoque", "financeiro"],
+      "rotas": ["/api/v1/compras", "/api/v1/compras/**", "/api/v1/fornecedores", "/api/v1/fornecedores/**"],
+      "telas": ["/compras", "/compras/**", "/fornecedores", "/fornecedores/**"],
+      "bff": [],
+      "acoes": ["salvarFornecedor", "alternarAtivoFornecedor", "criarCompra", "receberCompra", "cancelarCompra"],
+      "tabelas": ["compra", "item_compra", "fornecedor"],
+      "jobs": [],
+      "observacoes": "Fornecedores ficam aqui (só a compra os usa). Receber cria a conta a pagar pelo núcleo técnico de financeiro; sem o módulo financeiro a conta existe mas ninguém a paga pela tela."
+    },
+    {
+      "id": "financeiro",
+      "nome": "Gestão financeira",
+      "status": "EXISTE",
+      "requer": ["caixa"],
+      "recomenda": [],
+      "rotas": ["/api/v1/financeiro/**"],
+      "telas": ["/financeiro", "/financeiro/**"],
+      "bff": [],
+      "acoes": ["criarLancamento", "estornarLancamento", "pagarConta"],
+      "tabelas": ["conta_pagar", "movimentacao_financeira"],
+      "jobs": ["FinanceiroBackfillRunner (só com --petconnect.financeiro.backfill=true; idempotente)"],
+      "observacoes": "Pagar conta exige caixa aberto. O livro de lançamentos é escrito pelo núcleo técnico sempre que há venda, serviço, compra ou caixa."
+    },
+    {
+      "id": "pets",
+      "nome": "Pets",
+      "status": "EXISTE",
+      "requer": ["clientes"],
+      "recomenda": [],
+      "rotas": ["/api/v1/pets", "/api/v1/pets/**", "/api/v1/especies", "/api/v1/especies/*/racas"],
+      "telas": ["/pets", "/pets/**"],
+      "bff": ["/api/pets", "/api/pets/[id]/foto"],
+      "acoes": ["salvarPet", "desativarPet"],
+      "tabelas": ["pet", "especie", "raca"],
+      "jobs": [],
+      "observacoes": "Foto em disco (volume de uploads), isolada por instalação."
+    },
+    {
+      "id": "clinica",
+      "nome": "Clínica veterinária",
+      "status": "PARCIAL",
+      "requer": ["pets"],
+      "recomenda": ["agenda"],
+      "rotas": ["/api/v1/pets/*/vacinas", "/api/v1/pets/*/vacinas/**", "/api/v1/pets/*/consultas", "/api/v1/especies/*/vacinas"],
+      "telas": [],
+      "bff": [],
+      "acoes": ["registrarVacina", "removerVacina", "registrarConsulta"],
+      "tabelas": ["carteira_vacina", "historico_consulta", "vacina"],
+      "jobs": [],
+      "observacoes": "Existe: carteira de vacinação e histórico de consultas, exibidos no detalhe do pet. NÃO existe: prontuário completo, prescrição, exames, internação, estoque de medicamentos fora da vacina."
+    },
+    {
+      "id": "agenda",
+      "nome": "Agenda e serviços",
+      "status": "EXISTE",
+      "requer": ["pets", "caixa"],
+      "recomenda": [],
+      "condicionais": [{"quando": "serviço de vacinação ativo", "requer": "clinica"}],
+      "rotas": ["/api/v1/agendamentos", "/api/v1/agendamentos/**", "/api/v1/servicos", "/api/v1/servicos/**", "/api/v1/pets/*/agendamentos/**"],
+      "telas": ["/agendamentos", "/agendamentos/**", "/servicos", "/servicos/**"],
+      "bff": ["/api/agendamentos/preco"],
+      "acoes": ["salvarAgendamento", "alterarStatus", "salvarServico", "desativarServico"],
+      "tabelas": ["agendamento", "servico_realizado", "servico", "preco_servico_porte"],
+      "jobs": [],
+      "observacoes": "Concluir o atendimento exige caixa aberto e lança a receita. O serviço Vacinação grava a dose na carteira (clinica) e, se a vacina estiver ligada a produto, baixa o lote."
+    },
+    {
+      "id": "relatorios",
+      "nome": "Relatórios",
+      "status": "EXISTE",
+      "requer": [],
+      "recomenda": [],
+      "porRelatorio": {
+        "vendas": ["pdv"], "produtos-mais-vendidos": ["pdv"], "curva-abc": ["pdv"], "margem": ["pdv"], "estoque": ["estoque"],
+        "servicos": ["agenda"], "despesas": ["financeiro"], "caixas": ["caixa"], "contas": ["financeiro"]
+      },
+      "rotas": ["/api/v1/relatorios/**"],
+      "telas": ["/relatorios", "/relatorios/**"],
+      "bff": ["/api/relatorios/[tipo]/csv"],
+      "acoes": [],
+      "tabelas": [],
+      "jobs": [],
+      "observacoes": "Consultas SQL diretas sobre as tabelas de cada módulo: cada relatório só existe se o módulo de origem existir (porRelatorio)."
+    }
+  ],
+  "integracoes": [
+    {
+      "id": "vacina-estoque",
+      "nome": "Vacina ligada ao estoque (clínica + lotes)",
+      "modulos": ["clinica", "lotes"],
+      "rotas": ["/api/v1/vacinas/**", "/api/v1/produtos/*/vacinas"],
+      "acoes": ["vincularVacina", "desvincularVacina"],
+      "observacoes": "Só existe quando os dois módulos estão ativos. Aplicar vacina vinculada baixa 1 dose do lote que vence primeiro."
+    }
+  ],
+  "composicao": [
+    {"tela": "/produtos/[id]", "secao": "aba Estoque", "modulo": "estoque"},
+    {"tela": "/produtos/[id]", "secao": "aba Lotes", "modulo": "lotes"},
+    {"tela": "/produtos/[id]", "secao": "vacinas do produto", "modulo": "vacina-estoque"},
+    {"tela": "/pets/[id]", "secao": "carteira de vacinação e consultas", "modulo": "clinica"},
+    {"tela": "/pets/[id]", "secao": "próximos agendamentos", "modulo": "agenda"},
+    {"tela": "/dashboard", "secao": "card de clientes", "modulo": "clientes"},
+    {"tela": "/dashboard", "secao": "meu caixa", "modulo": "caixa"},
+    {"tela": "/dashboard", "secao": "vendas do dia", "modulo": "pdv"},
+    {"tela": "/dashboard", "secao": "resumo financeiro", "modulo": "financeiro"},
+    {"tela": "/dashboard", "secao": "estoque mínimo", "modulo": "estoque"},
+    {"tela": "/dashboard", "secao": "validade dos lotes", "modulo": "lotes"},
+    {"tela": "/vendas/[id]", "secao": "destino do estoque no cancelamento", "modulo": "lotes"},
+    {"tela": "/pdv", "secao": "seleção de cliente", "modulo": "clientes"},
+    {"tela": "/agendamentos/[id]", "secao": "conclusão de vacinação", "modulo": "clinica"}
+  ],
+  "pacotes": [
+    {
+      "id": "pdv",
+      "nome": "PDV",
+      "pronto": true,
+      "modulos": ["produtos", "estoque", "caixa", "pdv", "relatorios"],
+      "observacoes": "Balcão e caixa. Sem cadastro de clientes, compras, financeiro ou agenda."
+    },
+    {
+      "id": "petshop",
+      "nome": "Pet Shop",
+      "pronto": true,
+      "modulos": ["clientes", "produtos", "estoque", "lotes", "caixa", "pdv", "compras", "financeiro", "pets", "agenda", "relatorios"],
+      "observacoes": "Operação completa de pet shop, com banho e tosa na agenda. `lotes` é opcional no pacote (ração e medicamento)."
+    },
+    {
+      "id": "agropecuaria",
+      "nome": "Agropecuária",
+      "pronto": false,
+      "modulos": ["clientes", "produtos", "estoque", "lotes", "caixa", "pdv", "compras", "financeiro", "relatorios"],
+      "observacoes": "NÃO vender como pronto: venda a granel (kg, litro, saco aberto) exige a etapa futura de unidade e quantidade decimal (D24); também não existem venda a prazo, nota fiscal nem pacote de insumos agrícolas."
+    },
+    {
+      "id": "clinica",
+      "nome": "Clínica",
+      "pronto": false,
+      "modulos": ["clientes", "pets", "clinica", "agenda", "caixa", "financeiro", "relatorios"],
+      "observacoes": "Parcial: vacinação e histórico de consultas existem; prontuário completo, prescrição, exames e internação não. Vender só como 'agenda e carteira de vacinação'. Com vacina baixando estoque, some `produtos`, `estoque` e `lotes` ao pacote."
+    },
+    {
+      "id": "completo",
+      "nome": "Completo",
+      "pronto": true,
+      "modulos": ["clientes", "produtos", "estoque", "lotes", "caixa", "pdv", "compras", "financeiro", "pets", "clinica", "agenda", "relatorios"],
+      "observacoes": "Todos os módulos existentes. A parte clínica continua parcial."
+    }
+  ],
+  "bloqueiosDeRemocao": [
+    {"modulo": "lotes", "motivo": "produto controla lote: rastreio e FEFO dependem dele", "verificacao": "select count(*) from produto where controla_lote = true"},
+    {"modulo": "caixa", "motivo": "caixa aberto com movimento por fechar", "verificacao": "select count(*) from caixa where status = 'ABERTO'"},
+    {"modulo": "pdv", "motivo": "venda ainda cancelável (7 dias) ou caixa aberto", "verificacao": "select count(*) from venda where status = 'CONCLUIDA' and data_venda >= now() - interval 7 day"},
+    {"modulo": "compras", "motivo": "pedido de compra em aberto", "verificacao": "select count(*) from compra where status = 'PEDIDO'"},
+    {"modulo": "financeiro", "motivo": "contas a pagar em aberto (obrigação financeira)", "verificacao": "select count(*) from conta_pagar where status = 'ABERTA'"},
+    {"modulo": "agenda", "motivo": "agendamentos pendentes", "verificacao": "select count(*) from agendamento where status in ('AGENDADO','CONFIRMADO','EM_ANDAMENTO')"},
+    {"modulo": "clinica", "motivo": "serviço de vacinação ativo na agenda", "verificacao": "select count(*) from servico where ativo = true and vacinacao = true"},
+    {"modulo": "pets", "motivo": "agenda ou clínica ativas dependem de pets", "verificacao": "dependência (requer), não por dado"},
+    {"modulo": "clientes", "motivo": "pets ativos dependem de clientes", "verificacao": "dependência (requer), não por dado"},
+    {"modulo": "produtos", "motivo": "estoque, pdv ou compras dependem de produtos", "verificacao": "dependência (requer), não por dado"}
+  ],
+  "ausencias": [
+    {"capacidade": "multiempresa / escopo por registro", "observacao": "Não existe. O isolamento é uma instalação e um banco por cliente; dentro da instalação o usuário vê todos os registros do módulo, e só o caixa é do próprio usuário."},
+    {"capacidade": "licenciamento assinado de módulos", "observacao": "Não existe; a configuração é por variável de ambiente (versão 1)."},
+    {"capacidade": "nota fiscal (NF-e/NFC-e)", "observacao": "Não existe."},
+    {"capacidade": "venda a prazo (fiado) e conta a receber", "observacao": "Não existe; só contas a pagar."},
+    {"capacidade": "venda a granel e quantidade decimal", "observacao": "Não existe; quantidade inteira (etapa futura D24). Pré-requisito do pacote agropecuário."},
+    {"capacidade": "transferência entre locais e inventário formal", "observacao": "Não existe (não há local); o ajuste por lote faz o papel de contagem."},
+    {"capacidade": "prontuário completo, prescrição, exames, internação", "observacao": "Não existem; só consultas e carteira de vacinação."},
+    {"capacidade": "notificação de vencimento por e-mail ou mensagem", "observacao": "Não existe; os alertas são calculados ao abrir as telas."},
+    {"capacidade": "operação offline", "observacao": "Não existe."},
+    {"capacidade": "jobs agendados internos", "observacao": "Não há @Scheduled; só runners de partida (admin inicial, backfill financeiro e migração do legado, os dois últimos sob flag). Rotinas de backup e monitoramento são scripts de cron no servidor."}
+  ]
+}
