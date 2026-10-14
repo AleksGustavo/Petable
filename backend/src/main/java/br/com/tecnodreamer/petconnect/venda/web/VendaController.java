@@ -87,7 +87,7 @@ public class VendaController {
     @PostMapping("/{id}/cancelar")
     @PreAuthorize("hasRole('ADMIN')")
     public VendaResponse cancelar(@PathVariable Long id, @Valid @RequestBody CancelamentoVendaRequest request) {
-        return service.cancelar(id, request.motivo(), usuarioId());
+        return service.cancelar(id, request.motivo(), request.destinoEstoque(), usuarioId());
     }
 
     private static Long usuarioId() {

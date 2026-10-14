@@ -87,7 +87,7 @@ class VendaServiceTest {
     @BeforeEach
     void setUp() {
         EstoqueService estoque = new EstoqueService(produtos, movimentacoes, usuarios, new CustoMedioService(), auditoria);
-        service = new VendaService(vendas, produtos, clientes, funcionarios, usuarios, estoque, auditoria,
+        service = new VendaService(vendas, produtos, clientes, funcionarios, usuarios, estoque, org.mockito.Mockito.mock(br.com.tecnodreamer.petconnect.produto.application.EstoqueLoteService.class), auditoria,
                 new VendasProperties(BigDecimal.TEN), caixas, financeiro,
                 CLOCK);
         Lancamento entrada = org.mockito.Mockito.mock(Lancamento.class);

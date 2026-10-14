@@ -68,6 +68,9 @@ public class EstoqueService {
             throw new CampoInvalidoException("motivo", "O motivo deve ter entre 5 e 500 caracteres.");
         }
         Produto p = produtos.travar(produtoId).orElseThrow(() -> new NotFoundException("Produto", produtoId));
+        if (p.isControlaLote()) {
+            throw new CampoInvalidoException("loteId", "Este produto controla lote: informe o lote do ajuste.");
+        }
         if (p.getQuantidadeEstoque() + (long) delta < 0) {
             throw new ConflictException(ESTOQUE_NEGATIVO);
         }
@@ -89,6 +92,7 @@ public class EstoqueService {
     @Transactional
     public MovimentacaoEstoque registrarEntradaCompra(Produto produtoTravado, int quantidade, BigDecimal custoUnitario,
             Compra compra, Long usuarioId) {
+        recusarSeControlaLote(produtoTravado);
         BigDecimal novoCusto = custoMedio.calcular(produtoTravado.getQuantidadeEstoque(), produtoTravado.getPrecoCusto(),
                 quantidade, custoUnitario);
         MovimentacaoEstoque m = movimentar(produtoTravado, quantidade, TipoMovimentacao.ENTRADA_COMPRA, compra,
@@ -103,6 +107,7 @@ public class EstoqueService {
      */
     @Transactional
     public MovimentacaoEstoque registrarSaidaVenda(Produto produtoTravado, int quantidade, Venda venda, Long usuarioId) {
+        recusarSeControlaLote(produtoTravado);
         exigirPositiva(quantidade);
         if (produtoTravado.getQuantidadeEstoque() < quantidade) {
             throw new EstoqueInsuficienteException(produtoTravado, quantidade);
@@ -113,6 +118,7 @@ public class EstoqueService {
     /** Estorno do cancelamento (DA-07): devolve a quantidade, inclusive a produto desativado. Não mexe no custo. */
     @Transactional
     public MovimentacaoEstoque registrarEstornoVenda(Produto produtoTravado, int quantidade, Venda venda, Long usuarioId) {
+        recusarSeControlaLote(produtoTravado);
         exigirPositiva(quantidade);
         return movimentarVenda(produtoTravado, quantidade, TipoMovimentacao.ESTORNO_VENDA, venda, usuarioId);
     }
@@ -123,6 +129,13 @@ public class EstoqueService {
         produtos.save(p);
         return movimentacoes.save(new MovimentacaoEstoque(p, tipo, delta, anterior, p.getQuantidadeEstoque(), venda.getId(),
                 usuario));
+    }
+
+    /** Produto com lote só se movimenta pelo {@link EstoqueLoteService}: não existe caminho que ignore o lote. */
+    private static void recusarSeControlaLote(Produto p) {
+        if (p.isControlaLote()) {
+            throw new ConflictException("O produto " + p.getNome() + " controla lote; a movimentação precisa informar o lote.");
+        }
     }
 
     private static void exigirPositiva(int quantidade) {

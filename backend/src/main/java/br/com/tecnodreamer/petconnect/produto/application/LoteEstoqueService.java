@@ -50,7 +50,7 @@ public class LoteEstoqueService {
         if (validade == null && !produto.isPermiteSemValidade()) {
             throw new CampoInvalidoException("validade", "Este produto exige validade em todos os lotes.");
         }
-        var existente = lotes.findByProdutoIdAndCodigoLote(produto.getId(), codigo);
+        var existente = lotes.travarPorProdutoECodigo(produto.getId(), codigo);
         if (existente.isPresent()) {
             LoteEstoque lote = existente.get();
             if (!Objects.equals(lote.getValidade(), validade)) {
@@ -66,15 +66,26 @@ public class LoteEstoqueService {
         return propriedades.margemDoProduto(produto.getDiasBloqueioValidade());
     }
 
-    /** Lotes que o FEFO pode usar hoje, na ordem de consumo (D6). */
+    /** Lotes que o FEFO pode usar hoje, na ordem de consumo (D6). Leitura comum: serve à prévia, nunca a quem vai escrever. */
     @Transactional(readOnly = true)
     public List<LoteEstoque> vendaveis(Produto produto) {
         LocalDate limite = hoje().plusDays(margemDeBloqueio(produto));
         return lotes.vendaveisEmOrdemFefo(produto.getId(), limite);
     }
 
+    /** Os mesmos lotes, travados (FOR UPDATE), para a baixa. Exige transação e o produto já travado pelo chamador. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public List<LoteEstoque> vendaveisTravados(Produto produto) {
+        LocalDate limite = hoje().plusDays(margemDeBloqueio(produto));
+        return lotes.travarVendaveisEmOrdemFefo(produto.getId(), limite);
+    }
+
     public LocalDate hoje() {
         return LocalDate.now(clock);
+    }
+
+    public java.time.LocalDateTime agora() {
+        return java.time.LocalDateTime.now(clock);
     }
 
     public boolean habilitado() {

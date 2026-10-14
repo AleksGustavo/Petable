@@ -8,6 +8,8 @@ import br.com.tecnodreamer.petconnect.financeiro.domain.Caixa;
 import br.com.tecnodreamer.petconnect.financeiro.domain.Lancamento;
 import br.com.tecnodreamer.petconnect.funcionario.domain.Funcionario;
 import br.com.tecnodreamer.petconnect.funcionario.infrastructure.FuncionarioRepository;
+import br.com.tecnodreamer.petconnect.produto.application.AlocadorFefo;
+import br.com.tecnodreamer.petconnect.produto.application.EstoqueLoteService;
 import br.com.tecnodreamer.petconnect.produto.application.EstoqueService;
 import br.com.tecnodreamer.petconnect.produto.domain.EstoqueInsuficienteException;
 import br.com.tecnodreamer.petconnect.produto.domain.Produto;
@@ -18,8 +20,10 @@ import br.com.tecnodreamer.petconnect.shared.error.ConflictException;
 import br.com.tecnodreamer.petconnect.shared.error.NotFoundException;
 import br.com.tecnodreamer.petconnect.usuario.domain.Usuario;
 import br.com.tecnodreamer.petconnect.usuario.infrastructure.UsuarioRepository;
+import br.com.tecnodreamer.petconnect.venda.domain.DestinoEstoque;
 import br.com.tecnodreamer.petconnect.venda.domain.FormaPagamento;
 import br.com.tecnodreamer.petconnect.venda.domain.ItemVenda;
+import br.com.tecnodreamer.petconnect.venda.domain.ItemVendaLote;
 import br.com.tecnodreamer.petconnect.venda.domain.StatusVenda;
 import br.com.tecnodreamer.petconnect.venda.domain.Venda;
 import br.com.tecnodreamer.petconnect.venda.infrastructure.VendaRepository;
@@ -70,6 +74,7 @@ public class VendaService {
     private final FuncionarioRepository funcionarios;
     private final UsuarioRepository usuarios;
     private final EstoqueService estoque;
+    private final EstoqueLoteService estoqueLotes;
     private final AuditoriaService auditoria;
     private final VendasProperties propriedades;
     private final CaixaService caixas;
@@ -78,7 +83,7 @@ public class VendaService {
 
     public VendaService(VendaRepository vendas, ProdutoRepository produtos, ClienteRepository clientes,
             FuncionarioRepository funcionarios, UsuarioRepository usuarios, EstoqueService estoque,
-            AuditoriaService auditoria, VendasProperties propriedades, CaixaService caixas, FinanceiroService financeiro,
+            EstoqueLoteService estoqueLotes, AuditoriaService auditoria, VendasProperties propriedades, CaixaService caixas, FinanceiroService financeiro,
             Clock clock) {
         this.vendas = vendas;
         this.produtos = produtos;
@@ -86,6 +91,7 @@ public class VendaService {
         this.funcionarios = funcionarios;
         this.usuarios = usuarios;
         this.estoque = estoque;
+        this.estoqueLotes = estoqueLotes;
         this.auditoria = auditoria;
         this.propriedades = propriedades;
         this.caixas = caixas;
@@ -147,11 +153,18 @@ public class VendaService {
             Produto p = porId.get(item.produtoId());
             BigDecimal preco = p.getPrecoVenda().setScale(2, RoundingMode.HALF_UP);
             BigDecimal sub = preco.multiply(BigDecimal.valueOf(item.quantidade())).setScale(2, RoundingMode.HALF_UP);
-            boolean ok = p.getQuantidadeEstoque() >= item.quantidade();
+            int disponivel = p.isControlaLote() ? estoqueLotes.disponivelParaVenda(p) : p.getQuantidadeEstoque();
+            boolean ok = disponivel >= item.quantidade();
             suficiente &= ok;
             subtotal = subtotal.add(sub);
-            itens.add(new PreviaVendaResponse.Item(p.getId(), p.getNome(), preco, item.quantidade(), sub,
-                    p.getQuantidadeEstoque(), ok));
+            List<PreviaVendaResponse.LoteAlocado> lotes = List.of();
+            if (p.isControlaLote() && ok) {
+                lotes = estoqueLotes.previaAlocacao(p, item.quantidade()).orElse(List.of()).stream()
+                        .map((AlocadorFefo.Alocacao a) -> new PreviaVendaResponse.LoteAlocado(a.lote().getId(),
+                                a.lote().getCodigoLote(), a.lote().getValidade(), a.quantidade()))
+                        .toList();
+            }
+            itens.add(new PreviaVendaResponse.Item(p.getId(), p.getNome(), preco, item.quantidade(), sub, disponivel, ok, lotes));
         }
         cliente(req.clienteId());
         BigDecimal desconto = desconto(req.desconto(), subtotal, operador);
@@ -186,7 +199,12 @@ public class VendaService {
                 .sorted(Comparator.comparing(VendaRequest.Item::produtoId)).toList();
         for (VendaRequest.Item item : emOrdem) {
             Produto p = travados.get(item.produtoId());
-            if (p.getQuantidadeEstoque() < item.quantidade()) {
+            if (p.isControlaLote()) {
+                int vendavel = estoqueLotes.disponivelParaBaixa(p);
+                if (vendavel < item.quantidade()) {
+                    throw new EstoqueInsuficienteException(p, item.quantidade(), vendavel);
+                }
+            } else if (p.getQuantidadeEstoque() < item.quantidade()) {
                 throw new EstoqueInsuficienteException(p, item.quantidade());
             }
         }
@@ -206,9 +224,18 @@ public class VendaService {
         venda.registrarNoCaixa(caixa);
         Venda salva = vendas.saveAndFlush(venda);
 
+        List<String> alocacoes = new ArrayList<>();
         for (ItemVenda item : salva.getItens().stream()
                 .sorted(Comparator.comparing((ItemVenda i) -> i.getProduto().getId())).toList()) {
-            estoque.registrarSaidaVenda(travados.get(item.getProduto().getId()), item.getQuantidade(), salva, usuarioId);
+            Produto travado = travados.get(item.getProduto().getId());
+            if (travado.isControlaLote()) {
+                // FEFO (D6): a linha do produto está travada, então ninguém mexe nos lotes dele até o fim da transação.
+                for (ItemVendaLote alocado : estoqueLotes.baixarVenda(travado, item, salva, usuarioId)) {
+                    alocacoes.add(travado.getId() + ":" + alocado.getLote().getCodigoLote() + "x" + alocado.getQuantidade());
+                }
+            } else {
+                estoque.registrarSaidaVenda(travado, item.getQuantidade(), salva, usuarioId);
+            }
         }
         Map<String, Object> detalhes = new LinkedHashMap<>();
         detalhes.put("vendaId", salva.getId());
@@ -217,6 +244,9 @@ public class VendaService {
         detalhes.put("desconto", salva.getDesconto());
         detalhes.put("formaPagamento", salva.getFormaPagamento().name());
         detalhes.put("clienteId", cliente == null ? null : cliente.getId());
+        if (!alocacoes.isEmpty()) {
+            detalhes.put("lotes", alocacoes);
+        }
         auditoria.registrar("VENDA_REALIZADA", ENTIDADE, salva.getId(), detalhes);
         // DA-05: mesma transação — se o lançamento falhar, venda e baixa de estoque são desfeitas.
         Lancamento entrada = financeiro.registrarVenda(salva, caixa, usuarioId);
@@ -228,6 +258,15 @@ public class VendaService {
     /** Só CONCLUIDA, até 7 dias; estorna cada item com ESTORNO_VENDA (inclusive produto desativado). */
     @Transactional
     public VendaResponse cancelar(Long id, String motivo, Long usuarioId) {
+        return cancelar(id, motivo, null, usuarioId);
+    }
+
+    /**
+     * Com item que saiu de lote, {@code destino} é obrigatório e não tem padrão (D9): RETORNAR devolve ao lote original,
+     * DESCARTAR grava o estorno e a perda. O dinheiro é estornado nos dois casos. Produto sem lote: como antes.
+     */
+    @Transactional
+    public VendaResponse cancelar(Long id, String motivo, DestinoEstoque destino, Long usuarioId) {
         String texto = motivo == null ? "" : motivo.trim();
         if (texto.length() < 5 || texto.length() > 500) {
             throw new CampoInvalidoException("motivo", "O motivo deve ter entre 5 e 500 caracteres.");
@@ -243,11 +282,21 @@ public class VendaService {
         // DA-07: o estorno financeiro entra no caixa aberto de quem cancela; sem caixa, nada muda.
         caixas.exigirAberto(usuarioId);
         List<ItemVenda> itens = venda.getItens();
+        boolean temLote = itens.stream().anyMatch(estoqueLotes::temAlocacao);
+        if (temLote && destino == null) {
+            throw new CampoInvalidoException("destinoEstoque",
+                    "Informe o destino do estoque: RETORNAR ao lote de origem ou DESCARTAR (perda).");
+        }
         List<Long> ids = itens.stream().map(i -> i.getProduto().getId()).sorted().toList();
         Map<Long, Produto> travados = produtos.travarEmOrdem(ids).stream()
                 .collect(Collectors.toMap(Produto::getId, Function.identity()));
         for (ItemVenda item : itens.stream().sorted(Comparator.comparing((ItemVenda i) -> i.getProduto().getId())).toList()) {
-            estoque.registrarEstornoVenda(travados.get(item.getProduto().getId()), item.getQuantidade(), venda, usuarioId);
+            Produto travado = travados.get(item.getProduto().getId());
+            if (estoqueLotes.temAlocacao(item)) {
+                estoqueLotes.estornarVenda(travado, item, venda, destino, usuarioId);
+            } else {
+                estoque.registrarEstornoVenda(travado, item.getQuantidade(), venda, usuarioId);
+            }
         }
         venda.cancelar(usuario(usuarioId), texto, agora);
         Venda salva = vendas.saveAndFlush(venda);
@@ -257,6 +306,9 @@ public class VendaService {
         detalhes.put("vendaId", id);
         detalhes.put("motivo", texto);
         detalhes.put("valorTotal", salva.getValorTotal());
+        if (temLote) {
+            detalhes.put("destinoEstoque", destino.name());
+        }
         auditoria.registrar("VENDA_CANCELADA", ENTIDADE, id, detalhes);
         return comLancamento(salva);
     }

@@ -83,8 +83,7 @@ class LoteEstoqueIT extends IntegrationTest {
     // ------------------------------------------------------------------ padrões
 
     @Test
-    void controleDeLoteNasceDesligadoComMargemZero() {
-        assertThat(propriedades.habilitado()).isFalse();
+    void margemGlobalDeBloqueioNasceZero() {
         assertThat(propriedades.diasBloqueioAntesValidade()).isZero();
     }
 

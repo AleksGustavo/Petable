@@ -12,7 +12,7 @@ import java.util.List;
 
 public interface MovimentacaoEstoqueRepository extends JpaRepository<MovimentacaoEstoque, Long> {
 
-    @EntityGraph(attributePaths = {"usuario", "compra"})
+    @EntityGraph(attributePaths = {"usuario", "compra", "lote"})
     @Query("""
             select m from MovimentacaoEstoque m
             where m.produto.id = :produtoId and (:tipo is null or m.tipo = :tipo)

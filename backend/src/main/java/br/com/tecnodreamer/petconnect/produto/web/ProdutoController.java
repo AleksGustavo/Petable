@@ -1,5 +1,6 @@
 package br.com.tecnodreamer.petconnect.produto.web;
 
+import br.com.tecnodreamer.petconnect.produto.application.EstoqueLoteService;
 import br.com.tecnodreamer.petconnect.produto.application.EstoqueService;
 import br.com.tecnodreamer.petconnect.produto.application.ProdutoService;
 import br.com.tecnodreamer.petconnect.produto.domain.TipoMovimentacao;
@@ -37,10 +38,12 @@ public class ProdutoController {
 
     private final ProdutoService produtos;
     private final EstoqueService estoque;
+    private final EstoqueLoteService lotes;
 
-    public ProdutoController(ProdutoService produtos, EstoqueService estoque) {
+    public ProdutoController(ProdutoService produtos, EstoqueService estoque, EstoqueLoteService lotes) {
         this.produtos = produtos;
         this.estoque = estoque;
+        this.lotes = lotes;
     }
 
     @GetMapping("/api/v1/categorias-produto")
@@ -111,7 +114,60 @@ public class ProdutoController {
     @PreAuthorize(ADMIN)
     @ResponseStatus(HttpStatus.CREATED)
     public MovimentacaoResponse ajustar(@PathVariable Long id, @Valid @RequestBody AjusteEstoqueRequest request) {
+        if (request.informaLote()) {
+            return lotes.ajustar(id, request.quantidade(), request.motivo(), request.loteId(), request.codigoLote(),
+                    request.validade(), usuarioAtual());
+        }
         return estoque.ajustar(id, request.quantidade(), request.motivo(), usuarioAtual());
+    }
+
+    // ----- Lotes (etapa 03). Leitura: ADMIN e VENDAS. Qualquer movimento ou mudança: só ADMIN, e só com o controle habilitado.
+
+    @GetMapping("/api/v1/produtos/{id}/lotes")
+    @PreAuthorize(MANTEM)
+    public List<LoteResponse> lotes(@PathVariable Long id) {
+        return lotes.listar(id);
+    }
+
+    @PostMapping("/api/v1/produtos/{id}/controle-lote")
+    @PreAuthorize(ADMIN)
+    @ResponseStatus(HttpStatus.CREATED)
+    public List<LoteResponse> ativarControleDeLote(@PathVariable Long id, @Valid @RequestBody RegularizacaoLoteRequest request) {
+        return lotes.ativarControle(id, Boolean.TRUE.equals(request.permiteSemValidade()), request.diasBloqueioValidade(),
+                request.lotes(), usuarioAtual());
+    }
+
+    @PostMapping("/api/v1/produtos/{id}/controle-lote/desativar")
+    @PreAuthorize(ADMIN)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void desativarControleDeLote(@PathVariable Long id) {
+        lotes.desativarControle(id);
+    }
+
+    @PostMapping("/api/v1/produtos/{id}/lotes/{loteId}/perdas")
+    @PreAuthorize(ADMIN)
+    @ResponseStatus(HttpStatus.CREATED)
+    public MovimentacaoResponse perda(@PathVariable Long id, @PathVariable Long loteId, @Valid @RequestBody BaixaLoteRequest request) {
+        return lotes.registrarPerda(id, loteId, request.quantidade(), request.motivo(), usuarioAtual());
+    }
+
+    @PostMapping("/api/v1/produtos/{id}/lotes/{loteId}/vencimentos")
+    @PreAuthorize(ADMIN)
+    @ResponseStatus(HttpStatus.CREATED)
+    public MovimentacaoResponse vencimento(@PathVariable Long id, @PathVariable Long loteId, @Valid @RequestBody BaixaLoteRequest request) {
+        return lotes.registrarVencimento(id, loteId, request.quantidade(), request.motivo(), usuarioAtual());
+    }
+
+    @PostMapping("/api/v1/produtos/{id}/lotes/{loteId}/bloquear")
+    @PreAuthorize(ADMIN)
+    public LoteResponse bloquear(@PathVariable Long id, @PathVariable Long loteId, @Valid @RequestBody MotivoLoteRequest request) {
+        return lotes.bloquear(id, loteId, request.motivo());
+    }
+
+    @PostMapping("/api/v1/produtos/{id}/lotes/{loteId}/desbloquear")
+    @PreAuthorize(ADMIN)
+    public LoteResponse desbloquear(@PathVariable Long id, @PathVariable Long loteId, @Valid @RequestBody MotivoLoteRequest request) {
+        return lotes.desbloquear(id, loteId, request.motivo());
     }
 
     static Long usuarioAtual() {
