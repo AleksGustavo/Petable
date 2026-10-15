@@ -18,3 +18,4 @@ Procedimentos de operação em produção. Todos partem de `/opt/petconnect` no 
 | Módulos contratados por cliente | [modulos-por-cliente.md](modulos-por-cliente.md) |
 | Go-live por cliente: checklist, canário e relatório de homologação | [../operacao/09_CHECKLIST_GO_LIVE_E_CANARIO.md](../operacao/09_CHECKLIST_GO_LIVE_E_CANARIO.md) |
 | Suporte e treinamento de usuários | [../operacao/09_GUIA_SUPORTE_E_TREINAMENTO.md](../operacao/09_GUIA_SUPORTE_E_TREINAMENTO.md) |
+| Roteiro de VPS de homologação (GHCR, DNS, TLS, off-site, desastre) | [../operacao/09_ROTEIRO_VPS_HOMOLOGACAO.md](../operacao/09_ROTEIRO_VPS_HOMOLOGACAO.md) |

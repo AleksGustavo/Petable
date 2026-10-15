@@ -1,0 +1,74 @@
+name: Infra
+
+# Valida o que sobe em produção SEM subir nada: sintaxe dos compose, scripts de operação e o template de
+# instalação por cliente (etapa 08). Nasceu de um erro de YAML no compose.prod.yaml que só apareceu na
+# etapa seguinte (issue #43).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: infra-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compose-e-scripts:
+    name: Compose + scripts de operação
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: compose.yaml (desenvolvimento) é válido
+        run: |
+          {
+            echo "MYSQL_PASSWORD=ci"
+            echo "MYSQL_ROOT_PASSWORD=ci"
+            echo "JWT_SECRET=$(openssl rand -hex 32)"
+          } > .env
+          docker compose -f compose.yaml config --quiet
+
+      - name: compose.prod.yaml é válido com uma instalação gerada pelo template
+        run: |
+          export CLIENTES_DIR="$RUNNER_TEMP/clientes"
+          scripts/cliente.sh novo ci --dominio ci.localhost --modulos todos --tls internal --tag ci
+          docker compose -f compose.prod.yaml --env-file "$CLIENTES_DIR/ci/.env.prod" -p petconnect-ci config --quiet
+          # Uma lista de módulos válida e outra inválida: o gerador precisa aceitar a primeira e recusar a segunda.
+          scripts/cliente.sh novo ci-pdv --dominio ci-pdv.localhost --modulos produtos,estoque,caixa,pdv,relatorios --tls internal --tag ci --https-port 8443
+          if scripts/cliente.sh novo ci-ruim --dominio ci-ruim.localhost --modulos pdv --tls internal --tag ci --https-port 9443; then
+            echo "lista de módulos inválida foi aceita" >&2; exit 1
+          fi
+
+      - name: compose.prod.yaml recusa subir sem PETCONNECT_MODULOS
+        run: |
+          # A variável é obrigatória em produção: sem ela o compose precisa falhar, não abrir tudo sem querer.
+          export CLIENTES_DIR="$RUNNER_TEMP/clientes"
+          grep -v '^PETCONNECT_MODULOS=' "$CLIENTES_DIR/ci/.env.prod" > "$RUNNER_TEMP/sem-modulos.env"
+          if docker compose -f compose.prod.yaml --env-file "$RUNNER_TEMP/sem-modulos.env" -p petconnect-ci config --quiet 2> /dev/null; then
+            echo "o compose aceitou subir sem PETCONNECT_MODULOS" >&2; exit 1
+          fi
+
+      - name: Instalação única (.env.prod.example) é coerente com o compose
+        run: |
+          # O exemplo tem marcadores <...>; troca por valores de teste só para validar a estrutura.
+          sed -E 's/<[^>]+>/ci-valor/g' .env.prod.example > "$RUNNER_TEMP/exemplo.env"
+          docker compose -f compose.prod.yaml --env-file "$RUNNER_TEMP/exemplo.env" -p petconnect-exemplo config --quiet
+
+      - name: Scripts de operação (sintaxe)
+        run: |
+          for f in scripts/*.sh; do bash -n "$f" || exit 1; done
+          echo "scripts verificados: $(ls scripts/*.sh | wc -l)"
+
+      - name: Segredos do template (nenhum valor real versionado)
+        run: |
+          # O template só pode ter marcadores @...@; um valor literal em campo de segredo seria vazamento.
+          for chave in MYSQL_PASSWORD MYSQL_ROOT_PASSWORD MONGO_PASSWORD JWT_SECRET ADMIN_PASSWORD SMOKE_PASSWORD BACKUP_PASSPHRASE; do
+            linha="$(grep -E "^$chave=" deploy/cliente.env.template)"
+            [[ "$linha" =~ =@GERAR(_SENHA)?@$ ]] || { echo "$chave no template não é marcador: $linha" >&2; exit 1; }
+          done

@@ -92,3 +92,95 @@ jobs:
       - name: Derrubar a stack
         if: always()
         run: docker compose down -v
+
+  # Interface por pacote (issue #42): a API sobe com os módulos do pacote e o Playwright confere menu, URL direta,
+  # painel, relatórios, ficha do pet e do produto para ADMIN, VENDAS e SERVICO.
+  pacotes:
+    name: Playwright por pacote (${{ matrix.pacote }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - pacote: pdv
+            modulos: produtos,estoque,caixa,pdv,relatorios
+          - pacote: petshop
+            modulos: clientes,produtos,estoque,lotes,caixa,pdv,compras,financeiro,pets,agenda,relatorios
+          - pacote: completo
+            modulos: clientes,produtos,estoque,lotes,caixa,pdv,compras,financeiro,pets,clinica,agenda,relatorios
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Segredos efêmeros e módulos do pacote
+        env:
+          MODULOS: ${{ matrix.modulos }}
+        run: |
+          senha_admin="Ci-$(openssl rand -hex 12)-Aa1"
+          echo "::add-mask::$senha_admin"
+          {
+            echo "MYSQL_PASSWORD=$(openssl rand -hex 16)"
+            echo "MYSQL_ROOT_PASSWORD=$(openssl rand -hex 16)"
+            echo "JWT_SECRET=$(openssl rand -hex 32)"
+            echo "ADMIN_USERNAME=admin.ci"
+            echo "ADMIN_EMAIL=admin.ci@petconnect.test"
+            echo "ADMIN_PASSWORD=$senha_admin"
+            echo "WEB_PORT=3000"
+            echo "API_PORT=8081"
+            echo "PETCONNECT_ESTOQUE_LOTES=true"
+            echo "PETCONNECT_MODULOS=$MODULOS"
+          } > .env
+          {
+            echo "E2E_ADMIN_USERNAME=admin.ci"
+            echo "E2E_ADMIN_PASSWORD=$senha_admin"
+          } >> "$GITHUB_ENV"
+
+      - name: Subir a stack (build local das imagens)
+        run: docker compose up -d --build --wait --wait-timeout 600 mysql mongo mailpit api web
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Dependências e navegador
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Playwright (pacote ${{ matrix.pacote }})
+        working-directory: frontend
+        env:
+          CI: "true"
+          E2E_PACOTE: ${{ matrix.pacote }}
+          E2E_BASE_URL: http://localhost:3000
+          E2E_API_URL: http://localhost:8081
+        run: npm run e2e:pacotes
+
+      - name: Relatório do Playwright
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: playwright-pacote-${{ matrix.pacote }}
+          path: |
+            frontend/playwright-report-pacotes/
+            frontend/test-results-pacotes/
+          retention-days: 7
+
+      - name: Logs da stack
+        if: failure()
+        run: docker compose logs --no-color --tail 300 api web > stack.log || true
+
+      - name: Anexar logs
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: stack-logs-${{ matrix.pacote }}
+          path: stack.log
+          retention-days: 7
+
+      - name: Derrubar a stack
+        if: always()
+        run: docker compose down -v
