@@ -9,7 +9,11 @@
 
 name: petconnect
 
+# Etapa 08: uma instalação = um projeto Compose (-p petconnect-<id>) com redes, volumes e segredos próprios.
+# Use scripts/cliente.sh; este arquivo continua servindo a instalação única (projeto "petconnect").
 x-logs: &logs
+  labels:
+    br.com.petconnect.instalacao: ${INSTALACAO_ID:-padrao}
   logging:
     driver: json-file
     options: { max-size: "10m", max-file: "5" }   # retenção de logs dos containers (DA-24)
@@ -25,9 +29,10 @@ services:
       DOMINIO: ${DOMINIO:?defina DOMINIO no .env.prod}
       CADDY_TLS: ${CADDY_TLS:?e-mail para o Let's Encrypt, ou "internal" para teste local}
     ports:
-      - "${HTTP_PORT:-80}:80"
-      - "${HTTPS_PORT:-443}:443"
-      - "${HTTPS_PORT:-443}:443/udp"   # HTTP/3
+      # BIND_IP: várias instalações no mesmo host usam um IP cada (80/443 próprios); padrão = todas as interfaces.
+      - "${BIND_IP:-0.0.0.0}:${HTTP_PORT:-80}:80"
+      - "${BIND_IP:-0.0.0.0}:${HTTPS_PORT:-443}:443"
+      - "${BIND_IP:-0.0.0.0}:${HTTPS_PORT:-443}:443/udp"   # HTTP/3
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data                 # certificados (não perder: limite de emissão do Let's Encrypt)
@@ -35,6 +40,7 @@ services:
       - caddy-logs:/var/log/caddy
     networks: [borda]
     mem_limit: 128m
+    cpus: ${CADDY_CPUS:-0.5}
 
   web:
     image: ghcr.io/aleksgustavo/petconnect-web-web:${TAG:?defina TAG no .env.prod}
@@ -53,6 +59,7 @@ services:
       retries: 5
     networks: [borda, interna]
     mem_limit: 512m
+    cpus: ${WEB_CPUS:-1.0}
 
   api:
     image: ghcr.io/aleksgustavo/petconnect-web-api:${TAG}
@@ -85,7 +92,7 @@ services:
       PETCONNECT_MIGRACAO_LEGADO: "false"  # ferramenta offline, desligada em produção (R-19)
       # Controle de lote e validade: DESLIGADO por padrão. Ligar por instalação só depois do guia docs/runbooks/lotes-liberacao.md.
       # Etapa 07: módulos contratados, sem padrão em produção (omitir recusaria o boot em vez de abrir tudo sem querer)
-      PETCONNECT_MODULOS: ${PETCONNECT_MODULOS:?defina PETCONNECT_MODULOS (ex.: todos ou pdv,produtos)}
+      PETCONNECT_MODULOS: ${PETCONNECT_MODULOS:?defina PETCONNECT_MODULOS (todos, ou lista como pdv,produtos)}
       PETCONNECT_ESTOQUE_LOTES: ${PETCONNECT_ESTOQUE_LOTES:-false}
       PETCONNECT_ESTOQUE_LOTES_DIAS_BLOQUEIO: ${PETCONNECT_ESTOQUE_LOTES_DIAS_BLOQUEIO:-0}
       PETCONNECT_ESTOQUE_LOTES_FAIXAS_ALERTA: ${PETCONNECT_ESTOQUE_LOTES_FAIXAS_ALERTA:-30,60,90}
@@ -100,6 +107,7 @@ services:
       - uploads:/data/uploads
     networks: [interna, saida]
     mem_limit: 768m
+    cpus: ${API_CPUS:-1.5}
 
   mysql:
     image: mysql:8.4
@@ -121,6 +129,7 @@ services:
       retries: 10
     networks: [interna]
     mem_limit: 1g
+    cpus: ${MYSQL_CPUS:-1.5}
 
   mongo:
     image: mongo:7
@@ -138,6 +147,7 @@ services:
       retries: 10
     networks: [interna]
     mem_limit: 512m
+    cpus: ${MONGO_CPUS:-1.0}
 
 networks:
   borda: {}

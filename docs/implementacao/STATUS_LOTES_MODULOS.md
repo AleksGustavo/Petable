@@ -13,8 +13,8 @@
 | 04 | Telas, alertas e operação | **concluída** (PR #30 e #31 mesclados; operação clínica, opção A) | [04_TELAS_ALERTAS.md](04_TELAS_ALERTAS.md) |
 | 05 | Testes de lotes e homologação | **concluída** (PR #32 mesclado, `ace982e`) | [05_RELATORIO_HOMOLOGACAO.md](05_RELATORIO_HOMOLOGACAO.md), [../runbooks/lotes-liberacao.md](../runbooks/lotes-liberacao.md) |
 | 06 | Catálogo de módulos e dependências | **concluída** (PR #33 mesclado) | [06_CATALOGO_MODULOS.md](06_CATALOGO_MODULOS.md), `backend/src/main/resources/modulos/catalogo.json` |
-| 07 | Autorização e isolamento modular | **implementada, aguardando CI/merge do PR** | [07_AUTORIZACAO_MODULAR.md](07_AUTORIZACAO_MODULAR.md), [07_MATRIZ_ACESSO.md](07_MATRIZ_ACESSO.md), [../runbooks/modulos-por-cliente.md](../runbooks/modulos-por-cliente.md) |
-| 08 | Provisionamento e operação por cliente | pendente | — |
+| 07 | Autorização e isolamento modular | **concluída** (PR #34 mesclado, `1c19620`) | [07_AUTORIZACAO_MODULAR.md](07_AUTORIZACAO_MODULAR.md), [07_MATRIZ_ACESSO.md](07_MATRIZ_ACESSO.md), [../runbooks/modulos-por-cliente.md](../runbooks/modulos-por-cliente.md) |
+| 08 | Provisionamento e operação por cliente | **implementada, aguardando CI/merge do PR** | [../operacao/08_GUIA_NOVO_CLIENTE.md](../operacao/08_GUIA_NOVO_CLIENTE.md), [../operacao/08_RELATORIO_HOMOLOGACAO.md](../operacao/08_RELATORIO_HOMOLOGACAO.md) |
 | 09 | Testes modulares e go-live | pendente | — |
 | 10 (futura) | Unidade de medida e quantidade decimal (granel) | planejada, **pré-requisito do pacote agropecuário**; fora deste plano de 9 etapas | D24 em [01_DECISOES_LOTES.md](01_DECISOES_LOTES.md) |
 
@@ -147,8 +147,19 @@ Sem pontos abertos bloqueadores para a etapa 02.
 - [x] Testes de negação e regressão: sem estoque com PDV, sem lotes com FEFO, sem financeiro com PDV, papel insuficiente, curl/cabeçalho/claim, relatório/CSV de origem desligada, downgrade
 - [x] Frontend: menu por módulo+papel, guardas por segmento, cards/abas/consultas condicionais, mensagem amigável de recurso indisponível
 - [x] `compose.prod.yaml` exige `PETCONNECT_MODULOS`; runbook de módulos por cliente
-- [ ] Merge do PR da etapa 07
+- [x] Merge do PR da etapa 07 (PR #34)
+
+## Etapa 08 — checklist
+
+- [x] `scripts/cliente.sh` (novo, validar, subir, smoke-usuario, modulos, rotacionar-jwt, listar, isolamento, backup/restore por instalação) e `deploy/cliente.env.template` sem segredos
+- [x] Segredos gerados por instalação e nunca repetidos; domínio e endereço sem colisão; módulos validados contra o catálogo
+- [x] `compose.prod.yaml`: `BIND_IP`, `cpus`, rótulo de instalação; backup registra `instalacao=` e o restore recusa backup de outra
+- [x] Defeitos corrigidos: compose inválido desde a 07; smoke ignorava porta não padrão
+- [x] Aceite em homologação local: duas instalações isoladas, módulos diferentes, token cruzado 401, backup/restore e upgrade/downgrade demonstrados (`scripts/homologacao.sh`)
+- [x] Guia, plano de recuperação e checklist de segurança/privacidade em `docs/operacao/`
+- [ ] NÃO EXECUTADO: servidor remoto/DNS/GHCR, off-site, deploy por cliente no Actions, revisão jurídica LGPD
+- [ ] Merge do PR da etapa 08
 
 ## Próximo passo
 
-Merge do PR da etapa 07 (CI verde, regra permanente). Depois, `08_PROVISIONAMENTO_E_OPERACAO_CLIENTES.md`.
+Merge do PR da etapa 08 (CI verde, regra permanente). Depois, `09_*` do plano.

@@ -14,3 +14,5 @@ Procedimentos de operação em produção. Todos partem de `/opt/petconnect` no 
 | Primeira entrada em produção | [go-live.md](go-live.md) |
 | Pedidos do titular (LGPD) e retenção | [lgpd.md](lgpd.md) |
 | Ligar o controle de lote e validade (e reverter com segurança) | [lotes-liberacao.md](lotes-liberacao.md) |
+| Instalar/operar um novo cliente (uma instalação por cliente) | [../operacao/08_GUIA_NOVO_CLIENTE.md](../operacao/08_GUIA_NOVO_CLIENTE.md) |
+| Módulos contratados por cliente | [modulos-por-cliente.md](modulos-por-cliente.md) |

@@ -23,3 +23,6 @@ build/migracao-relatorios/
 .migracao/
 docker/migracao/dados-reais/
 *.legacy.sql
+
+# Etapa 08: instalações por cliente (segredos e backups de cada uma) nunca vão para o git
+clientes/

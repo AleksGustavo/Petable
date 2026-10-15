@@ -39,6 +39,8 @@ log "Fotos ok"
     UNION ALL SELECT \"movimentacao_financeira\", COUNT(*) FROM movimentacao_financeira) x;
   SELECT CONCAT(\"flyway=\", MAX(CAST(version AS UNSIGNED))) FROM flyway_schema_history WHERE success = 1;"' \
   | tr -d '\r' > "$destino/manifesto.txt"
+# Etapa 08: a quem pertence este backup (o restore recusa levar o backup de um cliente para outro).
+echo "instalacao=${INSTALACAO_ID:-padrao}" >> "$destino/manifesto.txt"
 ( cd "$destino" && sha256sum ./*.enc >> manifesto.txt )
 log "Manifesto: $(grep -c '^tabela\.' "$destino/manifesto.txt") tabelas conferíveis"
 

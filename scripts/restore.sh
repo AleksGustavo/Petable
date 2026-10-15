@@ -7,6 +7,12 @@ source "$(dirname "$0")/_comum.sh"
 pasta="${1:?informe a pasta do backup}"
 pasta="${pasta%/}"
 [[ -f "$pasta/manifesto.txt" ]] || falhar "backup não encontrado: $pasta"
+
+# Etapa 08: backup de uma instalação não entra em outra.
+gravada="$(grep '^instalacao=' "$pasta/manifesto.txt" | cut -d= -f2 | tr -d '\r' || true)"
+if [[ -n "$gravada" && "$gravada" != "${INSTALACAO_ID:-padrao}" ]]; then
+  falhar "este backup é da instalação '$gravada', mas o ambiente é '${INSTALACAO_ID:-padrao}'"
+fi
 ( cd "$pasta" && grep -E '^[0-9a-f]{64} ' manifesto.txt | sha256sum -c --quiet - ) || falhar "hash não confere"
 
 echo "ATENÇÃO: os dados ATUAIS do MySQL, do MongoDB e das fotos serão SUBSTITUÍDOS por $pasta."
