@@ -14,8 +14,8 @@
 | 05 | Testes de lotes e homologação | **concluída** (PR #32 mesclado, `ace982e`) | [05_RELATORIO_HOMOLOGACAO.md](05_RELATORIO_HOMOLOGACAO.md), [../runbooks/lotes-liberacao.md](../runbooks/lotes-liberacao.md) |
 | 06 | Catálogo de módulos e dependências | **concluída** (PR #33 mesclado) | [06_CATALOGO_MODULOS.md](06_CATALOGO_MODULOS.md), `backend/src/main/resources/modulos/catalogo.json` |
 | 07 | Autorização e isolamento modular | **concluída** (PR #34 mesclado, `1c19620`) | [07_AUTORIZACAO_MODULAR.md](07_AUTORIZACAO_MODULAR.md), [07_MATRIZ_ACESSO.md](07_MATRIZ_ACESSO.md), [../runbooks/modulos-por-cliente.md](../runbooks/modulos-por-cliente.md) |
-| 08 | Provisionamento e operação por cliente | **implementada, aguardando CI/merge do PR** | [../operacao/08_GUIA_NOVO_CLIENTE.md](../operacao/08_GUIA_NOVO_CLIENTE.md), [../operacao/08_RELATORIO_HOMOLOGACAO.md](../operacao/08_RELATORIO_HOMOLOGACAO.md) |
-| 09 | Testes modulares e go-live | pendente | — |
+| 08 | Provisionamento e operação por cliente | **concluída** (PR #35 mesclado, `9e0a6ca`) | [../operacao/08_GUIA_NOVO_CLIENTE.md](../operacao/08_GUIA_NOVO_CLIENTE.md), [../operacao/08_RELATORIO_HOMOLOGACAO.md](../operacao/08_RELATORIO_HOMOLOGACAO.md) |
+| 09 | Testes modulares e go-live | **implementada, aguardando CI/merge do PR** | [09_RELATORIO_GO_LIVE.md](09_RELATORIO_GO_LIVE.md), [../operacao/09_CHECKLIST_GO_LIVE_E_CANARIO.md](../operacao/09_CHECKLIST_GO_LIVE_E_CANARIO.md) |
 | 10 (futura) | Unidade de medida e quantidade decimal (granel) | planejada, **pré-requisito do pacote agropecuário**; fora deste plano de 9 etapas | D24 em [01_DECISOES_LOTES.md](01_DECISOES_LOTES.md) |
 
 ## Etapa 01 — checklist
@@ -158,8 +158,17 @@ Sem pontos abertos bloqueadores para a etapa 02.
 - [x] Aceite em homologação local: duas instalações isoladas, módulos diferentes, token cruzado 401, backup/restore e upgrade/downgrade demonstrados (`scripts/homologacao.sh`)
 - [x] Guia, plano de recuperação e checklist de segurança/privacidade em `docs/operacao/`
 - [ ] NÃO EXECUTADO: servidor remoto/DNS/GHCR, off-site, deploy por cliente no Actions, revisão jurídica LGPD
-- [ ] Merge do PR da etapa 08
+- [x] Merge do PR da etapa 08 (PR #35)
+
+## Etapa 09 — checklist
+
+- [x] 6 ITs de homologação por pacote (PDV, Pet Shop, Agropecuária técnica, Clínica com e sem estoque, Completo): 26 testes, módulos conferidos contra o catálogo
+- [x] Testes negativos 1–8 do plano com evidência (matriz no relatório)
+- [x] Duas instalações reais: 44 verificações (isolamento, módulos, token cruzado, fotos, backup/restore, upgrade/downgrade) e 17 de resiliência (retentativa, API parada)
+- [x] Relatório de go-live (PASS/FAIL/NA), checklist assinável, plano de canário, guia de suporte/treinamento e oferta comercial
+- [ ] NÃO EXECUTADO: servidor remoto/GHCR/DNS, E2E de UI por pacote, canário com cliente real, jurídico LGPD
+- [ ] Merge do PR da etapa 09
 
 ## Próximo passo
 
-Merge do PR da etapa 08 (CI verde, regra permanente). Depois, `09_*` do plano.
+Merge do PR da etapa 09 (CI verde). **Tag/release e deploy: só com autorização explícita do dono.** Depois, executar o canário com o primeiro cliente piloto (PDV ou Pet Shop) e tratar as issues `[Go-live]`.

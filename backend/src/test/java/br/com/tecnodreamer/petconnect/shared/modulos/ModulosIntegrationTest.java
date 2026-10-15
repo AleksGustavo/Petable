@@ -1,6 +1,6 @@
 package br.com.tecnodreamer.petconnect.shared.modulos;
 
-import br.com.tecnodreamer.petconnect.venda.web.VendaIntegrationTest;
+import br.com.tecnodreamer.petconnect.venda.web.LoteIntegrationTest;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.time.LocalDate;
@@ -11,7 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Apoio dos ITs de módulos (etapa 07): negação uniforme e dados semeados direto no banco (o módulo que os criaria está desligado). */
-abstract class ModulosIntegrationTest extends VendaIntegrationTest {
+abstract class ModulosIntegrationTest extends LoteIntegrationTest {
 
     /** 403 com o corpo uniforme, sem revelar qual módulo. */
     protected static void exigirIndisponivel(ResultActions r) throws Exception {

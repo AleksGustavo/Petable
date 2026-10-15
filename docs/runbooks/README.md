@@ -16,3 +16,5 @@ Procedimentos de operação em produção. Todos partem de `/opt/petconnect` no 
 | Ligar o controle de lote e validade (e reverter com segurança) | [lotes-liberacao.md](lotes-liberacao.md) |
 | Instalar/operar um novo cliente (uma instalação por cliente) | [../operacao/08_GUIA_NOVO_CLIENTE.md](../operacao/08_GUIA_NOVO_CLIENTE.md) |
 | Módulos contratados por cliente | [modulos-por-cliente.md](modulos-por-cliente.md) |
+| Go-live por cliente: checklist, canário e relatório de homologação | [../operacao/09_CHECKLIST_GO_LIVE_E_CANARIO.md](../operacao/09_CHECKLIST_GO_LIVE_E_CANARIO.md) |
+| Suporte e treinamento de usuários | [../operacao/09_GUIA_SUPORTE_E_TREINAMENTO.md](../operacao/09_GUIA_SUPORTE_E_TREINAMENTO.md) |
