@@ -1,0 +1,81 @@
+# Evidências brutas (saída dos scripts) — etapa 09, 2026-10-15, Docker Desktop local. Sem segredos.
+
+## scripts/homologacao.sh homolog-a homolog-b
+[11:36:49] == 1. Isolamento de volumes, redes, segredos e backups
+[11:37:45] PASS cliente.sh isolamento
+[11:37:51] == 2. Módulos diferentes respeitados
+[11:37:52] A=clientes,pets,produtos,estoque,caixa,pdv | B=todos
+[11:37:54] PASS A: /compras (não contratado) → 403
+[11:37:56] PASS A: corpo uniforme MODULO_INDISPONIVEL
+[11:37:58] PASS B: /compras (contratado) → 200
+[11:37:59] PASS A: /produtos (contratado) → 200
+[11:37:59] == 3. Token de A não vale em B
+[11:38:01] PASS token de A em B → 401
+[11:38:03] PASS token de B em A → 401
+[11:38:03] == 4. Modificar A não afeta B
+[11:38:07] PASS cria ProdutoA1792075083 em A
+[11:38:09] PASS A enxerga ProdutoA1792075083
+[11:38:11] PASS B NÃO enxerga ProdutoA1792075083
+[11:38:14] PASS cria ProdutoB1792075083 em B
+[11:38:16] PASS B enxerga ProdutoB1792075083
+[11:38:18] PASS A NÃO enxerga ProdutoB1792075083
+[11:38:18] == 4b. Fotos (uploads) isoladas por instalação
+[11:38:25] PASS pet criado em A (#1)
+[11:38:28] PASS upload da foto em A
+[11:38:30] PASS A serve a foto
+[11:38:31] PASS B NÃO serve a foto de A (mesmo id)
+[11:38:33] PASS volume de uploads de A tem o arquivo
+[11:38:34] PASS volume de uploads de B sem nenhum arquivo
+[11:38:34] == 5. Backup e restore de A (B intocado)
+[11:38:43] PASS backup de A
+[11:38:43] PASS manifesto registra a instalação 'homolog-a'
+[11:39:43] PASS restore-test de A (MySQL descartável, contagens do manifesto)
+[11:39:45] PASS restore do backup de A em B recusado
+[11:39:46] PASS B continua com ProdutoB1792075083 depois da tentativa
+[11:39:50] PASS depois do backup, cria ProdutoA21792075083 em A
+[11:41:51] PASS restore real de A
+[11:41:59] PASS A voltou a ter ProdutoA1792075083
+[11:42:00] PASS A não tem mais ProdutoA21792075083 (posterior ao backup)
+[11:42:06] PASS B segue com ProdutoB1792075083
+[11:42:08] PASS B segue sem ProdutoA1792075083
+[11:42:10] PASS foto de A preservada pelo restore
+[11:42:17] PASS smoke de A após o restore
+[11:42:25] PASS smoke de B
+[11:42:25] == 6. Upgrade e downgrade de módulos em A (B intocado)
+[11:44:05] PASS upgrade de A para 'clientes,pets,produtos,estoque,caixa,pdv,compras'
+[11:44:10] PASS A: /compras passou a responder 200
+[11:44:10] PASS env de A registra o upgrade
+[11:44:11] PASS lista inválida recusada pelo validador
+[11:44:12] PASS env de A inalterado após lista inválida
+[11:47:10] PASS downgrade com caixa aberto recusado e revertido
+[11:47:11] PASS env de A voltou à lista anterior
+[11:47:17] PASS A segue servindo o PDV/caixa
+[11:47:20] PASS A segue com ProdutoA1792075083 (dados preservados)
+[11:47:24] PASS B não foi tocado
+[11:47:25] PASS histórico de módulos registrado (2 linhas)
+[11:47:26] Aceite OK: homolog-a e homolog-b isolados, módulos respeitados, backup/restore demonstrado
+done
+
+## scripts/homologacao-resiliencia.sh homolog-b
+[11:47:46] PASS produto de teste criado (#2)
+[11:47:48] PASS saldo inicial por ajuste
+[11:47:50] == 1. Repetir a mesma venda (mesma chave)
+[11:47:52] PASS primeira venda → 201
+[11:47:54] PASS repetição aceita (HTTP 200)
+[11:47:54] PASS mesma venda devolvida
+[11:47:54] == 2. API indisponível no meio e retentativa
+[11:47:57] PASS API parada (simula indisponibilidade)
+[11:49:10] PASS API de volta
+[11:49:18] PASS retentativa depois do reinício aceita (HTTP 200)
+[11:49:18] PASS ainda a mesma venda
+[11:49:18] == 3. Nada duplicado no banco
+[11:49:21] PASS uma só venda para o produto
+[11:49:22] PASS baixa de estoque uma vez só (saldo 3)
+[11:49:24] PASS um só movimento de saída
+[11:49:26] PASS um só lançamento financeiro da venda
+[11:49:26] == 4. Cancelamento repetido também não duplica
+[11:49:28] PASS cancelamento → 200
+[11:49:30] PASS segundo cancelamento → 409
+[11:49:31] PASS saldo recomposto uma vez (5)
+[11:49:33] PASS um só estorno financeiro
+[11:49:33] Resiliência OK em 'homolog-b'
