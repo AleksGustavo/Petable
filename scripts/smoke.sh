@@ -4,7 +4,10 @@
 source "$(dirname "$0")/_comum.sh"
 set +e   # cada verificação é contada; o resultado final decide o código de saída
 
-URL="${SMOKE_URL:-https://$DOMINIO}"
+# Etapa 08: instalações em portas não padrão (homologação, vários clientes no mesmo host).
+PORTA_S=""; [[ "${HTTPS_PORT:-443}" != "443" ]] && PORTA_S=":${HTTPS_PORT}"
+PORTA_H=""; [[ "${HTTP_PORT:-80}" != "80" ]] && PORTA_H=":${HTTP_PORT}"
+URL="${SMOKE_URL:-https://$DOMINIO$PORTA_S}"
 CURL=(curl -sS --max-time 15)
 [[ "${CADDY_TLS:-}" == "internal" ]] && CURL+=(-k)   # teste local com certificado interno
 falhas=0
@@ -17,7 +20,7 @@ grep -qi '^strict-transport-security: max-age=' <<< "$cabecalhos"; resultado "HS
 grep -qi '^x-request-id: ' <<< "$cabecalhos"; resultado "X-Request-Id" $?
 
 if [[ "$URL" == https://* ]]; then
-  http_url="${SMOKE_HTTP_URL:-http://${URL#https://}}"
+  http_url="${SMOKE_HTTP_URL:-http://$DOMINIO$PORTA_H}"
   codigo="$(curl -s -o "$NULO" -w '%{http_code}' --max-time 15 "$http_url/login" || true)"
   [[ "$codigo" == 308 ]]; resultado "HTTP redireciona para HTTPS (308)" $?
 fi

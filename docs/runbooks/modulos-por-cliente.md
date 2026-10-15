@@ -4,6 +4,8 @@ Referência: [etapa 07](../implementacao/07_AUTORIZACAO_MODULAR.md) e [catálogo
 
 ## Definir ou alterar os módulos
 
+> Com uma instalação por cliente (etapa 08), use `scripts/cliente.sh modulos <id> <lista>`: faz o backup, valida contra o catálogo, reinicia, roda o smoke e **volta sozinho** se a API recusar. Veja o [guia](../operacao/08_GUIA_NOVO_CLIENTE.md). Os passos abaixo valem para a instalação única.
+
 1. Faça **backup** (ver `backup-restore.md`).
 2. Escolha a lista (`todos` ou ids do catálogo; pacotes prontos na seção 5 do catálogo). Exemplo PDV: `produtos,estoque,caixa,pdv`.
 3. Defina `PETCONNECT_MODULOS` no `.env` da instalação (em produção é obrigatória).

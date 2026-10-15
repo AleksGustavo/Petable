@@ -10,6 +10,12 @@ pasta="${1:-$(ls -1d "$BACKUP_DIR"/diario/*/ 2>/dev/null | sort | tail -n 1)}"
 pasta="${pasta%/}"
 [[ -f "$pasta/manifesto.txt" ]] || falhar "backup não encontrado: ${pasta:-<nenhum>}"
 
+# Etapa 08: backup de uma instalação não entra em outra.
+gravada="$(grep '^instalacao=' "$pasta/manifesto.txt" | cut -d= -f2 | tr -d '\r' || true)"
+if [[ -n "$gravada" && "$gravada" != "${INSTALACAO_ID:-padrao}" ]]; then
+  falhar "este backup é da instalação '$gravada', mas o ambiente é '${INSTALACAO_ID:-padrao}'"
+fi
+
 decifrar() { openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:BACKUP_PASSPHRASE -in "$1"; }
 
 log "Conferindo integridade (sha256) de $pasta"
