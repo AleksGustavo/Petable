@@ -43,3 +43,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# E2E por pacote (issue #42)
+/test-results-pacotes/
+/playwright-report-pacotes/
