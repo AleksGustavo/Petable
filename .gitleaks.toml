@@ -1,0 +1,22 @@
+# Configuração do gitleaks (workflow Segredos). Estende as regras padrão.
+# Exceções mínimas e justificadas; NÃO crie exclusão global para legacy/, SQL ou docs.
+title = "Petable"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Exemplos documentados de variáveis de ambiente (valores de substituição, sem segredo real)"
+paths = [
+  '''^\.env\.example$''',
+  '''^\.env\.prod\.example$''',
+  '''^docs/operacao/modelos/''',
+]
+
+[[allowlists]]
+description = "Falsos positivos conferidos manualmente em 2026-10-19 (sem credencial real): senha fixa dos testes de integração, JWT sintético do teste de mascaramento de logs e `localhost:<porta>` em comando de exemplo"
+paths = [
+  '''^backend/src/test/java/br/com/tecnodreamer/petconnect/IntegrationTest\.java$''',
+  '''^backend/src/test/java/br/com/tecnodreamer/petconnect/shared/logging/MascaramentoLogsTest\.java$''',
+  '''^docs/producao\.md$''',
+]
