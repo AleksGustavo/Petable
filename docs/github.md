@@ -58,7 +58,7 @@ Recomendação completa (para o time):
 
 ### Estado verificado em 2026-10-19
 
-O repositório está **público** (a nota acima sobre repositório privado está superada): rulesets e branch protection estão disponíveis sem plano pago, e a `main` ainda **não** tem proteção (rulesets `[]`, proteção 404, nenhum environment). Secret scanning e push protection estão ativos; os Dependabot alerts foram ativados nesta data. A permissão padrão do `GITHUB_TOKEN` já é somente leitura. Aplicar a proteção depende de decidir antes a reescrita do histórico da issue #2, porque a proteção bloqueia force-push: ver [PLANO_EXECUCAO_SEGURANCA_CI_HOMOLOGACAO.md](seguranca/PLANO_EXECUCAO_SEGURANCA_CI_HOMOLOGACAO.md).
+Nesta data o repositório estava **público**; foi tornado **privado** como contenção da issue #2 (a API de rulesets/proteção volta a responder `403 Upgrade to GitHub Pro or make this repository public`). A `main` ainda **não** tem proteção (antes: rulesets `[]`, proteção 404, nenhum environment). Secret scanning e push protection estavam ativos e os Dependabot alerts foram ativados enquanto público; depois de privado o estado **não é verificável pela API** (confira em Settings → Code security). A permissão padrão do `GITHUB_TOKEN` já é somente leitura. Aplicar a proteção depende de decidir antes a reescrita do histórico da issue #2, porque a proteção bloqueia force-push: ver [PLANO_EXECUCAO_SEGURANCA_CI_HOMOLOGACAO.md](seguranca/PLANO_EXECUCAO_SEGURANCA_CI_HOMOLOGACAO.md).
 
 ## Fluxo de branches
 

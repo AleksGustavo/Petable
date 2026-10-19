@@ -24,7 +24,7 @@ Limite: o gitleaks não identifica dado pessoal (nomes, CPF, endereço). Para is
 
 Colaboradores nos commits: `Aleksander Gustavo`, `marcos22-s`, `Wanderson` e `dependabot[bot]`. A issue cita "Everton, Marquinhos e Wanderson": **não há branch `Everton` no remoto**; confirme a lista real com o dono antes de coordenar.
 
-Visibilidade: **PÚBLICA**. Tornar privado não revoga cópias já feitas e não é limpeza de histórico. Forks: 0.
+Visibilidade em 2026-10-19 antes da contenção: **PÚBLICA** (tornada **PRIVADA** no mesmo dia, com autorização do dono; ver seção 9). Tornar privado não revoga cópias já feitas e não é limpeza de histórico. Forks: 0.
 
 ## 2. Árvore atual (nesta PR)
 
@@ -132,7 +132,34 @@ tag v0.1.0                               88826ebc5e -> 01cc9a302c
 | Achados inventariados | **feito** (seção 1); A-06 depende do dono |
 | Árvore atual tratada | **feito nesta PR** (A-01 removido; prevenção ativa) |
 | Segredos confirmados rotacionados | nenhum confirmado; A-08 depende de confirmação do dono |
-| Histórico publicado validado em clone novo | **NÃO EXECUTADO** (falta autorização) |
-| Cópias residuais tratadas | **NÃO EXECUTADO** (depende da reescrita e do GitHub Support) |
+| Histórico publicado validado em clone novo | **feito em 2026-10-19** (seção 9) |
+| Cópias residuais tratadas | **PENDENTE**: `refs/pull/*` e caches (GitHub Support, pedido do dono) e clones locais |
 
 **A issue #2 permanece aberta.** Avaliação de comunicação a titulares ou à ANPD é do responsável competente; este documento não faz essa conclusão.
+
+## 9. Execução (2026-10-19)
+
+Autorizações do dono, dadas em chat no mesmo dia: (1) tornar o repositório privado; (2) publicar a reescrita, com colaboradores avisados e congelamento por conta do dono; (3) A-06 (imagens) **fora** da limpeza: o dono declarou que são telas com dados fictícios.
+
+| Passo | Resultado |
+|---|---|
+| Visibilidade | PRIVADA (`gh repo edit --visibility private`) |
+| Remoto antes de publicar | idêntico ao ensaio, exceto a branch `chore/seguranca-ci-homologacao`, criada por esta execução |
+| Refazer a reescrita em espelho novo | 31 refs alteradas, `Marquinhos` inalterada; a árvore de **todas** as refs difere do original só pelos 5 caminhos aprovados |
+| Backup de recuperação | espelho original cifrado (AES-256, PBKDF2) em `C:\Users\Aleksander\petable-backup-historico\`; senha em `C:\Users\Aleksander\.petable-backup-senha.txt`, **a mover para um gerenciador de senhas e a apagar**; decifragem testada (chave errada falha). Contém os dados removidos: retenção e acesso são do dono |
+| Publicação | 31 de 31 refs com `--force-with-lease` e SHA antigo esperado, sem `--mirror`; 0 falhas |
+| Clone novo independente | `main` = `b1641ff0c8` (igual ao ensaio); 0 refs divergentes; `git fsck` ok; gitleaks 0 achados; nenhum dos 5 caminhos alcançável; único padrão de CPF restante: fixture A-05 |
+| Branches locais não publicadas | `feat/pdv-entrada-etapa-10` (3 commits) e `feat/petable-etapa-11` (6 commits) rebaseadas sobre a nova `main` sem conflito; a PR #48 e o checkout `wt-seg` foram alinhados |
+
+### Efeitos colaterais conhecidos
+
+- O push da `main` e da tag `v0.1.0` **disparou os workflows de push**. O de **Entrega** republicou no GHCR `petconnect-web-api` e `petconnect-web-web` com as tags `main`, `0.1.0` e uma `sha-…` nova, construídas dos mesmos diretórios `backend/` e `frontend/` (que a reescrita não altera). Não há deploy automático nem environment, então nada foi implantado.
+- Os commits de **todas as branches e da tag mudaram de hash**; assinaturas e referências por hash antigas deixam de valer.
+- A PR #15 e as outras 12 do Dependabot continuam abertas apontando para as branches reescritas (a #15 passou de `e95e2ef` para `fc44bd2`).
+
+### O que não foi possível ou ainda depende de terceiros
+
+- **41 `refs/pull/*`** (e `refs/github-services/*`) continuam no remoto apontando para os commits antigos: só o GitHub Support remove. Texto pronto na seção 6; o pedido deve partir do dono.
+- **Clones e checkouts locais antigos** continuam com os dados: o do dono em `...\PetConnect-Web` (branch `feat/producao-operacao`, com alterações não commitadas, que **não foram tocadas**) e quaisquer clones de colaboradores. Para limpar um clone local depois de alinhá-lo: `git fetch --prune origin`, atualizar/recriar as branches e então `git reflog expire --expire=now --all && git gc --prune=now` (apaga também a cópia local de recuperação: só depois de confirmar o backup cifrado).
+- **Colaboradores:** o aviso e a recriação de clones/branches deles é do dono. Quem tinha trabalho não enviado deve reaplicá-lo (texto na seção 7).
+- **Credenciais:** nada rotacionado, pois nenhum segredo real foi confirmado (seção 3).
