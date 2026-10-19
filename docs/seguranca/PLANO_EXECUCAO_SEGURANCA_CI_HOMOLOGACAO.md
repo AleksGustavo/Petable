@@ -31,7 +31,8 @@ Estados: NÃO INICIADO · EM EXECUÇÃO · CONCLUÍDO · BLOQUEADO · NÃO APLIC
 | P-04 | #3 | Environment `producao` ligado ao `deploy.yml` | NÃO INICIADO | `deploy.yml` já usa `environment: producao`; o environment não existe | Criar com revisor e secrets (nomes em `docs/runbooks/go-live.md`); valores só pelo dono |
 | P-05 | #3 | Host keys SSH por canal confiável | NÃO INICIADO | — | Depende de ter servidor (H-01) |
 | B-01 | PR #15 | Causa da falha do Backend | CONCLUÍDO | [abaixo](#pr-15-falha-do-backend) | Merge da PR #15 é decisão do dono |
-| H-01 | #38 | Servidor de homologação (GHCR pull, DNS, TLS, SMTP) | BLOQUEADO | sem VPS/domínio/SMTP autorizados | Manifesto de pré-requisitos a preencher pelo dono |
+| H-00 | #38 | Preparação sem servidor: roteiro corrigido (título não fecha #37, Docker pelo repositório apt oficial em vez de `curl \| sh`, URL Petable, token fora do histórico, logs do cron em diretório do operador, restore em paralelo em vez de `down -v`) e [manifesto de pré-requisitos](../operacao/09_HOMOLOGACAO_PRE_REQUISITOS.md) | CONCLUÍDO (em PR) | diff do roteiro | — |
+| H-01 | #38 | Servidor de homologação (GHCR pull, DNS, TLS, SMTP) | BLOQUEADO | sem VPS/domínio/SMTP autorizados | Dono preencher o manifesto (14 itens) |
 | H-02 | #39 | Deploy por cliente | NÃO INICIADO | — | Depende de H-01 |
 | H-03 | #40 | Backup off-site + restore + RTO/RPO | NÃO INICIADO | — | Depende de H-01 e de destino off-site |
 | H-04 | #37/#10/#41/#46 | Canário, migração real, jurídico, desempenho | NÃO APLICÁVEL a este escopo | exigem dados/pessoas reais | Não encerrar por homologação sintética |
