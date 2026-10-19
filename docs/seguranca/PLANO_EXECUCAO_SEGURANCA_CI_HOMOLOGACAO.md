@@ -59,3 +59,5 @@ Estados: NÃO INICIADO · EM EXECUÇÃO · CONCLUÍDO · BLOQUEADO · NÃO APLIC
 ## Quem faz o quê
 
 Ver o handoff no fim de [RELATORIO_HISTORICO_DADOS_PESSOAIS.md](RELATORIO_HISTORICO_DADOS_PESSOAIS.md) e em `docs/operacao/09_ROTEIRO_VPS_HOMOLOGACAO.md` para a homologação remota.
+
+Teste do gate: alteração só de documentação, para provar que os jobs pulam sem travar.
