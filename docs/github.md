@@ -54,7 +54,11 @@ Recomendação completa (para o time):
 - **Block force pushes** e **Restrict deletions**.
 - **Require linear history** (opcional, combina com *Squash and merge*).
 
-> Os workflows de backend e frontend só rodam quando a pasta correspondente muda. Se marcar os dois como obrigatórios, um PR que só mexe no front fica esperando o check do backend. Nesse caso, marque como obrigatório só o CodeQL, ou crie um job agregador numa próxima etapa.
+> Os jobs de backend e frontend agora são emitidos em **todo** PR: sem filtro `paths` no gatilho, o primeiro step detecta se a pasta mudou e, se não mudou, pula os demais (sucesso legítimo). Falha, cancelamento ou ausência de resultado continuam bloqueando, então os dois podem ser **checks obrigatórios** sem travar PRs só de docs. O workflow `Segredos` (job `Segredos e dados pessoais`) também roda em todo PR e entra na lista.
+
+### Estado verificado em 2026-10-19
+
+Nesta data o repositório estava **público**; foi tornado **privado** como contenção da issue #2 (a API de rulesets/proteção volta a responder `403 Upgrade to GitHub Pro or make this repository public`). A `main` ainda **não** tem proteção (antes: rulesets `[]`, proteção 404, nenhum environment). Secret scanning e push protection estavam ativos e os Dependabot alerts foram ativados enquanto público; depois de privado o estado **não é verificável pela API** (confira em Settings → Code security). A permissão padrão do `GITHUB_TOKEN` já é somente leitura. Aplicar a proteção depende de decidir antes a reescrita do histórico da issue #2, porque a proteção bloqueia force-push: ver [PLANO_EXECUCAO_SEGURANCA_CI_HOMOLOGACAO.md](seguranca/PLANO_EXECUCAO_SEGURANCA_CI_HOMOLOGACAO.md).
 
 ## Fluxo de branches
 

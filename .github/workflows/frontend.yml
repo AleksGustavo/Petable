@@ -1,11 +1,14 @@
 name: Frontend
 
+# O job `verify` é emitido em TODO PR (sem filtro `paths` no gatilho), para poder ser um check
+# obrigatório da `main` sem travar PRs que não tocam o frontend. Quando o PR não altera o frontend,
+# o primeiro step detecta isso e os demais são pulados: o resultado é "sucesso" legítimo, e uma
+# falha, cancelamento ou ausência de resultado continua bloqueando o merge.
 on:
   push:
     branches: [main]
     paths: ["frontend/**", ".github/workflows/frontend.yml"]
   pull_request:
-    paths: ["frontend/**", ".github/workflows/frontend.yml"]
 
 permissions:
   contents: read
@@ -14,26 +17,51 @@ concurrency:
   group: frontend-${{ github.ref }}
   cancel-in-progress: true
 
-defaults:
-  run:
-    working-directory: frontend
-
 jobs:
   verify:
     name: Lint + tipos + testes + build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+
+      - name: O PR altera o frontend?
+        id: mudancas
+        env:
+          EVENTO: ${{ github.event_name }}
+          BASE: ${{ github.base_ref }}
+        run: |
+          if [ "$EVENTO" != "pull_request" ]; then
+            echo "relevante=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "origin/${BASE}...HEAD" | grep -qE '^(frontend/|\.github/workflows/frontend\.yml$)'; then
+            echo "relevante=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "relevante=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Nenhum arquivo do frontend mudou neste PR: verificações puladas."
+          fi
+
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        if: steps.mudancas.outputs.relevante == 'true'
         with:
           node-version: "24"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
       - run: npm ci
+        if: steps.mudancas.outputs.relevante == 'true'
+        working-directory: frontend
       - run: npm run lint
+        if: steps.mudancas.outputs.relevante == 'true'
+        working-directory: frontend
       - run: npm run typecheck
+        if: steps.mudancas.outputs.relevante == 'true'
+        working-directory: frontend
       - run: npm test
+        if: steps.mudancas.outputs.relevante == 'true'
+        working-directory: frontend
       - run: npm run build
+        if: steps.mudancas.outputs.relevante == 'true'
+        working-directory: frontend
         env:
           NEXT_TELEMETRY_DISABLED: "1"

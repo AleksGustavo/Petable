@@ -1,11 +1,14 @@
 name: Backend
 
+# O job `verify` é emitido em TODO PR (sem filtro `paths` no gatilho), para poder ser um check
+# obrigatório da `main` sem travar PRs que não tocam o backend. Quando o PR não altera o backend,
+# o primeiro step detecta isso e os demais são pulados: o resultado é "sucesso" legítimo, e uma
+# falha, cancelamento ou ausência de resultado continua bloqueando o merge.
 on:
   push:
     branches: [main]
     paths: ["backend/**", ".github/workflows/backend.yml"]
   pull_request:
-    paths: ["backend/**", ".github/workflows/backend.yml"]
 
 permissions:
   contents: read
@@ -14,17 +17,32 @@ concurrency:
   group: backend-${{ github.ref }}
   cancel-in-progress: true
 
-defaults:
-  run:
-    working-directory: backend
-
 jobs:
   verify:
     name: Build + testes (unit + integração)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+
+      - name: O PR altera o backend?
+        id: mudancas
+        env:
+          EVENTO: ${{ github.event_name }}
+          BASE: ${{ github.base_ref }}
+        run: |
+          if [ "$EVENTO" != "pull_request" ]; then
+            echo "relevante=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "origin/${BASE}...HEAD" | grep -qE '^(backend/|\.github/workflows/backend\.yml$)'; then
+            echo "relevante=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "relevante=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Nenhum arquivo do backend mudou neste PR: testes pulados."
+          fi
+
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        if: steps.mudancas.outputs.relevante == 'true'
         with:
           distribution: temurin
           java-version: "21"
@@ -32,10 +50,12 @@ jobs:
 
       # Testes *IT sobem MySQL e MongoDB reais com Testcontainers (Docker do runner).
       - name: mvn verify
+        if: steps.mudancas.outputs.relevante == 'true'
+        working-directory: backend
         run: ./mvnw -B verify
 
       - name: Relatórios de teste e cobertura
-        if: always()
+        if: always() && steps.mudancas.outputs.relevante == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: backend-reports

@@ -26,3 +26,27 @@ docker/migracao/dados-reais/
 
 # Etapa 08: instalações por cliente (segredos e backups de cada uma) nunca vão para o git
 clientes/
+
+# Etapa de segurança (issue #2): dumps, backups e saídas de scanners nunca vão para o git
+*.dump
+*.bak
+*.sql.gz
+*.sql.zip
+*.sql.enc
+*.sql.age
+*.sql.gpg
+petshop_db.sql
+127_0_0_1.sql
+Projeto/*.sql
+gitleaks-report*
+gitleaks*.json
+gitleaks*.sarif
+trufflehog*.json
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+id_rsa*
+id_ed25519*
+!**/src/test/resources/**/*.sql

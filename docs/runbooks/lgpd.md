@@ -36,7 +36,11 @@ Prazo de resposta ao titular: até 15 dias (art. 19, II).
 
 ## Script legado com dados reais
 
-`docs/legacy/documentacao/Banco de Dados/Scripts do Banco/` contém um script de inserção com **dados pessoais reais**, versionado no histórico do git. Recomendação ao dono, que não é feita pela automação:
-1. Remover do histórico com `git filter-repo --path "<arquivo>" --invert-paths`, o que exige force-push e aviso aos colaboradores.
-2. Rotacionar as credenciais que apareceram no legado.
-3. Avaliar se o repositório deve ser privado.
+Scripts de inserção do sistema PHP antigo, com **dados pessoais declarados como reais** (issue #2), estão no histórico do git. Situação, atualizada em 2026-10-19:
+
+- O arquivo foi **removido da árvore atual**; dumps, backups, chaves e relatórios de scanner entraram no `.gitignore`; o workflow `Segredos` (gitleaks + `scripts/verificar-dados-sensiveis.sh`) bloqueia novas ocorrências em PRs.
+- O **histórico** continua com os dados até a reescrita. O inventário, o ensaio feito, as refs afetadas e o procedimento estão em [`docs/seguranca/RELATORIO_HISTORICO_DADOS_PESSOAIS.md`](../seguranca/RELATORIO_HISTORICO_DADOS_PESSOAIS.md). Publicar a reescrita (force-push) exige **autorização específica do dono** e aviso aos colaboradores.
+- Reescrever não remove `refs/pull/*`, caches nem clones: isso exige o suporte do GitHub.
+- Tornar o repositório privado é contenção, não limpeza, e não revoga cópias já feitas.
+- Rotacionar credenciais só se for confirmado o uso real (o relatório lista o que foi encontrado).
+- A comunicação a titulares e à ANPD é decisão do responsável jurídico, não da automação.
