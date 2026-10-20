@@ -1,0 +1,44 @@
+{
+  "name": "protecao-main",
+  "target": "branch",
+  "enforcement": "active",
+  "bypass_actors": [],
+  "conditions": {
+    "ref_name": { "include": ["refs/heads/main"], "exclude": [] }
+  },
+  "rules": [
+    { "type": "deletion" },
+    { "type": "non_fast_forward" },
+    {
+      "type": "pull_request",
+      "parameters": {
+        "required_approving_review_count": 0,
+        "dismiss_stale_reviews_on_push": true,
+        "require_code_owner_review": false,
+        "require_last_push_approval": false,
+        "required_review_thread_resolution": true
+      }
+    },
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": true,
+        "required_status_checks": [
+          { "context": "Build + testes (unit + integração)", "integration_id": 15368 },
+          { "context": "Lint + tipos + testes + build", "integration_id": 15368 },
+          { "context": "Playwright (Chromium)", "integration_id": 15368 },
+          { "context": "Playwright por pacote (pdv)", "integration_id": 15368 },
+          { "context": "Playwright por pacote (petshop)", "integration_id": 15368 },
+          { "context": "Playwright por pacote (completo)", "integration_id": 15368 },
+          { "context": "Análise (java-kotlin)", "integration_id": 15368 },
+          { "context": "Análise (javascript-typescript)", "integration_id": 15368 },
+          { "context": "Compose + scripts de operação", "integration_id": 15368 },
+          { "context": "Dependências (Trivy fs)", "integration_id": 15368 },
+          { "context": "Imagem backend (Trivy + SBOM)", "integration_id": 15368 },
+          { "context": "Imagem frontend (Trivy + SBOM)", "integration_id": 15368 },
+          { "context": "Segredos e dados pessoais", "integration_id": 15368 }
+        ]
+      }
+    }
+  ]
+}
