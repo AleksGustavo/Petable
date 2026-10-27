@@ -50,3 +50,6 @@ trufflehog*.json
 id_rsa*
 id_ed25519*
 !**/src/test/resources/**/*.sql
+
+# Seed de dados fictícios: credenciais geradas localmente nunca vão para o git
+.seed-credenciais.txt
