@@ -61,7 +61,14 @@ export function ProdutoVacinas({ produtoId, vinculadas, catalogo, podeGerenciar 
           )}
           <div>
             <label htmlFor="campo-vincular-vacina" className="mb-1 block text-sm font-medium">Vincular vacina</label>
-            <select id="campo-vincular-vacina" name="vacinaId" className="campo" defaultValue="" aria-invalid={state.erros?.vacinaId ? true : undefined}>
+            {/* key: remonta com o valor devolvido pela action (o reset do React 19 não reaplica defaultValue em select). */}
+            <select
+              key={state.valores?.vacinaId ?? ""}
+              id="campo-vincular-vacina"
+              name="vacinaId"
+              className="campo"
+              defaultValue={state.valores?.vacinaId ?? ""}
+              aria-invalid={state.erros?.vacinaId ? true : undefined}>
               <option value="">Selecione…</option>
               {disponiveis.map((v) => (
                 <option key={v.id} value={v.id}>

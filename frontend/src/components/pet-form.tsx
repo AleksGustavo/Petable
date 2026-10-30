@@ -7,6 +7,7 @@ import { Campo } from "@/components/campo";
 import { TutorPicker } from "@/components/tutor-picker";
 import type { FormState } from "@/lib/clientes";
 import { hojeISO } from "@/lib/datas";
+import { useSelectControlado } from "@/lib/select-controlado";
 import { FOTO_MAX_BYTES, FOTO_TIPOS, PORTES, type EspecieComRacas, type Pet } from "@/lib/pets";
 
 type Props = {
@@ -24,6 +25,9 @@ export function PetForm({ pet, especies, tutorInicial }: Props) {
   const [erroFoto, setErroFoto] = useState<string | null>(null);
   const racas = especies.find((e) => String(e.id) === especieId)?.racas ?? [];
   const valor = (campo: string, padrao: string) => state.valores?.[campo] ?? padrao;
+  const refEspecie = useSelectControlado(especieId, state);
+  const refRaca = useSelectControlado(racaId, state);
+  // Nos <select> não controlados, key = valor devolvido: o reset do React 19 não reaplica defaultValue em select.
 
   return (
     <form action={action} className="space-y-6" noValidate>
@@ -45,6 +49,7 @@ export function PetForm({ pet, especies, tutorInicial }: Props) {
             Espécie<span className="text-danger"> *</span>
           </label>
           <select
+            ref={refEspecie}
             id="campo-especie"
             name="especieId"
             className="campo"
@@ -66,6 +71,7 @@ export function PetForm({ pet, especies, tutorInicial }: Props) {
         <div>
           <label htmlFor="campo-raca" className="mb-1 block text-sm font-medium">Raça</label>
           <select
+            ref={refRaca}
             id="campo-raca"
             name="racaId"
             className="campo"
@@ -90,7 +96,7 @@ export function PetForm({ pet, especies, tutorInicial }: Props) {
         <Campo rotulo="Cor" name="cor" maxLength={30} defaultValue={valor("cor", pet?.cor ?? "")} erro={erros.cor} />
         <div>
           <label htmlFor="campo-porte" className="mb-1 block text-sm font-medium">Porte</label>
-          <select id="campo-porte" name="porte" className="campo" defaultValue={valor("porte", pet?.porte ?? "")}>
+          <select key={valor("porte", "")} id="campo-porte" name="porte" className="campo" defaultValue={valor("porte", pet?.porte ?? "")}>
             <option value="">Não informado</option>
             {PORTES.map((p) => (
               <option key={p.valor} value={p.valor}>{p.rotulo}</option>

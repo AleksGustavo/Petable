@@ -141,6 +141,7 @@ export function CompraForm({
   const [aviso, setAviso] = useState<string | null>(null);
   const erros = { ...(state.erros ?? {}), ...errosLocais };
   const valor = (campo: string, padrao: string) => state.valores?.[campo] ?? padrao;
+  // Nos <select>, key = valor devolvido: remonta o campo, pois o reset do React 19 não reaplica defaultValue em select.
   const adicionados = new Set(itens.map((i) => i.produtoId));
 
   function adicionar(p: ProdutoRapido) {
@@ -184,7 +185,7 @@ export function CompraForm({
           <label htmlFor="campo-fornecedorId" className="mb-1 block text-sm font-medium">
             Fornecedor<span className="text-danger"> *</span>
           </label>
-          <select id="campo-fornecedorId" name="fornecedorId" className="campo" defaultValue={valor("fornecedorId", "")} aria-invalid={erros.fornecedorId ? true : undefined}>
+          <select key={valor("fornecedorId", "")} id="campo-fornecedorId" name="fornecedorId" className="campo" defaultValue={valor("fornecedorId", "")} aria-invalid={erros.fornecedorId ? true : undefined}>
             <option value="">Selecione…</option>
             {fornecedores.map((f) => (
               <option key={f.id} value={f.id}>{f.nomeFantasia}</option>
@@ -195,7 +196,7 @@ export function CompraForm({
         </div>
         <div>
           <label htmlFor="campo-funcionarioId" className="mb-1 block text-sm font-medium">Responsável</label>
-          <select id="campo-funcionarioId" name="funcionarioId" className="campo" defaultValue={valor("funcionarioId", "")}>
+          <select key={valor("funcionarioId", "")} id="campo-funcionarioId" name="funcionarioId" className="campo" defaultValue={valor("funcionarioId", "")}>
             <option value="">Não informado</option>
             {funcionarios.map((f) => (
               <option key={f.id} value={f.id}>{f.nome}</option>

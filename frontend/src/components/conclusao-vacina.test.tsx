@@ -5,7 +5,11 @@ import { describe, expect, it, vi } from "vitest";
 import type { Agendamento } from "@/lib/agendamentos";
 
 const { alterarStatus } = vi.hoisted(() => ({
-  alterarStatus: vi.fn(async () => ({ mensagem: "A vacina selecionada não é indicada para a espécie deste pet." })),
+  alterarStatus: vi.fn(async (...args: unknown[]) => {
+    const fd = args.at(-1) as FormData;
+    // Como a action real: devolve os valores para o formulário repopular após o reset do React 19.
+    return { mensagem: "A vacina selecionada não é indicada para a espécie deste pet.", valores: Object.fromEntries([...fd.entries()].map(([k, v]) => [k, String(v)])) };
+  }),
 }));
 vi.mock("@/app/actions/agendamentos", () => ({ alterarStatus }));
 
@@ -56,5 +60,19 @@ describe("Conclusão de vacinação", () => {
     await user.click(screen.getByRole("button", { name: "Concluir atendimento" }));
 
     expect(await screen.findByText("A vacina selecionada não é indicada para a espécie deste pet.")).toBeDefined();
+  });
+
+  it("mantemVacinaEFormaDePagamentoAposErro", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<AcoesStatus agendamento={vacinacao} papel="VENDAS" horarioAtingido vacinas={vacinas} />);
+
+    await user.selectOptions(screen.getByLabelText(/^Vacina/), "4");
+    await user.selectOptions(screen.getByLabelText(/Forma de pagamento/), "PIX");
+    await user.click(screen.getByRole("button", { name: "Concluir atendimento" }));
+
+    expect(await screen.findByText("A vacina selecionada não é indicada para a espécie deste pet.")).toBeDefined();
+    expect(screen.getByLabelText(/^Vacina/)).toHaveProperty("value", "4");
+    expect(screen.getByLabelText(/Forma de pagamento/)).toHaveProperty("value", "PIX");
   });
 });

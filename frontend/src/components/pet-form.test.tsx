@@ -2,9 +2,14 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import type { FormState } from "@/lib/clientes";
 
 const { salvarPet } = vi.hoisted(() => ({
-  salvarPet: vi.fn(async () => ({ erros: { nome: "Já existe um pet com este nome." } })),
+  salvarPet: vi.fn(async (_id: unknown, _prev: unknown, fd: FormData): Promise<FormState> => ({
+    erros: { nome: "Já existe um pet com este nome." },
+    // Como a action real: devolve os valores para o formulário repopular após o reset do React 19.
+    valores: Object.fromEntries([...fd.entries()].map(([k, v]) => [k, String(v)])),
+  })),
 }));
 vi.mock("@/app/actions/pets", () => ({ salvarPet }));
 vi.mock("next/link", () => ({
@@ -52,5 +57,20 @@ describe("PetForm", () => {
     expect(await screen.findByText("Já existe um pet com este nome.")).toBeDefined();
     expect(screen.getByLabelText(/Nome do pet/).getAttribute("aria-invalid")).toBe("true");
     expect(salvarPet).toHaveBeenCalled();
+  });
+
+  it("mantém espécie, raça e porte escolhidos após erro da action", async () => {
+    const user = userEvent.setup();
+    renderizar();
+    await user.type(screen.getByLabelText(/Nome do pet/), "Thor");
+    await user.selectOptions(screen.getByLabelText(/Espécie/), "2");
+    await user.selectOptions(screen.getByLabelText("Raça"), "20");
+    await user.selectOptions(screen.getByLabelText("Porte"), "GRANDE");
+    await user.click(screen.getByRole("button", { name: "Cadastrar pet" }));
+
+    expect(await screen.findByText("Já existe um pet com este nome.")).toBeDefined();
+    expect(screen.getByLabelText(/Espécie/)).toHaveProperty("value", "2");
+    expect(screen.getByLabelText("Raça")).toHaveProperty("value", "20");
+    expect(screen.getByLabelText("Porte")).toHaveProperty("value", "GRANDE");
   });
 });

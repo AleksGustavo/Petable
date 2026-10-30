@@ -2,10 +2,11 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { FormState } from "@/lib/clientes";
 import type { Usuario } from "@/lib/usuarios";
 
 const { alterarPapelUsuario, alternarAtivoUsuario } = vi.hoisted(() => ({
-  alterarPapelUsuario: vi.fn(async () => ({})),
+  alterarPapelUsuario: vi.fn<(id: unknown, prev: unknown, fd: FormData) => Promise<FormState>>(async () => ({})),
   alternarAtivoUsuario: vi.fn(async () => ({ mensagem: "Não é possível remover ou desativar o último administrador ativo do sistema." })),
 }));
 vi.mock("@/app/actions/usuarios", () => ({ alterarPapelUsuario, alternarAtivoUsuario }));
@@ -17,6 +18,7 @@ const usuario: Usuario = { id: 5, username: "maria", email: "m@x.com", papel: "A
 afterEach(() => {
   vi.restoreAllMocks();
   alternarAtivoUsuario.mockClear();
+  alterarPapelUsuario.mockClear();
 });
 
 describe("UsuarioSeguranca", () => {
@@ -57,5 +59,23 @@ describe("UsuarioSeguranca", () => {
   it("usuário inativo oferece reativar", () => {
     render(<UsuarioSeguranca usuario={{ ...usuario, ativo: false }} ehVoceMesmo={false} />);
     expect(screen.getByRole("button", { name: "Reativar usuário" })).toBeDefined();
+  });
+
+  it("mantém o papel escolhido após erro da action", async () => {
+    // Como a action real: devolve o papel enviado para o formulário repopular após o reset do React 19.
+    alterarPapelUsuario.mockImplementationOnce(async (_id, _prev, fd) => ({
+      mensagem: "Não é possível remover ou desativar o último administrador ativo do sistema.",
+      valores: { papel: String(fd.get("papel")) },
+    }));
+    const user = userEvent.setup();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(<UsuarioSeguranca usuario={usuario} ehVoceMesmo={false} />);
+
+    await user.selectOptions(screen.getByLabelText("Papel"), "VENDAS");
+    await user.click(screen.getByRole("button", { name: "Alterar papel" }));
+
+    expect(await screen.findByText(/último administrador ativo/)).toBeDefined();
+    expect(alterarPapelUsuario).toHaveBeenCalled();
+    expect(screen.getByLabelText("Papel")).toHaveProperty("value", "VENDAS");
   });
 });

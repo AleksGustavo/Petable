@@ -2,9 +2,10 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { FormState } from "@/lib/clientes";
 import type { ProdutoRapido } from "@/lib/estoque";
 
-const { criarCompra } = vi.hoisted(() => ({ criarCompra: vi.fn(async () => ({})) }));
+const { criarCompra } = vi.hoisted(() => ({ criarCompra: vi.fn<(prev: unknown, fd: FormData) => Promise<FormState>>(async () => ({})) }));
 vi.mock("@/app/actions/estoque", () => ({ criarCompra }));
 vi.mock("next/link", () => ({
   default: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => <a href={href} {...rest}>{children}</a>,
@@ -21,9 +22,17 @@ afterEach(() => {
   buscar.mockClear();
 });
 
-function renderizar() {
+function renderizar(funcionarios: { id: number; usuarioId: number; nome: string }[] = []) {
   return render(
-    <CompraForm fornecedores={[{ id: 4, nomeFantasia: "Pet Distribuidora", cnpj: "11222333000181" }]} funcionarios={[]} hoje="2026-09-25" buscarProdutos={buscar} />,
+    <CompraForm
+      fornecedores={[
+        { id: 4, nomeFantasia: "Pet Distribuidora", cnpj: "11222333000181" },
+        { id: 5, nomeFantasia: "Agro Pet", cnpj: "44555666000199" },
+      ]}
+      funcionarios={funcionarios}
+      hoje="2026-09-25"
+      buscarProdutos={buscar}
+    />,
   );
 }
 
@@ -93,5 +102,27 @@ describe("CompraForm", () => {
     await user.click(screen.getByRole("button", { name: "Registrar pedido" }));
     expect(await screen.findByText("Informe um custo válido (até duas casas)")).toBeDefined();
     expect(criarCompra).not.toHaveBeenCalled();
+  });
+
+  it("mantém fornecedor e responsável escolhidos após erro da action", async () => {
+    // Como a action real: devolve os valores para o formulário repopular após o reset do React 19.
+    criarCompra.mockImplementationOnce(async (_prev, fd) => ({
+      mensagem: "Fornecedor inativo.",
+      valores: Object.fromEntries([...fd.entries()].map(([k, v]) => [k, String(v)])),
+    }));
+    const user = userEvent.setup();
+    renderizar([{ id: 7, usuarioId: 3, nome: "Ana Compras" }]);
+    await adicionar(user, "Ração Premium");
+    await user.type(screen.getByLabelText("Custo unit. (R$)", { selector: "#item-10-custo" }), "12,50");
+    await user.selectOptions(screen.getByLabelText(/Fornecedor/), "5");
+    await user.selectOptions(screen.getByLabelText("Responsável"), "7");
+    await user.type(screen.getByLabelText(/Forma de pagamento/), "Boleto");
+    await user.click(screen.getByRole("button", { name: "Registrar pedido" }));
+
+    expect(await screen.findByText("Fornecedor inativo.")).toBeDefined();
+    expect(criarCompra).toHaveBeenCalled();
+    expect(screen.getByLabelText(/Fornecedor/)).toHaveProperty("value", "5");
+    expect(screen.getByLabelText("Responsável")).toHaveProperty("value", "7");
+    expect(screen.getByLabelText(/Forma de pagamento/)).toHaveProperty("value", "Boleto");
   });
 });

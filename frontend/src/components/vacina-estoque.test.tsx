@@ -2,11 +2,12 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { FormState } from "@/lib/clientes";
 import type { VacinaCatalogo } from "@/lib/pets";
 import type { VacinaEstoque } from "@/lib/lotes";
 
 const { vincularVacina, desvincularVacina } = vi.hoisted(() => ({
-  vincularVacina: vi.fn(async () => ({})),
+  vincularVacina: vi.fn<(id: unknown, prev: unknown, fd: FormData) => Promise<FormState>>(async () => ({})),
   desvincularVacina: vi.fn(async () => ({})),
 }));
 vi.mock("@/app/actions/estoque", () => ({ vincularVacina, desvincularVacina }));
@@ -99,5 +100,22 @@ describe("vacinas do produto", () => {
     render(<ProdutoVacinas produtoId={10} vinculadas={[]} catalogo={[v8]} podeGerenciar />);
     expect(screen.getByText("Nenhuma vacina ligada a este produto.")).toBeDefined();
     expect(screen.getByRole("button", { name: "Vincular" })).toBeDefined();
+  });
+
+});
+
+describe("vincular vacina ao produto após erro", () => {
+  it("mantém a vacina escolhida após erro da action", async () => {
+    // Como a action real: devolve os valores para o formulário repopular após o reset do React 19.
+    vincularVacina.mockImplementationOnce(async (_id, _prev, fd) => ({ mensagem: "Vacina inativa.", valores: Object.fromEntries([...fd.entries()].map(([k, v]) => [k, String(v)])) }));
+    const user = userEvent.setup();
+    render(<ProdutoVacinas produtoId={10} vinculadas={[]} catalogo={[v8, v10]} podeGerenciar />);
+
+    await user.selectOptions(screen.getByLabelText("Vincular vacina"), String(v10.id));
+    await user.click(screen.getByRole("button", { name: "Vincular" }));
+
+    expect(await screen.findByText("Vacina inativa.")).toBeDefined();
+    expect(vincularVacina).toHaveBeenCalled();
+    expect(screen.getByLabelText("Vincular vacina")).toHaveProperty("value", String(v10.id));
   });
 });

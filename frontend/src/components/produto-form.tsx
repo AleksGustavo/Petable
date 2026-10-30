@@ -30,6 +30,7 @@ export function ProdutoForm({
   const [errosLocais, setErrosLocais] = useState<Record<string, string>>({});
   const erros = { ...(state.erros ?? {}), ...errosLocais };
   const valor = (campo: string, padrao: string) => state.valores?.[campo] ?? padrao;
+  // Nos <select>, key = valor devolvido: remonta o campo, pois o reset do React 19 não reaplica defaultValue em select.
   // Fornecedor padrão inativo continua visível na edição, mas não é oferecido para novos vínculos.
   const opcoesFornecedor =
     produto?.fornecedorPadrao && !fornecedores.some((f) => f.id === produto.fornecedorPadrao?.id)
@@ -62,6 +63,7 @@ export function ProdutoForm({
             Categoria<span className="text-danger"> *</span>
           </label>
           <select
+            key={valor("categoriaId", "")}
             id="campo-categoriaId"
             name="categoriaId"
             className="campo"
@@ -78,6 +80,7 @@ export function ProdutoForm({
         <div>
           <label htmlFor="campo-fornecedorPadraoId" className="mb-1 block text-sm font-medium">Fornecedor padrão</label>
           <select
+            key={valor("fornecedorPadraoId", "")}
             id="campo-fornecedorPadraoId"
             name="fornecedorPadraoId"
             className="campo"

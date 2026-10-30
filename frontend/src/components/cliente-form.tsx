@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 import { salvarCliente } from "@/app/actions/clientes";
 import { Campo } from "@/components/campo";
 import type { Cliente, FormState } from "@/lib/clientes";
+import { useSelectControlado } from "@/lib/select-controlado";
 import { mascaraCep, mascaraCpf, mascaraTelefone, somenteDigitos } from "@/lib/format";
 
 const UFS = "AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO".split(" ");
@@ -34,6 +35,7 @@ export function ClienteForm({ cliente }: { cliente?: Cliente }) {
   const [v, setV] = useState(() => valoresIniciais(cliente));
   const [buscandoCep, setBuscandoCep] = useState(false);
   const erros = state.erros ?? {};
+  const refUf = useSelectControlado(v.uf, state);
 
   const set = (campo: string, mascara?: (s: string) => string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setV((atual) => ({ ...atual, [campo]: mascara ? mascara(e.target.value) : e.target.value }));
@@ -100,7 +102,7 @@ export function ClienteForm({ cliente }: { cliente?: Cliente }) {
         <Campo className="sm:col-span-3" rotulo="Cidade" name="cidade" value={v.cidade} onChange={set("cidade")} erro={erros.cidade} />
         <div className="sm:col-span-1">
           <label htmlFor="campo-uf" className="mb-1 block text-sm font-medium">UF</label>
-          <select id="campo-uf" name="uf" className="campo" value={v.uf} onChange={set("uf")} aria-invalid={erros.uf ? true : undefined}>
+          <select ref={refUf} id="campo-uf" name="uf" className="campo" value={v.uf} onChange={set("uf")} aria-invalid={erros.uf ? true : undefined}>
             <option value="">—</option>
             {UFS.map((uf) => (
               <option key={uf}>{uf}</option>
