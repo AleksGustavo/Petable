@@ -118,7 +118,7 @@ export function AcoesStatus({
                 <label htmlFor="campo-conclusao-vacina" className="mb-1 block text-sm font-medium">
                   Vacina<span className="text-danger"> *</span>
                 </label>
-                <select id="campo-conclusao-vacina" name="vacinaId" className="campo" defaultValue={state.valores?.vacinaId ?? ""} aria-invalid={erros.vacinaId ? true : undefined}>
+                <select key={state.valores?.vacinaId ?? ""} id="campo-conclusao-vacina" name="vacinaId" className="campo" defaultValue={state.valores?.vacinaId ?? ""} aria-invalid={erros.vacinaId ? true : undefined}>
                   <option value="">Selecione…</option>
                   {vacinas.map((v) => (
                     <option key={v.id} value={v.id}>{v.nome}</option>

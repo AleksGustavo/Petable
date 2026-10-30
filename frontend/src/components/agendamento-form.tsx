@@ -10,6 +10,7 @@ import { moeda, type Agendamento, type PrecoPrevisto, type Servico } from "@/lib
 import type { FormState } from "@/lib/clientes";
 import { agoraLocalISO } from "@/lib/datas";
 import type { CatalogoItem } from "@/lib/pets";
+import { useSelectControlado } from "@/lib/select-controlado";
 import type { FuncionarioResumo } from "@/lib/usuarios";
 
 type PetOpcao = { id: number; nome: string };
@@ -40,6 +41,8 @@ export function AgendamentoForm({
   const [petId, setPetId] = useState(petInicial ? String(petInicial.id) : "");
   const [servicoId, setServicoId] = useState(agendamento ? String(agendamento.servico.id) : "");
   const [preco, setPreco] = useState<PrecoPrevisto | null>(null);
+  const refPet = useSelectControlado(petId, state);
+  const refServico = useSelectControlado(servicoId, state);
 
   // Tutor escolhido → carrega só os pets ativos dele.
   useEffect(() => {
@@ -91,6 +94,7 @@ export function AgendamentoForm({
             Pet<span className="text-danger"> *</span>
           </label>
           <select
+            ref={refPet}
             id="campo-pet"
             name="petId"
             className="campo"
@@ -115,6 +119,7 @@ export function AgendamentoForm({
             Serviço<span className="text-danger"> *</span>
           </label>
           <select
+            ref={refServico}
             id="campo-servico"
             name="servicoId"
             className="campo"
@@ -132,7 +137,9 @@ export function AgendamentoForm({
         {funcionarios.length > 0 && (
           <div>
             <label htmlFor="campo-funcionario" className="mb-1 block text-sm font-medium">Profissional</label>
+            {/* key: remonta com o valor devolvido pela action (o reset do React 19 não reaplica defaultValue em select). */}
             <select
+              key={state.valores?.funcionarioId ?? ""}
               id="campo-funcionario"
               name="funcionarioId"
               className="campo"

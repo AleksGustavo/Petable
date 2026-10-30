@@ -46,7 +46,8 @@ export function FuncionarioForm({
         <Campo rotulo="Data de nascimento" name="dataNascimento" type="date" max={hojeISO()} defaultValue={v("dataNascimento", funcionario?.dataNascimento)} erro={erros.dataNascimento} />
         <div>
           <label htmlFor="campo-sexo" className="mb-1 block text-sm font-medium">Sexo</label>
-          <select id="campo-sexo" name="sexo" className="campo" defaultValue={v("sexo", funcionario?.sexo ?? "OUTRO")}>
+          {/* key: remonta com o valor devolvido pela action (o reset do React 19 não reaplica defaultValue em select). */}
+          <select key={v("sexo", "")} id="campo-sexo" name="sexo" className="campo" defaultValue={v("sexo", funcionario?.sexo ?? "OUTRO")}>
             {SEXOS.map((s) => (
               <option key={s.valor} value={s.valor}>{s.rotulo}</option>
             ))}

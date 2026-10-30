@@ -6,6 +6,7 @@ import { LoteDaVacina } from "@/components/lote-da-vacina";
 import { Campo } from "@/components/campo";
 import type { FormState } from "@/lib/clientes";
 import { hojeISO, somarMeses } from "@/lib/datas";
+import { useSelectControlado } from "@/lib/select-controlado";
 import type { VacinaCatalogo } from "@/lib/pets";
 
 /** Vacina escolhida do catálogo da espécie do pet (nunca texto livre). */
@@ -16,6 +17,7 @@ export function VacinaForm({ petId, vacinas }: { petId: number; vacinas: VacinaC
   const [vacinaId, setVacinaId] = useState(state.valores?.vacinaId ?? "");
   const [aplicacao, setAplicacao] = useState(state.valores?.dataAplicacao ?? hoje);
   const [proxima, setProxima] = useState(state.valores?.dataProxima ?? "");
+  const refVacina = useSelectControlado(vacinaId, state);
 
   /** Sugere a próxima dose pela validade padrão da vacina; o usuário pode mudar. */
   function sugerir(id: string, dataAplicacao: string) {
@@ -39,6 +41,7 @@ export function VacinaForm({ petId, vacinas }: { petId: number; vacinas: VacinaC
           Vacina<span className="text-danger"> *</span>
         </label>
         <select
+          ref={refVacina}
           id="campo-vacina"
           name="vacinaId"
           className="campo"

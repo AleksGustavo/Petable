@@ -2,10 +2,12 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { FormState } from "@/lib/clientes";
 import type { Movimentacao, Produto } from "@/lib/estoque";
+import type { Lote } from "@/lib/lotes";
 
 const { ajustarEstoque, alternarAtivoProduto } = vi.hoisted(() => ({
-  ajustarEstoque: vi.fn(async () => ({})),
+  ajustarEstoque: vi.fn<(id: unknown, prev: unknown, fd: FormData) => Promise<FormState>>(async () => ({})),
   alternarAtivoProduto: vi.fn(async () => ({})),
 }));
 vi.mock("@/app/actions/estoque", () => ({ ajustarEstoque, alternarAtivoProduto }));
@@ -103,5 +105,26 @@ describe("detalhes do produto", () => {
     expect(screen.queryByRole("button", { name: "Reativar produto" })).toBeNull();
     rerender(<ProdutoAcoes produto={inativo} podeDesativar podeReativar />);
     expect(screen.getByRole("button", { name: "Reativar produto" })).toBeDefined();
+  });
+
+  it("ajuste com lote mantém o lote escolhido após erro da action", async () => {
+    // Como a action real: devolve os valores para o formulário repopular após o reset do React 19.
+    ajustarEstoque.mockImplementationOnce(async (_id, _prev, fd) => ({ mensagem: "Saldo do lote insuficiente.", valores: Object.fromEntries([...fd.entries()].map(([k, v]) => [k, String(v)])) }));
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const user = userEvent.setup();
+    const lotes = [
+      { id: 1, codigoLote: "L-001", saldo: 4 },
+      { id: 2, codigoLote: "L-002", saldo: 6 },
+    ] as Lote[];
+    render(<AjusteEstoqueForm produto={{ ...produto, controlaLote: true }} lotes={lotes} />);
+
+    await user.selectOptions(screen.getByLabelText(/^Lote/), "2");
+    await user.type(screen.getByLabelText(/Quantidade/), "-3");
+    await user.type(screen.getByLabelText(/Motivo/), "Baixa por avaria");
+    await user.click(screen.getByRole("button", { name: "Ajustar estoque" }));
+
+    expect(await screen.findByText("Saldo do lote insuficiente.")).toBeDefined();
+    expect(ajustarEstoque).toHaveBeenCalled();
+    expect(screen.getByLabelText(/^Lote/)).toHaveProperty("value", "2");
   });
 });

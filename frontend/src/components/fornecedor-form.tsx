@@ -8,6 +8,7 @@ import { Aviso } from "@/components/aviso";
 import { Campo } from "@/components/campo";
 import type { FormState } from "@/lib/clientes";
 import { fornecedorSchema, type Fornecedor } from "@/lib/estoque";
+import { useSelectControlado } from "@/lib/select-controlado";
 import { mascaraCep, mascaraCnpj, mascaraTelefone, somenteDigitos } from "@/lib/format";
 
 const UFS = "AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO".split(" ");
@@ -38,6 +39,7 @@ export function FornecedorForm({ fornecedor }: { fornecedor?: Fornecedor }) {
   const [errosLocais, setErrosLocais] = useState<Record<string, string>>({});
   const [buscandoCep, setBuscandoCep] = useState(false);
   const erros = { ...(state.erros ?? {}), ...errosLocais };
+  const refUf = useSelectControlado(v.uf, state);
 
   const set = (campo: string, mascara?: (s: string) => string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setV((atual) => ({ ...atual, [campo]: mascara ? mascara(e.target.value) : e.target.value }));
@@ -117,7 +119,7 @@ export function FornecedorForm({ fornecedor }: { fornecedor?: Fornecedor }) {
           <label htmlFor="campo-uf-fornecedor" className="mb-1 block text-sm font-medium">
             UF<span className="text-danger"> *</span>
           </label>
-          <select id="campo-uf-fornecedor" name="uf" className="campo" value={v.uf} onChange={set("uf")} aria-invalid={erros.uf ? true : undefined}>
+          <select ref={refUf} id="campo-uf-fornecedor" name="uf" className="campo" value={v.uf} onChange={set("uf")} aria-invalid={erros.uf ? true : undefined}>
             <option value="">—</option>
             {UFS.map((uf) => (
               <option key={uf}>{uf}</option>

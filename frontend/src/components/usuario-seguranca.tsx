@@ -41,7 +41,14 @@ export function UsuarioSeguranca({ usuario, ehVoceMesmo }: { usuario: Usuario; e
           >
             <div className="flex-1">
               <label htmlFor="campo-papel" className="mb-1 block text-sm font-medium">Papel</label>
-              <select id="campo-papel" name="papel" defaultValue={usuario.papel} className="campo">
+              {/* key: remonta com o papel devolvido pela action (o reset do React 19 não reaplica defaultValue em select). */}
+              <select
+                key={statePapel.valores?.papel ?? usuario.papel}
+                id="campo-papel"
+                name="papel"
+                defaultValue={statePapel.valores?.papel ?? usuario.papel}
+                className="campo"
+              >
                 {PAPEIS.map((p) => (
                   <option key={p.valor} value={p.valor}>{p.rotulo}</option>
                 ))}

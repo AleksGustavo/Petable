@@ -13,6 +13,7 @@ import type { FormState } from "@/lib/clientes";
 import { formatarInstante } from "@/lib/datas";
 import { ajusteEstoqueSchema, rotuloMovimentacao, type Movimentacao, type Produto } from "@/lib/estoque";
 import type { Lote } from "@/lib/lotes";
+import { useSelectControlado } from "@/lib/select-controlado";
 
 /** Dados somente leitura (SERVICO, ou quem não edita produtos). */
 export function ProdutoDados({ produto }: { produto: Produto }) {
@@ -139,6 +140,7 @@ export function AjusteEstoqueForm({ produto, lotes = [] }: { produto: Produto; l
   const controla = produto.controlaLote === true;
   const [loteEscolhido, setLoteEscolhido] = useState("");
   const novoLote = loteEscolhido === "novo";
+  const refLote = useSelectControlado(loteEscolhido, state);
   const erros = { ...(state.erros ?? {}), ...errosLocais };
 
   function validar(e: React.FormEvent<HTMLFormElement>) {
@@ -196,6 +198,7 @@ export function AjusteEstoqueForm({ produto, lotes = [] }: { produto: Produto; l
           <div>
             <label htmlFor="campo-loteId" className="mb-1 block text-sm font-medium">Lote<span className="text-danger"> *</span></label>
             <select
+              ref={refLote}
               id="campo-loteId"
               name={novoLote ? "loteNovo" : "loteId"}
               className="campo"
