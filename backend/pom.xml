@@ -16,7 +16,7 @@
 	<properties>
 		<java.version>21</java.version>
 		<springdoc.version>3.1.1</springdoc.version>
-		<jacoco.version>0.8.15</jacoco.version>
+		<jacoco.version>0.8.16</jacoco.version>
 		<!-- Etapa 09 (Trivy): Tomcat 11.0.24 do Boot 4.1.1 tem CVE-2026-65182/65905/68525 (críticas).
 		     Remover quando o Spring Boot trouxer >= 11.0.25. -->
 		<tomcat.version>11.0.26</tomcat.version>
